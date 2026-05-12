@@ -12,6 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, Loader2, FileText, ArrowUpRight } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 import type {
   Criterion,
   ExtractCriteriaResult,
@@ -179,6 +186,8 @@ export default function NewJobPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   function pick() {
     // Clear the input's value first so the same file can be re-picked.
     // Without this, picking the same path twice in a row doesn't fire onChange.
@@ -194,6 +203,7 @@ export default function NewJobPage() {
     setError(null);
     setSaveState("idle");
     setSaveError(null);
+    setPreviewOpen(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -253,6 +263,19 @@ export default function NewJobPage() {
           title: result.title_suggestion,
           description: result.jd_text,
           criteria,
+          department: result.department || undefined,
+          location: result.location || undefined,
+          compensation: result.compensation || undefined,
+          level: result.level || undefined,
+          type: result.job_type || undefined,
+          summary: result.summary || undefined,
+          responsibilities: result.responsibilities ?? [],
+          requirements: result.requirements ?? [],
+          niceToHave: result.nice_to_have ?? [],
+          portfolioRequirement: result.portfolio_requirement || undefined,
+          benefitsRemote: result.benefits_remote ?? [],
+          benefitsInPerson: result.benefits_inperson ?? [],
+          workCulture: result.work_culture ?? [],
         }),
       });
       const data = await res.json();
@@ -299,6 +322,29 @@ export default function NewJobPage() {
   const strongCount = criteria.filter((c) => c.importance === "strong").length;
   const niceCount = criteria.filter((c) => c.importance === "nice").length;
   const visibleCount = grouped.reduce((n, g) => n + g.items.length, 0);
+
+  const canSave =
+    result !== null &&
+    !!result.department?.trim() &&
+    !!result.level?.trim() &&
+    !!result.job_type?.trim() &&
+    !!result.location?.trim() &&
+    !!result.compensation?.trim() &&
+    !!result.summary?.trim() &&
+    (result.responsibilities?.length ?? 0) > 0 &&
+    (result.requirements?.length ?? 0) > 0 &&
+    (result.nice_to_have?.length ?? 0) > 0;
+
+  const missingRequired: string[] = [];
+  if (!result?.department?.trim()) missingRequired.push("Department");
+  if (!result?.level?.trim()) missingRequired.push("Level");
+  if (!result?.job_type?.trim()) missingRequired.push("Type");
+  if (!result?.location?.trim()) missingRequired.push("Location");
+  if (!result?.compensation?.trim()) missingRequired.push("Compensation");
+  if (!result?.summary?.trim()) missingRequired.push("Summary");
+  if (!(result?.responsibilities?.length)) missingRequired.push("Responsibilities");
+  if (!(result?.requirements?.length)) missingRequired.push("Requirements");
+  if (!(result?.nice_to_have?.length)) missingRequired.push("Nice to Have");
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
@@ -491,17 +537,20 @@ export default function NewJobPage() {
                   </div>
                 )}
 
-                {/* after result, just show file card + start-over hint */}
+                {/* after result, show "See preview" button */}
                 {!loading && result && (
-                  <div className="mt-auto pt-10">
+                  <div className="mt-8">
                     <HairRule />
-                    <div className="pt-6 flex items-center justify-between">
-                      <p className="text-body-sm text-muted-foreground">
-                        Criteria ready. Review on the right.
+                    <div className="mt-6 flex items-center justify-between gap-4">
+                      <p className="text-body-sm text-muted-foreground leading-relaxed">
+                        Extraction complete.
                       </p>
-                      <span className="caps-action text-muted-foreground">
-                        ii. →
-                      </span>
+                      <button
+                        onClick={() => setPreviewOpen(true)}
+                        className="caps-action text-primary hover:text-primary/70 transition-colors"
+                      >
+                        See preview →
+                      </button>
                     </div>
                   </div>
                 )}
@@ -761,8 +810,12 @@ export default function NewJobPage() {
           {result && !loading && (
             <div className="border-t border-border bg-background px-4 sm:px-6 md:px-12 py-4 flex items-center justify-between gap-4 flex-shrink-0">
               <div className="flex-1 min-w-0">
-                {saveState === "error" && saveError ? (
-                  <p className="caps-action text-primary">
+                {!canSave && result ? (
+                  <p className="caps-action text-primary truncate">
+                    Missing: {missingRequired.join(" · ")}
+                  </p>
+                ) : saveState === "error" && saveError ? (
+                  <p className="caps-action text-primary truncate">
                     Couldn&apos;t save · {saveError}
                   </p>
                 ) : (
@@ -776,7 +829,7 @@ export default function NewJobPage() {
               </div>
               <Button
                 onClick={saveJob}
-                disabled={saveState === "saving"}
+                disabled={saveState === "saving" || !canSave}
                 size="sm"
                 className="rounded-sm caps-action gap-2 min-w-[110px]"
               >
@@ -807,6 +860,205 @@ export default function NewJobPage() {
         </span>
         <span>2026</span>
       </footer>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif italic text-h2 text-foreground/85">
+              Job Preview
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-8 pt-2">
+            {result && (
+              <>
+                {/* Section I — Basic Info */}
+                <div className="space-y-5">
+                  <h3 className="flex items-baseline gap-3 font-serif italic text-h3 text-foreground/85">
+                    <span className="font-serif italic text-display text-primary">i.</span>
+                    <span>Basic Info</span>
+                  </h3>
+                  <div className="space-y-6">
+                    <div>
+                      <p className="caps-meta text-muted-foreground mb-2">
+                        Title
+                      </p>
+                      <p className="text-body text-foreground">{result.title_suggestion}</p>
+                    </div>
+                    {result.department?.trim() && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Department <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <p className="text-body text-foreground">{result.department}</p>
+                      </div>
+                    )}
+                    {result.level?.trim() && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Level <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <p className="text-body text-foreground">{result.level}</p>
+                      </div>
+                    )}
+                    {result.job_type?.trim() && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Type <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <p className="text-body text-foreground">{result.job_type}</p>
+                      </div>
+                    )}
+                    {result.location?.trim() && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Location <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <p className="text-body text-foreground">{result.location}</p>
+                      </div>
+                    )}
+                    {result.compensation?.trim() && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Compensation <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <p className="text-body text-foreground">{result.compensation}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section II — Role Details */}
+                <div className="space-y-5">
+                  <h3 className="flex items-baseline gap-3 font-serif italic text-h3 text-foreground/85">
+                    <span className="font-serif italic text-display text-primary">ii.</span>
+                    <span>Role Details</span>
+                  </h3>
+                  <div className="space-y-6">
+                    {result.summary?.trim() && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Summary <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <p className="text-body text-foreground leading-relaxed">{result.summary}</p>
+                      </div>
+                    )}
+                    {result.responsibilities && result.responsibilities.length > 0 && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Responsibilities <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <ul className="space-y-1 mt-2">
+                          {result.responsibilities.map((item, i) => (
+                            <li key={i} className="text-body text-foreground/80 flex gap-2">
+                              <span className="text-muted-foreground mt-0.5">·</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.requirements && result.requirements.length > 0 && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Requirements <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <ul className="space-y-1 mt-2">
+                          {result.requirements.map((item, i) => (
+                            <li key={i} className="text-body text-foreground/80 flex gap-2">
+                              <span className="text-muted-foreground mt-0.5">·</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.nice_to_have && result.nice_to_have.length > 0 && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">
+                          Nice to Have <span className="text-[#B8553A]">*</span>
+                        </p>
+                        <ul className="space-y-1 mt-2">
+                          {result.nice_to_have.map((item, i) => (
+                            <li key={i} className="text-body text-foreground/80 flex gap-2">
+                              <span className="text-muted-foreground mt-0.5">·</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.portfolio_requirement && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">Portfolio Requirement</p>
+                        <p className="text-body text-foreground">{result.portfolio_requirement}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section III — Benefits & Culture */}
+                <div className="space-y-5">
+                  <h3 className="flex items-baseline gap-3 font-serif italic text-h3 text-foreground/85">
+                    <span className="font-serif italic text-display text-primary">iii.</span>
+                    <span>Benefits & Culture</span>
+                  </h3>
+                  <div className="space-y-6">
+                    {result.benefits_remote && result.benefits_remote.length > 0 && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">Remote Benefits</p>
+                        <ul className="space-y-1 mt-2">
+                          {result.benefits_remote.map((item, i) => (
+                            <li key={i} className="text-body text-foreground/80 flex gap-2">
+                              <span className="text-muted-foreground mt-0.5">·</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.benefits_inperson && result.benefits_inperson.length > 0 && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">In-Person Benefits</p>
+                        <ul className="space-y-1 mt-2">
+                          {result.benefits_inperson.map((item, i) => (
+                            <li key={i} className="text-body text-foreground/80 flex gap-2">
+                              <span className="text-muted-foreground mt-0.5">·</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.work_culture && result.work_culture.length > 0 && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">Work Culture</p>
+                        <ul className="space-y-1 mt-2">
+                          {result.work_culture.map((item, i) => (
+                            <li key={i} className="text-body text-foreground/80 flex gap-2">
+                              <span className="text-muted-foreground mt-0.5">·</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-border mt-6">
+            <DialogClose asChild>
+              <button className="caps-action text-muted-foreground hover:text-foreground transition-colors">
+                ← Close preview
+              </button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

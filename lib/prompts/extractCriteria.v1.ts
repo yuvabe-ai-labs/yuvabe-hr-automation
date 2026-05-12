@@ -1,4 +1,4 @@
-// extractCriteria — v1.1 (2026-04-30)
+// extractCriteria — v1.2 (2026-05-08)
 // Importance assignment is now section-anchored, with STRONG as the default
 // rather than the fuzzy middle. Two run-to-run instability sources are
 // addressed: (1) here, by removing subjective "feel" from the rules; and
@@ -7,6 +7,11 @@
 // 2026-05-01: added stable per-Criterion `id` (8-char nanoid). Generated in
 // code immediately after extraction (route.ts), with a deterministic backfill
 // in jobs-store for criteria from existing data files. See `Criterion` doc.
+//
+// 2026-05-08: expanded to extract structured job metadata (department, level,
+// type, summary, responsibilities, requirements, nice-to-have, benefits, culture).
+// New fields in ExtractCriteriaResult and EXTRACT_CRITERIA_SCHEMA. All optional
+// and best-effort.
 
 import { customAlphabet } from "nanoid";
 import { createHash } from "node:crypto";
@@ -66,6 +71,24 @@ Other rules:
 - If two criteria say nearly the same thing, merge them. Do not output near-duplicates.
 - The same criterion never appears twice with different importance.
 
+Additionally, extract structured job metadata (best-effort — omit if not present):
+- department: Org function (Engineering, Design, Marketing, Sales, Product, Operations, etc.)
+- level: Seniority level — one of "Entry Level", "Experienced". Infer from years_required or JD:
+  - If years_required < 2 or "junior/entry" language: "Entry Level"
+  - If years_required >= 2 or "senior/experienced" language: "Experienced"
+  - Null if cannot determine
+- job_type: Employment type — one of "Full Time", "Part Time", "Contract", "Internship". Null if not found.
+- location: Job location — one of "Auroville, India", "Remote", "Flexible". Null if not found.
+- compensation: Salary range, equity, or compensation details if mentioned (e.g. "₹50L-70L", "$100k-130k", "Competitive")
+- summary: 2-3 sentence plain-language role overview
+- responsibilities: Bullet items from an explicitly labeled "Responsibilities" or "Key duties" section. Do NOT invent. Return empty array if section is not present.
+- requirements: Bullet items from an explicitly labeled "Requirements" or "Must-have" section. Do NOT invent. Return empty array if section is not present.
+- nice_to_have: Bullet items from an explicitly labeled "Nice-to-have" or "Bonus" section. Do NOT invent. Return empty array if section is not present.
+- portfolio_requirement: Any mention of portfolio, case study, or work sample requirement. Null if not mentioned.
+- benefits_remote: Remote-work or flexible benefits listed. Return empty array if not mentioned.
+- benefits_inperson: In-person office perks listed. Return empty array if not mentioned.
+- work_culture: Culture, values, or team-environment statements listed. Return empty array if not mentioned.
+
 Worked example
 ==============
 JD excerpt:
@@ -102,6 +125,80 @@ export const EXTRACT_CRITERIA_SCHEMA = {
       type: "string",
       description: "A concise job title inferred from the JD (e.g. 'Digital Marketing & Performance Specialist'). Used to pre-fill the title field if the recruiter hasn't typed one yet.",
     },
+    department: {
+      type: "string",
+      description: "Org function (Engineering, Design, Marketing, Sales, Product, Operations, etc.). Best-effort extraction; null if not found.",
+      nullable: true,
+    },
+    level: {
+      type: "string",
+      enum: ["Entry Level", "Experienced"],
+      description: "Seniority level. Infer from years_required or JD language. Null if cannot determine.",
+      nullable: true,
+    },
+    job_type: {
+      type: "string",
+      enum: ["Full Time", "Part Time", "Contract", "Internship"],
+      description: "Employment type. Null if not found.",
+      nullable: true,
+    },
+    location: {
+      type: "string",
+      enum: ["Auroville, India", "Remote", "Flexible"],
+      description: "Job location. Null if not found.",
+      nullable: true,
+    },
+    compensation: {
+      type: "string",
+      description: "Salary range, equity, or compensation details if mentioned (e.g. '₹50L-70L', '$100k-130k', 'Competitive'). Best-effort; null if not found.",
+      nullable: true,
+    },
+    summary: {
+      type: "string",
+      description: "2-3 sentence plain-language role overview. Best-effort; null if not found.",
+      nullable: true,
+    },
+    responsibilities: {
+      type: "array",
+      items: { type: "string" },
+      description: "Bullet items from the Responsibilities / Key duties section. Best-effort; null if not found.",
+      nullable: true,
+    },
+    requirements: {
+      type: "array",
+      items: { type: "string" },
+      description: "Bullet items from the Requirements / Must-have section. Best-effort; null if not found.",
+      nullable: true,
+    },
+    nice_to_have: {
+      type: "array",
+      items: { type: "string" },
+      description: "Bullet items from the Nice-to-have / Bonus section. Best-effort; null if not found.",
+      nullable: true,
+    },
+    portfolio_requirement: {
+      type: "string",
+      description: "Any mention of portfolio, case study, or work sample requirement. Best-effort; null if not found.",
+      nullable: true,
+    },
+    benefits_remote: {
+      type: "array",
+      items: { type: "string" },
+      description: "Remote-work or flexible benefits listed. Best-effort; null if not found.",
+      nullable: true,
+    },
+    benefits_inperson: {
+      type: "array",
+      items: { type: "string" },
+      description: "In-person office perks listed. Best-effort; null if not found.",
+      nullable: true,
+    },
+    work_culture: {
+      type: "array",
+      items: { type: "string" },
+      description: "Culture, values, or team-environment statements. Best-effort; null if not found.",
+      nullable: true,
+    },
     criteria: {
       type: "array",
       minItems: 6,
@@ -127,7 +224,7 @@ export const EXTRACT_CRITERIA_SCHEMA = {
       },
     },
   },
-  required: ["title_suggestion", "criteria"],
+  required: ["title_suggestion", "criteria", "department", "level", "job_type", "location", "compensation", "summary", "responsibilities", "requirements", "nice_to_have", "portfolio_requirement", "benefits_remote", "benefits_inperson", "work_culture"],
 } as const;
 
 export type Importance = "must" | "strong" | "nice";
@@ -166,5 +263,18 @@ export type LLMCriterion = Omit<Criterion, "id">;
 
 export type ExtractCriteriaResult = {
   title_suggestion: string;
+  department?: string | null;
+  level?: string | null;
+  job_type?: string | null;
+  location?: string | null;
+  compensation?: string | null;
+  summary?: string | null;
+  responsibilities?: string[] | null;
+  requirements?: string[] | null;
+  nice_to_have?: string[] | null;
+  portfolio_requirement?: string | null;
+  benefits_remote?: string[] | null;
+  benefits_inperson?: string[] | null;
+  work_culture?: string[] | null;
   criteria: LLMCriterion[];
 };

@@ -44,7 +44,7 @@ export type Candidate = {
   experience: ExperienceEntry[];
   education: EducationEntry[];
   links?: CandidateLinks;
-  resumeText?: string;         // full parsed resume text — optional for new records
+  resumeText: string;          // full parsed resume text
 };
 
 /** Row shape as returned by Supabase (snake_case columns, JSONB sub-collections). */
@@ -75,10 +75,10 @@ function rowToCandidate(row: CandidateRow): Candidate {
     skills: row.skills ?? [],
     experience: row.experience ?? [],
     education: row.education ?? [],
+    resumeText: row.resume_text,
   };
-  // Postgres null becomes undefined in the canonical TS shape (links and resumeText are optional).
+  // Postgres null becomes undefined in the canonical TS shape (links is optional).
   if (row.links) candidate.links = row.links;
-  if (row.resume_text) candidate.resumeText = row.resume_text;
   return candidate;
 }
 
@@ -115,7 +115,7 @@ export async function createCandidate(
     experience: input.experience,
     education: input.education,
     links: input.links ?? null,
-    resume_text: input.resumeText ?? '',
+    resume_text: input.resumeText,
   };
 
   const { data, error } = await supabase

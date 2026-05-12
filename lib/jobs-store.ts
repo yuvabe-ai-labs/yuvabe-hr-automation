@@ -27,6 +27,19 @@ export type Job = {
   title: string;
   description: string;   // raw JD text we passed to the LLM
   criteria: Criterion[]; // editable criteria as confirmed by the recruiter on save
+  department?: string;
+  location?: string;
+  compensation?: string;
+  type?: string;
+  level?: string;
+  summary?: string;
+  responsibilities: string[];
+  requirements: string[];
+  niceToHave: string[];
+  portfolioRequirement?: string;
+  benefitsRemote: string[];
+  benefitsInPerson: string[];
+  workCulture: string[];
   createdAt: string;     // ISO 8601
   /**
    * Soft-delete marker. When set, the job is hidden from `listJobs()` by
@@ -43,6 +56,19 @@ type JobRow = {
   title: string;
   description: string;
   criteria: Criterion[];
+  department: string | null;
+  location: string | null;
+  compensation: string | null;
+  type: string | null;
+  level: string | null;
+  summary: string | null;
+  responsibilities: string[] | null;
+  requirements: string[] | null;
+  nicetohave: string[] | null;
+  portfoliorequirement: string | null;
+  benefits_remote: string[] | null;
+  benefits_inperson: string[] | null;
+  workculture: string[] | null;
   created_at: string;
   archived_at: string | null;
 };
@@ -54,8 +80,21 @@ function rowToJob(row: JobRow): Job {
     title: row.title,
     description: row.description,
     criteria: row.criteria ?? [],
+    responsibilities: row.responsibilities ?? [],
+    requirements: row.requirements ?? [],
+    niceToHave: row.nicetohave ?? [],
+    benefitsRemote: row.benefits_remote ?? [],
+    benefitsInPerson: row.benefits_inperson ?? [],
+    workCulture: row.workculture ?? [],
     createdAt: row.created_at,
   };
+  if (row.department) job.department = row.department;
+  if (row.location) job.location = row.location;
+  if (row.compensation) job.compensation = row.compensation;
+  if (row.type) job.type = row.type;
+  if (row.level) job.level = row.level;
+  if (row.summary) job.summary = row.summary;
+  if (row.portfoliorequirement) job.portfolioRequirement = row.portfoliorequirement;
   if (row.archived_at) job.archivedAt = row.archived_at;
   return job;
 }
@@ -124,6 +163,19 @@ export type CreateJobInput = {
   title: string;
   description: string;
   criteria: Array<Omit<Criterion, "id"> & { id?: string }>;
+  department?: string;
+  location?: string;
+  compensation?: string;
+  type?: string;
+  level?: string;
+  summary?: string;
+  responsibilities?: string[];
+  requirements?: string[];
+  niceToHave?: string[];
+  portfolioRequirement?: string;
+  benefitsRemote?: string[];
+  benefitsInPerson?: string[];
+  workCulture?: string[];
 };
 
 /**
@@ -149,6 +201,19 @@ export async function createJob(input: CreateJobInput): Promise<Job> {
       title: input.title.trim(),
       description: input.description,
       criteria: criteriaWithIds,
+      department: input.department ?? null,
+      location: input.location ?? null,
+      compensation: input.compensation ?? null,
+      type: input.type ?? null,
+      level: input.level ?? null,
+      summary: input.summary ?? null,
+      responsibilities: input.responsibilities ?? [],
+      requirements: input.requirements ?? [],
+      nicetohave: input.niceToHave ?? [],
+      portfoliorequirement: input.portfolioRequirement ?? null,
+      benefits_remote: input.benefitsRemote ?? [],
+      benefits_inperson: input.benefitsInPerson ?? [],
+      workculture: input.workCulture ?? [],
       // created_at defaults to now() in Postgres; archived_at defaults to null
     };
 
