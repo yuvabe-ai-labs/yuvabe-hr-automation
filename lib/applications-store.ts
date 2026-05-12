@@ -69,6 +69,7 @@ export type Application = {
   coverLetter: string;
   receivedAt: string;           // ISO 8601
   status: ApplicationStatus;
+  resumeUrl: string | null;     // Supabase Storage path to the uploaded resume file
 };
 
 /** Row shape as returned by Supabase (snake_case columns, JSONB sub-collections). */
@@ -87,6 +88,7 @@ type ApplicationRow = {
   cover_letter: string;
   received_at: string;
   status: ApplicationStatus;
+  resume_url: string | null;
 };
 
 function rowToApplication(row: ApplicationRow): Application {
@@ -105,6 +107,7 @@ function rowToApplication(row: ApplicationRow): Application {
     coverLetter: row.cover_letter,
     receivedAt: row.received_at,
     status: row.status,
+    resumeUrl: row.resume_url ?? null,
   };
 }
 
@@ -176,6 +179,7 @@ export async function createApplication(
     match_breakdown: input.matchBreakdown,
     cover_letter: input.coverLetter,
     status: input.status,
+    resume_url: input.resumeUrl ?? null,
     // received_at defaults to now() in Postgres
   };
 

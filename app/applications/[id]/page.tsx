@@ -6,6 +6,7 @@ import {
   type CriterionMatch,
 } from "@/lib/applications-store";
 import { getCandidateById } from "@/lib/candidates-store";
+import { supabase } from "@/lib/supabase";
 import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
 import NavTabClient from "../../jobs/_components/nav-tab";
 import { StatusActions } from "./_components/status-actions";
@@ -138,6 +139,15 @@ export default async function ApplicationDetailPage({
   const jobs = await listJobs();
   const job = jobs.find((j) => j.id === application.jobId);
   if (!job) notFound();
+
+  // Generate signed URL for resume if it exists
+  let resumeSignedUrl: string | null = null;
+  if (application.resumeUrl) {
+    const { data } = await supabase.storage
+      .from("resumes")
+      .createSignedUrl(application.resumeUrl, 3600); // 1-hour validity
+    resumeSignedUrl = data?.signedUrl ?? null;
+  }
 
   // Group breakdown by importance (must → strong → nice)
   const importanceOrder = ["must", "strong", "nice"] as const;
@@ -286,15 +296,17 @@ export default async function ApplicationDetailPage({
 
           {/* Resume + links */}
           <div className="mt-6 pt-6 border-t border-border space-y-2">
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-2 caps-action text-muted-foreground/65 italic cursor-not-allowed"
-              title="Resume download coming when intake is wired"
-            >
-              <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Download resume (mock)
-            </button>
+            {resumeSignedUrl ? (
+              <a
+                href={resumeSignedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 caps-action text-muted-foreground hover:text-foreground transition-colors duration-150"
+              >
+                <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Download Resume
+              </a>
+            ) : null}
             {candidate.links?.linkedin && (
               <a
                 href={ensureHttps(candidate.links.linkedin)}
@@ -413,17 +425,19 @@ export default async function ApplicationDetailPage({
             </div>
 
             {/* Resume — collapsible */}
-            <details className="mt-16 group">
-              <summary className="cursor-pointer list-none flex items-center gap-3 eyebrow text-muted-foreground hover:text-foreground transition-colors">
-                <span className="font-mono text-body-sm leading-none group-open:rotate-90 transition-transform">
-                  ▸
-                </span>
-                Show resume text
-              </summary>
-              <p className="mt-5 text-body-lg leading-relaxed text-foreground/80 max-w-[68ch] whitespace-pre-line">
-                {candidate.resumeText}
-              </p>
-            </details>
+            {candidate.resumeText && (
+              <details className="mt-16 group">
+                <summary className="cursor-pointer list-none flex items-center gap-3 eyebrow text-muted-foreground hover:text-foreground transition-colors">
+                  <span className="font-mono text-body-sm leading-none group-open:rotate-90 transition-transform">
+                    ▸
+                  </span>
+                  Show resume text
+                </summary>
+                <p className="mt-5 text-body-lg leading-relaxed text-foreground/80 max-w-[68ch] whitespace-pre-line">
+                  {candidate.resumeText}
+                </p>
+              </details>
+            )}
 
             {/* Candidate experience details */}
             <div className="mt-16 mb-8">

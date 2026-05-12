@@ -6,6 +6,7 @@ import { createCandidate } from "@/lib/candidates-store";
 import { createApplication, type CriterionMatch } from "@/lib/applications-store";
 import { parseResume, scoreResume } from "@/lib/llm";
 import { IMPORTANCE_WEIGHT } from "@/lib/prompts/extractCriteria.v1";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Deterministic 0-100 match score, computed in code (not asked of the LLM)
@@ -88,6 +89,26 @@ export async function POST(req: Request) {
     );
   }
 
+  // Upload resume file to Supabase Storage before LLM calls.
+  // The file object is a stream — must be consumed before async work drains it.
+  let resumeUrl: string | null = null;
+  try {
+    const storageKey = `${crypto.randomUUID()}/${resume.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from("resumes")
+      .upload(storageKey, resume, { contentType: resume.type, upsert: false });
+
+    if (uploadError) {
+      console.error("[applications] Storage upload failed:", uploadError.message);
+    } else {
+      resumeUrl = storageKey;
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Storage upload failed";
+    console.error("[applications] Storage upload error:", message);
+    // Non-fatal: proceed without resumeUrl rather than failing the whole application
+  }
+
   try {
     // Two LLM calls in parallel: structured candidate parse + criteria scoring.
     // Both depend only on resumeText (and the job's criteria for scoring), so
@@ -115,7 +136,6 @@ export async function POST(req: Request) {
       experience: profile.experience,
       education: profile.education,
       ...(Object.keys(links).length > 0 ? { links } : {}),
-      resumeText,
     });
 
     // Stamp each breakdown row with the parent Job's stable Criterion.id when
@@ -143,6 +163,7 @@ export async function POST(req: Request) {
       matchBreakdown,
       coverLetter: "",
       status: "new",
+      resumeUrl,
     });
 
     return NextResponse.json(
