@@ -98,7 +98,7 @@ export async function getCandidateById(id: string): Promise<Candidate | null> {
   return data ? rowToCandidate(data as CandidateRow) : null;
 }
 
-export type CreateCandidateInput = Omit<Candidate, "id">;
+export type CreateCandidateInput = Omit<Candidate, "id" | "resumeText">;
 
 export async function createCandidate(
   input: CreateCandidateInput
@@ -115,7 +115,7 @@ export async function createCandidate(
     experience: input.experience,
     education: input.education,
     links: input.links ?? null,
-    resume_text: input.resumeText,
+    // resume_text will use the database default (empty string)
   };
 
   const { data, error } = await supabase
