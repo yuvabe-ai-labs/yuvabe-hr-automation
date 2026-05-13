@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getApplicationById } from "@/lib/applications-store";
 import { getCandidateById } from "@/lib/candidates-store";
 import { listJobs } from "@/lib/jobs-store";
+import { supabase } from "@/lib/supabase";
 import { ApplicationDetailContent } from "./_components/application-detail-content";
 
 export default async function ApplicationDetailPage({
@@ -33,6 +34,7 @@ export default async function ApplicationDetailPage({
       yearsOfExperience={candidate.yearsOfExperience}
       education={candidate.education}
       links={candidate.links}
+      resumeUrl={application.resumeUrl}
     />
   );
 }

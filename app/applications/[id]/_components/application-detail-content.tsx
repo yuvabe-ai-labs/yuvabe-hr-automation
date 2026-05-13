@@ -69,6 +69,26 @@ function ensureHttps(url: string): string {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
+async function downloadResume(resumeUrl: string) {
+  try {
+    const response = await fetch(resumeUrl);
+    if (!response.ok) throw new Error("Failed to download resume");
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "resume.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Resume download failed:", err);
+    // Fallback: open in new tab
+    window.open(resumeUrl, "_blank");
+  }
+}
+
 function formatDuration(startDate: string, endDate: string): string {
   const startMatch = startDate.match(/^(\d{4})-(\d{2})$/);
   if (!startMatch) return `${startDate} – ${endDate}`;
@@ -113,6 +133,7 @@ interface ApplicationDetailContentProps {
   yearsOfExperience?: number;
   education?: Array<{ degree: string; institution: string; year: number | string }>;
   links?: { linkedin?: string; portfolio?: string; github?: string };
+  resumeUrl?: string;
 }
 
 export function ApplicationDetailContent({
@@ -127,6 +148,7 @@ export function ApplicationDetailContent({
   yearsOfExperience,
   education,
   links,
+  resumeUrl,
 }: ApplicationDetailContentProps) {
   const router = useRouter();
   const { data: application, isLoading } = useApplicationById(id, initialApplication);
@@ -270,15 +292,20 @@ export function ApplicationDetailContent({
           </div>
 
           <div className="mt-6 pt-6 border-t border-border space-y-2">
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-2 caps-action text-muted-foreground/65 italic cursor-not-allowed"
-              title="Resume download coming when intake is wired"
-            >
-              <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Download resume (mock)
-            </button>
+            {resumeUrl ? (
+              <button
+                onClick={() => downloadResume(resumeUrl)}
+                className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors bg-none border-none cursor-pointer p-0"
+              >
+                <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Download Resume
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-2 caps-action text-muted-foreground/65 italic">
+                <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
+                No resume on file
+              </span>
+            )}
             {links?.linkedin && (
               <a
                 href={ensureHttps(links.linkedin)}

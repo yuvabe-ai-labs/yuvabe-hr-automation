@@ -115,8 +115,26 @@ export async function POST(req: Request) {
       experience: profile.experience,
       education: profile.education,
       ...(Object.keys(links).length > 0 ? { links } : {}),
-      resumeText,
     });
+
+    // Upload resume to Supabase Storage
+    const { supabase } = await import("@/lib/supabase");
+    const ext = resume.name.split(".").pop()?.toLowerCase() ?? "bin";
+    const storagePath = `${jobCode}/${candidate.id}.${ext}`;
+    const buffer = Buffer.from(await resume.arrayBuffer());
+
+    const { error: storageError } = await supabase.storage
+      .from("resumes")
+      .upload(storagePath, buffer, {
+        contentType: resume.type || "application/octet-stream",
+        upsert: false,
+      });
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const resumeUrl = storageError
+      ? undefined
+      : `${supabaseUrl}/storage/v1/object/public/resumes/${storagePath}`;
+    // storageError is non-fatal — application still created, just without resume link
 
     // Stamp each breakdown row with the parent Job's stable Criterion.id when
     // we can resolve it by label. If the LLM ever drifts the label slightly,
@@ -142,6 +160,7 @@ export async function POST(req: Request) {
       matchSummary: scoring.matchSummary,
       matchBreakdown,
       coverLetter: "",
+      resumeUrl,
       status: "new",
     });
 
