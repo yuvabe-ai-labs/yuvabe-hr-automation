@@ -66,15 +66,10 @@ export function JobsList({
   const [searchInput, setSearchInput] = useState(search);
 
   // Sync input when URL changes externally (back/forward) — derived-state pattern
-  // if (prevSearch !== search) {
-  //   setPrevSearch(search);
-  //   setSearchInput(search);
-  // }
-
-  useEffect(() => {
+  if (prevSearch !== search) {
     setPrevSearch(search);
     setSearchInput(search);
-  }, [search]);
+  }
 
   // Debounce search input → URL (skip first render to avoid redundant push)
   useEffect(() => {
