@@ -26,6 +26,8 @@ function mapRowToJob(row: JobRow): Job {
   };
 }
 
+export type JobsListResult = { jobs: Job[]; total: number };
+
 export async function getJobById(code: string): Promise<Job | undefined> {
   try {
     const client = getSupabasePeopleClient();
@@ -42,27 +44,41 @@ export async function getJobById(code: string): Promise<Job | undefined> {
   }
 }
 
-export async function listJobs(
-  includeArchived?: boolean
-): Promise<Job[]> {
+export async function listJobs(options?: {
+  includeArchived?: boolean;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<JobsListResult> {
   try {
+    const { includeArchived, search, page = 1, pageSize = 10 } = options ?? {};
     const client = getSupabasePeopleClient();
     let query = client
       .from("jobs")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false });
 
     if (!includeArchived) {
       query = query.is("archived_at", null);
     }
 
-    const { data, error } = await query;
+    if (search) {
+      query = query.ilike("title", `%${search}%`);
+    }
 
-    if (error || !data) return [];
-    return (data as JobRow[]).map(mapRowToJob);
-  } catch {
-    return [];
-  }
+    const offset = (page - 1) * pageSize;
+    query = query.range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+
+    if (error || !data) {
+  return { jobs: [], total: 0 };
+}
+    return { jobs: (data as JobRow[]).map(mapRowToJob), total: count ?? 0 };
+  } catch (err) {
+  console.error("listJobs exception:", err);
+  return { jobs: [], total: 0 };
+}
 }
 
 export async function countJobsByCode(code: string): Promise<number> {

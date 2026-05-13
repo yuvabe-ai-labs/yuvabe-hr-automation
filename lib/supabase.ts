@@ -16,8 +16,8 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.SUPABASE_URL;
-const secretKey = process.env.SUPABASE_SECRET_KEY;
+const url = process.env.NEXT_PUBLIC_YUVABE_PEOPLE_SUPABASE_URL;
+const secretKey = process.env.NEXT_PUBLIC_YUVABE_PEOPLE_SUPABASE_KEY;
 
 if (!url) {
   throw new Error(

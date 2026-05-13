@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { listJobs } from "@/lib/jobs-store";
+import { listJobs } from "@/services/jobs.service";
 import { listApplications } from "@/lib/applications-store";
-import { ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import NavTabClient from "./_components/nav-tab";
-import { JobIdBadge } from "@/app/_components/job-id-badge";
-import { JobActionsMenu } from "./_components/job-actions-menu";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { JobsList } from "./_components/jobs-list";
-import type { Job } from "@/types/jobs";
 
 /* —————————————————————————— small typographic atoms —————————————————————————— */
 
@@ -39,12 +36,17 @@ function ColumnMarker({
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string }>;
+  searchParams: Promise<{ new?: string; search?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const newCode = params.new;
-  const jobs = await listJobs();
-  const allApplications = await listApplications();
+  const initialSearch = params.search ?? "";
+  const initialPage = Number(params.page ?? "1");
+
+  const [result, allApplications] = await Promise.all([
+    listJobs({ search: initialSearch, page: initialPage }),
+    listApplications(),
+  ]);
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
@@ -62,8 +64,8 @@ export default async function JobsPage({
             <Eyebrow>ATS</Eyebrow>
           </div>
           <Eyebrow>
-            <span className="tabular">{String(jobs.length).padStart(2, "0")}</span>
-            &nbsp;{jobs.length === 1 ? "job" : "jobs"}
+            <span className="tabular">{String(result.total).padStart(2, "0")}</span>
+            &nbsp;{result.total === 1 ? "job" : "jobs"}
           </Eyebrow>
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -92,18 +94,15 @@ export default async function JobsPage({
                 New job
               </Link>
             </div>
-            {jobs.length > 0 && (
-              <p className="mt-3 caps-meta text-muted-foreground tabular">
-                {String(jobs.length).padStart(2, "0")} {jobs.length === 1 ? "role" : "roles"} posted &nbsp;·&nbsp; sorted by newest
-              </p>
-            )}
           </div>
 
           {/* Scrolling list */}
           <JobsList
-            initialJobs={jobs}
+            initialData={result}
             initialApplications={allApplications}
             newCode={newCode}
+            initialSearch={initialSearch}
+            initialPage={initialPage}
           />
         </section>
       </main>
