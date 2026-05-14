@@ -21,6 +21,21 @@ function mapRowToApplication(row: ApplicationRow): Application {
   };
 }
 
+export type ApplicationsPageResult = {
+  applications: Application[];
+  total: number;
+  statusCounts: Record<ApplicationStatus, number>;
+};
+
+export type ApplicationsQueryParams = {
+  status?: ApplicationStatus | null;
+  search?: string;
+  sort?: "asc" | "desc";
+  minScore?: number;
+  page?: number;
+  pageSize?: number;
+};
+
 export async function getApplicationById(id: string): Promise<Application | undefined> {
   try {
     const client = getSupabasePeopleClient();
@@ -52,19 +67,52 @@ export async function listApplications(): Promise<Application[]> {
   }
 }
 
-export async function listApplicationsByJobCode(jobCode: string): Promise<Application[]> {
+export async function listApplicationsByJobCode(
+  jobCode: string,
+  options?: ApplicationsQueryParams
+): Promise<ApplicationsPageResult> {
   try {
+    const { status, search, sort = "desc", minScore = 0, page = 1, pageSize = 15 } = options ?? {};
     const client = getSupabasePeopleClient();
-    const { data, error } = await client
-      .from("applications")
-      .select("*")
-      .eq("job_code", jobCode)
-      .order("match_score", { ascending: false });
 
-    if (error || !data) return [];
-    return (data as ApplicationRow[]).map(mapRowToApplication);
-  } catch {
-    return [];
+    // Status breakdown — lightweight, no pagination, used for chip counts
+    const { data: statusRows } = await client
+      .from("applications")
+      .select("status")
+      .eq("job_code", jobCode);
+
+    const statusCounts: Record<ApplicationStatus, number> = {
+      new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0,
+    };
+    for (const row of statusRows ?? []) {
+      const s = row.status as ApplicationStatus;
+      if (s in statusCounts) statusCounts[s]++;
+    }
+
+    // Paginated main query
+    let query = client
+      .from("applications")
+      .select("*", { count: "exact" })
+      .eq("job_code", jobCode)
+      .order("match_score", { ascending: sort === "asc" });
+
+    if (status) query = query.eq("status", status);
+    if (search) query = query.ilike("candidate_name", `%${search}%`);
+    if (minScore > 0) query = query.gte("match_score", minScore);
+
+    const offset = (page - 1) * pageSize;
+    query = query.range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+    if (error || !data) throw new Error(error?.message ?? "Failed to fetch applications");
+
+    return {
+      applications: (data as ApplicationRow[]).map(mapRowToApplication),
+      total: count ?? 0,
+      statusCounts,
+    };
+  } catch (error) {
+    throw error;
   }
 }
 

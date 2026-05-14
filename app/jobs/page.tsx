@@ -36,15 +36,16 @@ function ColumnMarker({
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string; search?: string; page?: string }>;
+  searchParams: Promise<{ new?: string; search?: string; page?: string; tab?: string }>;
 }) {
   const params = await searchParams;
   const newCode = params.new;
   const initialSearch = params.search ?? "";
   const initialPage = Number(params.page ?? "1");
+  const initialTab = params.tab === "archived" ? "archived" : "active";
 
   const [result, allApplications] = await Promise.all([
-    listJobs({ search: initialSearch, page: initialPage }),
+    listJobs({ search: initialSearch, page: initialPage, status: initialTab }),
     listApplications(),
   ]);
 
@@ -70,12 +71,12 @@ export default async function JobsPage({
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
-          <NavTabClient
+          {/* <NavTabClient
             href="/applications"
             label="Applicants"
             prefix="/applications"
-          />
-          <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" />
+          /> */}
+          {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
           <SignOutButton className="ml-auto" />
         </nav>
       </header>
@@ -103,6 +104,7 @@ export default async function JobsPage({
             newCode={newCode}
             initialSearch={initialSearch}
             initialPage={initialPage}
+            initialTab={initialTab}
           />
         </section>
       </main>

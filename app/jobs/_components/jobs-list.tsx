@@ -48,17 +48,20 @@ export function JobsList({
   newCode,
   initialSearch = "",
   initialPage = 1,
+  initialTab = "active",
 }: {
   initialData?: JobsListResult;
   initialApplications: Application[];
   newCode?: string;
   initialSearch?: string;
   initialPage?: number;
+  initialTab?: "active" | "archived";
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFirstRender = useRef(true);
 
+  const tab = (searchParams.get("tab") === "archived" ? "archived" : "active") as "active" | "archived";
   const search = searchParams.get("search") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
 
@@ -90,15 +93,11 @@ export function JobsList({
     return () => clearTimeout(timer);
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isInitialParams = search === initialSearch && page === initialPage;
-  // const { data } = useJobs(
-  //   { search, page, pageSize: PAGE_SIZE },
-  //   isInitialParams ? initialData : undefined
-  // );
-
+  const isInitialParams =
+    search === initialSearch && page === initialPage && tab === initialTab;
   const { data } = useJobs(
-    { search, page, pageSize: PAGE_SIZE },
-    initialData
+    { search, page, pageSize: PAGE_SIZE, status: tab },
+    isInitialParams ? initialData : undefined
   );
 
   const jobs = data?.jobs ?? [];
@@ -115,6 +114,17 @@ export function JobsList({
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
+  function buildTabHref(targetTab: "active" | "archived") {
+    const params = new URLSearchParams(searchParams.toString());
+    if (targetTab === "active") {
+      params.delete("tab");
+    } else {
+      params.set("tab", targetTab);
+    }
+    params.delete("page");
+    return `?${params.toString()}`;
+  }
+
   const appsByJobCode = new Map<string, number>();
   for (const a of initialApplications) {
     appsByJobCode.set(a.jobCode, (appsByJobCode.get(a.jobCode) ?? 0) + 1);
@@ -125,6 +135,23 @@ export function JobsList({
 
   return (
     <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-12">
+      {/* Active / Archived tabs */}
+      <div className="max-w-4xl flex items-center gap-6 border-b border-border mb-6">
+        {(["active", "archived"] as const).map((t) => (
+          <Link
+            key={t}
+            href={buildTabHref(t)}
+            className={`caps-meta py-3 -mb-px border-b-2 transition-colors ${
+              tab === t
+                ? "text-foreground border-primary"
+                : "text-foreground/55 border-transparent hover:text-foreground"
+            }`}
+          >
+            {t === "active" ? "Active" : "Archived"}
+          </Link>
+        ))}
+      </div>
+
       {/* Search */}
       <div className="max-w-4xl mb-5">
         <div className="relative">
@@ -156,8 +183,7 @@ export function JobsList({
             ) : (
               <>
                 {String(total).padStart(2, "0")}&nbsp;
-                {total === 1 ? "role" : "roles"} posted&nbsp;·&nbsp;sorted by
-                newest
+                {total === 1 ? "role" : "roles"} · sorted by newest
               </>
             )}
           </p>
@@ -168,6 +194,8 @@ export function JobsList({
       {isEmpty && (
         isFiltered ? (
           <FilterEmptyState onClear={() => setSearchInput("")} />
+        ) : tab === "archived" ? (
+          <ArchivedEmptyState />
         ) : (
           <EmptyState />
         )
@@ -180,6 +208,7 @@ export function JobsList({
             {jobs.map((job, idx) => {
               const counts = importanceCounts(job.criteria);
               const isNew = job.code === newCode;
+              const isArchived = job.status === "archived";
               const appCount = appsByJobCode.get(job.code) ?? 0;
               return (
                 <li
@@ -198,12 +227,17 @@ export function JobsList({
                       aria-label={`View applicants for ${job.title}`}
                     >
                       <div className="flex items-baseline gap-3 mb-2">
-                        <h3 className="font-serif italic text-h2 md:text-h1 leading-tight tracking-tight truncate">
+                        <h3 className={`font-serif italic text-h2 md:text-h1 leading-tight tracking-tight truncate ${isArchived ? "text-foreground/60" : ""}`}>
                           {job.title}
                         </h3>
                         {isNew && (
-                          <span className="eyebrow text-primary flex-shrink-0 hidden sm:inline">
+                          <span className="eyebrow text-primary shrink-0 hidden sm:inline">
                             ← just saved
+                          </span>
+                        )}
+                        {isArchived && (
+                          <span className="eyebrow text-muted-foreground shrink-0 hidden sm:inline">
+                            archived
                           </span>
                         )}
                       </div>
@@ -231,7 +265,7 @@ export function JobsList({
                         <span className="text-border hidden md:inline">·</span>
                         <span className="caps-meta tabular hidden md:inline">
                           <span className="text-primary">
-                            {String(counts.must).padStart(2, "0")} must
+                            {String(counts.must).padStart(2, "0")} preferred
                           </span>
                           <span className="text-muted-foreground/60 mx-1.5">
                             ·
@@ -256,11 +290,11 @@ export function JobsList({
                     <JobActionsMenu
                       jobCode={job.code}
                       jobTitle={job.title}
-                      isArchived={!!job.archivedAt}
+                      status={job.status}
                     />
 
                     <ChevronRight
-                      className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px transition-all flex-shrink-0"
+                      className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px transition-all shrink-0"
                       strokeWidth={1.75}
                       aria-hidden
                     />
@@ -322,6 +356,19 @@ function FilterEmptyState({ onClear }: { onClear: () => void }) {
       >
         Clear search
       </button>
+    </div>
+  );
+}
+
+function ArchivedEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-24">
+      <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
+        No archived jobs.
+      </p>
+      <p className="mt-4 max-w-sm text-body-lg text-muted-foreground leading-relaxed">
+        Jobs you archive will appear here. You can restore them at any time.
+      </p>
     </div>
   );
 }
