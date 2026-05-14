@@ -21,6 +21,19 @@ const createJobSchema = z.object({
     )
     .min(1, "At least one criterion is required")
     .max(40),
+  department: z.string().min(1).max(100).optional(),
+  location: z.enum(["Auroville, India", "Remote", "Flexible"]).optional(),
+  compensation: z.string().max(200).optional(),
+  type: z.enum(["Full Time", "Part Time", "Contract", "Internship"]).optional(),
+  level: z.enum(["Entry Level", "Experienced"]).optional(),
+  summary: z.string().max(1000).optional(),
+  responsibilities: z.array(z.string()).default([]),
+  requirements: z.array(z.string()).default([]),
+  niceToHave: z.array(z.string()).default([]),
+  portfolioRequirement: z.string().max(500).optional(),
+  benefitsRemote: z.array(z.string()).default([]),
+  benefitsInPerson: z.array(z.string()).default([]),
+  workCulture: z.array(z.string()).default([]),
 });
 
 export async function GET() {

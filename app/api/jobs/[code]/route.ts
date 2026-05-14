@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { archiveJob, unarchiveJob } from "@/lib/jobs-store";
+import { updateJobStatus } from "@/services/jobs.service";
 
 export const runtime = "nodejs";
 
-const patchSchema = z.object({
-  action: z.enum(["archive", "unarchive"]),
-});
+const patchSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("archive") }),
+  z.object({ action: z.literal("unarchive") }),
+  z.object({
+    action: z.literal("updateStatus"),
+    status: z.enum(["active", "archived"]),
+  }),
+]);
 
 export async function PATCH(
   req: Request,
@@ -30,10 +36,15 @@ export async function PATCH(
   }
 
   try {
-    const job =
-      parsed.data.action === "archive"
-        ? await archiveJob(code)
-        : await unarchiveJob(code);
+    let job;
+    if (parsed.data.action === "updateStatus") {
+      job = await updateJobStatus(code, parsed.data.status);
+    } else {
+      job =
+        parsed.data.action === "archive"
+          ? await archiveJob(code)
+          : await unarchiveJob(code);
+    }
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }

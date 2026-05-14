@@ -67,6 +67,7 @@ export type Application = {
   matchSummary: string;         // one-paragraph editorial overview (LLM "Match summary")
   matchBreakdown: CriterionMatch[];
   coverLetter: string;
+  resumeUrl?: string;           // Full public URL, e.g. "https://project.supabase.co/storage/v1/object/public/resumes/JOB-001/candidateId.pdf"
   receivedAt: string;           // ISO 8601
   status: ApplicationStatus;
 };
@@ -85,6 +86,7 @@ type ApplicationRow = {
   match_summary: string;
   match_breakdown: CriterionMatch[];
   cover_letter: string;
+  resume_url: string | null;
   received_at: string;
   status: ApplicationStatus;
 };
@@ -103,6 +105,7 @@ function rowToApplication(row: ApplicationRow): Application {
     matchSummary: row.match_summary,
     matchBreakdown: row.match_breakdown ?? [],
     coverLetter: row.cover_letter,
+    resumeUrl: row.resume_url ?? undefined,
     receivedAt: row.received_at,
     status: row.status,
   };
@@ -175,6 +178,7 @@ export async function createApplication(
     match_summary: input.matchSummary,
     match_breakdown: input.matchBreakdown,
     cover_letter: input.coverLetter,
+    resume_url: input.resumeUrl ?? null,
     status: input.status,
     // received_at defaults to now() in Postgres
   };

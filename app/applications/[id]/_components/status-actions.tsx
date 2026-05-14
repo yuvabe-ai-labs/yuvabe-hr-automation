@@ -1,10 +1,10 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Eye, Check, X } from "lucide-react";
-import type { ApplicationStatus } from "@/lib/applications-store";
+import { useUpdateApplicationStatus } from "@/hooks/use-applications";
+import type { ApplicationStatus } from "@/types/applications";
 
 type ToggleStatus = "reviewing" | "shortlisted" | "rejected";
 
@@ -22,30 +22,25 @@ export function StatusActions({
   applicationId: string;
   currentStatus: ApplicationStatus;
 }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [optimisticStatus, setOptimisticStatus] = useOptimistic<ApplicationStatus>(currentStatus);
+  const [optimisticStatus, setOptimisticStatus] = useState<ApplicationStatus>(currentStatus);
+  const updateMutation = useUpdateApplicationStatus();
 
   const displayValue = toToggleStatus(optimisticStatus);
 
   const setStatus = (next: ToggleStatus) => {
     if (next === toToggleStatus(currentStatus)) return;
     setError(null);
-    startTransition(async () => {
-      setOptimisticStatus(next);
-      const res = await fetch(`/api/applications/${applicationId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Couldn't update status");
-        return;
+    setOptimisticStatus(next);
+    updateMutation.mutate(
+      { id: applicationId, status: next },
+      {
+        onError: () => {
+          setOptimisticStatus(currentStatus);
+          setError("Couldn't update status");
+        },
       }
-      router.refresh();
-    });
+    );
   };
 
   return (
@@ -56,7 +51,7 @@ export function StatusActions({
         variant="outline"
         value={displayValue}
         onValueChange={(v) => v && setStatus(v as ToggleStatus)}
-        disabled={isPending}
+        disabled={updateMutation.isPending}
         className="w-full"
       >
         <ToggleGroupItem
