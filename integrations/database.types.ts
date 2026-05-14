@@ -245,6 +245,7 @@ export type Database = {
           portfoliorequirement: string | null
           requirements: Json | null
           responsibilities: Json | null
+          status: string
           summary: string | null
           title: string | null
           type: string | null
@@ -268,6 +269,7 @@ export type Database = {
           portfoliorequirement?: string | null
           requirements?: Json | null
           responsibilities?: Json | null
+          status?: string
           summary?: string | null
           title?: string | null
           type?: string | null
@@ -291,6 +293,7 @@ export type Database = {
           portfoliorequirement?: string | null
           requirements?: Json | null
           responsibilities?: Json | null
+          status?: string
           summary?: string | null
           title?: string | null
           type?: string | null

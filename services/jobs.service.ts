@@ -23,8 +23,11 @@ function mapRowToJob(row: JobRow): Job {
     workCulture: (row.workculture as string[]) || [],
     createdAt: row.created_at || new Date().toISOString(),
     archivedAt: row.archived_at || undefined,
+    status: (row.status === "archived" ? "archived" : "active") as "active" | "archived",
   };
 }
+
+export type JobsListResult = { jobs: Job[]; total: number };
 
 export async function getJobById(code: string): Promise<Job | undefined> {
   try {
@@ -42,26 +45,35 @@ export async function getJobById(code: string): Promise<Job | undefined> {
   }
 }
 
-export async function listJobs(
-  includeArchived?: boolean
-): Promise<Job[]> {
+export async function listJobs(options?: {
+  status?: "active" | "archived";
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<JobsListResult> {
   try {
+    const { status = "active", search, page = 1, pageSize = 10 } = options ?? {};
     const client = getSupabasePeopleClient();
     let query = client
       .from("jobs")
-      .select("*")
+      .select("*", { count: "exact" })
+      .eq("status", status)
       .order("created_at", { ascending: false });
 
-    if (!includeArchived) {
-      query = query.is("archived_at", null);
+    if (search) {
+      query = query.ilike("title", `%${search}%`);
     }
 
-    const { data, error } = await query;
+    const offset = (page - 1) * pageSize;
+    query = query.range(offset, offset + pageSize - 1);
 
-    if (error || !data) return [];
-    return (data as JobRow[]).map(mapRowToJob);
-  } catch {
-    return [];
+    const { data, error, count } = await query;
+
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("No data returned from jobs query");
+    return { jobs: (data as JobRow[]).map(mapRowToJob), total: count ?? 0 };
+  } catch (err) {
+    throw err instanceof Error ? err : new Error("listJobs failed");
   }
 }
 
@@ -77,5 +89,28 @@ export async function countJobsByCode(code: string): Promise<number> {
     return count ?? 0;
   } catch {
     return 0;
+  }
+}
+
+export async function updateJobStatus(
+  code: string,
+  status: "active" | "archived"
+): Promise<Job | undefined> {
+  try {
+    const client = getSupabasePeopleClient();
+    const { data, error } = await client
+      .from("jobs")
+      .update({
+        status,
+        archived_at: status === "archived" ? new Date().toISOString() : null,
+      })
+      .eq("code", code)
+      .select()
+      .single();
+
+    if (error || !data) return undefined;
+    return mapRowToJob(data as JobRow);
+  } catch {
+    return undefined;
   }
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listJobs } from "@/lib/jobs-store";
-import { listApplicationsByJobCode, type ApplicationStatus } from "@/lib/applications-store";
+import { getJobById } from "@/services/jobs.service";
+import { listApplicationsByJobCode } from "@/services/applications.service";
+import type { ApplicationsQueryParams } from "@/services/applications.service";
+import type { ApplicationStatus } from "@/types/applications";
 import { ArrowLeft, Eye } from "lucide-react";
 import NavTabClient from "../_components/nav-tab";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
@@ -27,8 +29,6 @@ function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
   );
 }
 
-
-
 /* —————————————————————————— page —————————————————————————— */
 
 const VALID_STATUSES: ApplicationStatus[] = [
@@ -39,8 +39,6 @@ const VALID_STATUSES: ApplicationStatus[] = [
   "offered",
 ];
 
-const VALID_TOP_N = [10, 15, 20] as const;
-type TopN = (typeof VALID_TOP_N)[number];
 type SortOrder = "asc" | "desc";
 
 export default async function JobDetailPage({
@@ -48,33 +46,53 @@ export default async function JobDetailPage({
   searchParams,
 }: {
   params: Promise<{ code: string }>;
-  searchParams: Promise<{ status?: string; top?: string; sort?: string; minScore?: string; maxScore?: string; search?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    sort?: string;
+    minScore?: string;
+    search?: string;
+    page?: string;
+    pageSize?: string;
+  }>;
 }) {
   const { code } = await params;
   const sp = await searchParams;
-  const filter =
+
+  const filter: ApplicationStatus | null =
     sp.status && VALID_STATUSES.includes(sp.status as ApplicationStatus)
       ? (sp.status as ApplicationStatus)
       : null;
 
-  const topNRaw = sp.top ? parseInt(sp.top, 10) : null;
-  const topN: TopN | null =
-    topNRaw !== null && (VALID_TOP_N as readonly number[]).includes(topNRaw)
-      ? (topNRaw as TopN)
-      : null;
-
   const sortOrder: SortOrder = sp.sort === "asc" ? "asc" : "desc";
+  const minScore = sp.minScore
+    ? Math.max(0, Math.min(100, parseInt(sp.minScore, 10)))
+    : 0;
+  const searchQuery = sp.search ?? "";
+  const currentPage = Math.max(1, Number(sp.page ?? "1"));
+  const pageSizeParam = sp.pageSize
+    ? Math.max(10, Math.min(100, parseInt(sp.pageSize, 10)))
+    : undefined;
 
-  const minScore = sp.minScore ? Math.max(0, Math.min(100, parseInt(sp.minScore, 10))) : 0;
-  const searchQuery = sp.search ? decodeURIComponent(sp.search) : "";
+  const initialParams: ApplicationsQueryParams = {
+    status: filter,
+    search: searchQuery,
+    sort: sortOrder,
+    minScore,
+    page: currentPage,
+    pageSize: pageSizeParam,
+  };
 
-  const jobs = await listJobs();
-  const job = jobs.find((j) => j.code === code);
+  const [job, result] = await Promise.all([
+    getJobById(code),
+    listApplicationsByJobCode(code, initialParams),
+  ]);
+
   if (!job) notFound();
 
-  // Listing reads denormalized snapshots off Application — no candidates
-  // fan-out. The full Candidate doc is only fetched on /applications/[id].
-  const allApplications = await listApplicationsByJobCode(code);
+  const totalApplications = Object.values(result.statusCounts).reduce(
+    (s, n) => s + n,
+    0
+  );
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
@@ -96,8 +114,8 @@ export default async function JobDetailPage({
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
-          <NavTabClient href="/applications" label="Applicants" prefix="/applications" />
-          <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" />
+          {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
+          {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
           <SignOutButton className="ml-auto" />
         </nav>
       </header>
@@ -114,29 +132,21 @@ export default async function JobDetailPage({
                 >
                   Jobs
                 </Link>
-                <span className="text-base leading-none text-muted-foreground/65">
-                  ›
-                </span>
-                <span className="text-foreground/80 truncate max-w-[40ch]">
-                  {job.title}
-                </span>
+                <span className="text-base leading-none text-muted-foreground/65">›</span>
+                <span className="text-foreground/80 truncate max-w-[40ch]">{job.title}</span>
               </nav>
               <ColumnMarker numeral="i" title={job.title} />
               <div className="mt-4 flex items-center gap-4 flex-wrap">
                 <JobIdBadge code={job.code} />
                 <span className="text-border">·</span>
                 <Eyebrow>
-                  <span className="tabular">
-                    {String(job.criteria.length).padStart(2, "0")}
-                  </span>{" "}
+                  <span className="tabular">{String(job.criteria.length).padStart(2, "0")}</span>{" "}
                   criteria
                 </Eyebrow>
                 <span className="text-border">·</span>
                 <Eyebrow>
-                  <span className="tabular">
-                    {String(allApplications.length).padStart(2, "0")}
-                  </span>{" "}
-                  {allApplications.length === 1 ? "applicant" : "applicants"}
+                  <span className="tabular">{String(totalApplications).padStart(2, "0")}</span>{" "}
+                  {totalApplications === 1 ? "applicant" : "applicants"}
                 </Eyebrow>
                 <span className="text-border">·</span>
                 <Eyebrow>
@@ -158,12 +168,8 @@ export default async function JobDetailPage({
               <JobApplicantsList
                 jobCode={code}
                 jobTitle={job.title}
-                initialApplications={allApplications}
-                filter={filter}
-                topN={topN}
-                sortOrder={sortOrder}
-                minScore={minScore}
-                searchQuery={searchQuery}
+                initialData={result}
+                initialParams={initialParams}
               />
             </div>
           </div>
@@ -181,4 +187,3 @@ export default async function JobDetailPage({
     </div>
   );
 }
-

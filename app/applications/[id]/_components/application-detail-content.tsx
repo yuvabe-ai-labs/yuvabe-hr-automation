@@ -9,6 +9,7 @@ import NavTabClient from "@/app/jobs/_components/nav-tab";
 import { StatusActions } from "./status-actions";
 import { NotesThread } from "./notes-thread";
 import type { ApplicationNote } from "@/lib/notes-store";
+import { SignOutButton } from "@/app/_components/sign-out-button";
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return <span className="eyebrow text-muted-foreground">{children}</span>;
@@ -35,7 +36,7 @@ function bandTextClass(score: number): string {
     : "text-primary";
 }
 
-const IMPORTANCE_LABEL = { must: "Must", strong: "Strong", nice: "Nice" } as const;
+const IMPORTANCE_LABEL = { must: "Preferred", strong: "Strong", nice: "Nice" } as const;
 const IMPORTANCE_COLOR = {
   must: "text-primary",
   strong: "text-foreground",
@@ -70,9 +71,10 @@ function ensureHttps(url: string): string {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
-async function downloadResume(resumeUrl: string) {
+async function downloadResume(applicationId: string) {
+  const endpoint = `/api/applications/${applicationId}/resume`;
   try {
-    const response = await fetch(resumeUrl);
+    const response = await fetch(endpoint);
     if (!response.ok) throw new Error("Failed to download resume");
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -85,7 +87,7 @@ async function downloadResume(resumeUrl: string) {
     URL.revokeObjectURL(url);
   } catch (err) {
     console.error("Resume download failed:", err);
-    window.open(resumeUrl, "_blank");
+    window.open(endpoint, "_blank");
   }
 }
 
@@ -201,8 +203,8 @@ export function ApplicationDetailContent({
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
-          <NavTabClient href="/applications" label="Applicants" prefix="/applications" />
-          <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" />
+          {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
+          {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
           <button
             onClick={() => setNotesOpen(true)}
             className="ml-auto inline-flex items-center gap-1.5 caps-action text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
@@ -210,6 +212,7 @@ export function ApplicationDetailContent({
             <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
             <span className="hidden sm:inline">Notes</span>
           </button>
+          <SignOutButton />
         </nav>
       </header>
 
@@ -303,7 +306,7 @@ export function ApplicationDetailContent({
           <div className="mt-6 pt-6 border-t border-border flex flex-col items-start gap-2">
             {resumeUrl ? (
               <button
-                onClick={() => downloadResume(resumeUrl)}
+                onClick={() => downloadResume(id)}
                 className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors bg-none border-none cursor-pointer p-0"
               >
                 <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />

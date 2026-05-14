@@ -1,13 +1,16 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   getApplicationById,
   listApplications,
   listApplicationsByJobCode,
   updateApplicationStatus,
 } from "@/services/applications.service";
+import type { ApplicationsPageResult, ApplicationsQueryParams } from "@/services/applications.service";
 import type { Application, ApplicationStatus } from "@/types/applications";
+
+export type { ApplicationsQueryParams, ApplicationsPageResult };
 
 export function useApplicationById(id: string, initialData?: Application) {
   return useQuery({
@@ -27,12 +30,19 @@ export function useApplications(initialData?: Application[]) {
   });
 }
 
-export function useApplicationsByJobCode(jobCode: string, initialData?: Application[]) {
+export function useApplicationsByJobCode(
+  jobCode: string,
+  params?: ApplicationsQueryParams,
+  initialData?: ApplicationsPageResult
+) {
   return useQuery({
-    queryKey: ["applications", "list", jobCode],
-    queryFn: () => listApplicationsByJobCode(jobCode),
+    queryKey: ["applications", "list", jobCode, params],
+    queryFn: () => listApplicationsByJobCode(jobCode, params),
     initialData,
-    staleTime: 60 * 1000,
+    initialDataUpdatedAt: initialData ? Date.now() : undefined,
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
