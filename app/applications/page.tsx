@@ -28,6 +28,8 @@ function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
 /* —————————————————————————— page —————————————————————————— */
 
 const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
+const VALID_STATUSES = [...FILTER_STATUSES, "all", "new"] as const;
+type ExtendedFilter = FilterStatus | "all" | "new";
 
 const VALID_TOP_N = [10, 15, 20] as const;
 type TopN = (typeof VALID_TOP_N)[number];
@@ -38,10 +40,10 @@ export default async function ApplicationsListPage({
   searchParams: Promise<{ status?: string; top?: string; minScore?: string; search?: string }>;
 }) {
   const sp = await searchParams;
-  const filter: FilterStatus =
-    sp.status && FILTER_STATUSES.includes(sp.status as FilterStatus)
-      ? (sp.status as FilterStatus)
-      : "reviewing";
+  const filter: ExtendedFilter =
+    sp.status && (VALID_STATUSES as readonly string[]).includes(sp.status)
+      ? (sp.status as ExtendedFilter)
+      : "all";
 
   const topNRaw = sp.top ? parseInt(sp.top, 10) : null;
   const topN: TopN | null =
@@ -88,11 +90,6 @@ export default async function ApplicationsListPage({
 
       <main className="md:flex-1 md:overflow-hidden">
         <section className="md:h-full flex flex-col md:overflow-hidden">
-          {/* Static top */}
-          <div className="flex-shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-5 border-b border-border bg-background">
-            <ColumnMarker numeral="i" title="Applications" />
-          </div>
-
           {/* Applications list with filters and export */}
           <ApplicationsList
             initialApplications={allApplications}

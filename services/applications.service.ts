@@ -26,11 +26,11 @@ export type FilterStatus = "reviewing" | "shortlisted" | "rejected";
 export type ApplicationsPageResult = {
   applications: Application[];
   total: number;
-  statusCounts: Record<FilterStatus, number>;
+  statusCounts: Record<FilterStatus | "new", number>;
 };
 
 const STATUS_GROUP: Record<FilterStatus, ApplicationStatus[]> = {
-  reviewing:   ["reviewing", "new"],
+  reviewing:   ["reviewing"],
   shortlisted: ["shortlisted", "offered"],
   rejected:    ["rejected"],
 };
@@ -96,8 +96,9 @@ export async function listApplicationsByJobCode(
       const s = row.status as ApplicationStatus;
       if (s in rawCounts) rawCounts[s]++;
     }
-    const statusCounts: Record<FilterStatus, number> = {
-      reviewing:   rawCounts.reviewing + rawCounts.new,
+    const statusCounts: Record<FilterStatus | "new", number> = {
+      new:         rawCounts.new,
+      reviewing:   rawCounts.reviewing,
       shortlisted: rawCounts.shortlisted + rawCounts.offered,
       rejected:    rawCounts.rejected,
     };
