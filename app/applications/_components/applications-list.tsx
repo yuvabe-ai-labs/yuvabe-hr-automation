@@ -6,6 +6,7 @@ import { ArrowUpRight, Filter, X } from "lucide-react";
 import { useApplications } from "@/hooks/use-applications";
 import { getCandidatesByIds } from "@/services/candidates.service";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
+import { downloadExcel } from "@/lib/export-excel";
 import type { Application, ApplicationStatus } from "@/types/applications";
 import type { Job } from "@/types/jobs";
 
@@ -180,21 +181,51 @@ export function ApplicationsList({
     [selectedIds, applications]
   );
 
-  const handleExport = useCallback(async () => {
+  const getExportData = useCallback(async () => {
+    const selectedApplications = applications.filter((a) => selectedIds.has(a.id));
+    const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
+    const jobTitles = new Map(initialJobs.map((j) => [j.code, j.title]));
+
+    const [enrichments, ...notesResults] = await Promise.all([
+      getCandidatesByIds(candidateIds),
+      ...selectedApplications.map((a) =>
+        fetch(`/api/applications/${a.id}/notes`)
+          .then((r) => r.json())
+          .then((d) => ({ id: a.id, notes: (d.notes ?? []) as { body: string }[] }))
+          .catch(() => ({ id: a.id, notes: [] }))
+      ),
+    ]);
+
+    const notesByAppId = new Map<string, string>(
+      notesResults.map(({ id, notes }) => [
+        id,
+        notes.map((n: { body: string }) => n.body).join(" | "),
+      ])
+    );
+
+    return { selectedApplications, enrichments, jobTitles, notesByAppId };
+  }, [applications, selectedIds, initialJobs]);
+
+  const handleExportCsv = useCallback(async () => {
     setIsExporting(true);
     try {
-      const selectedApplications = applications.filter((a) =>
-        selectedIds.has(a.id)
-      );
-      const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
-      const enrichments = await getCandidatesByIds(candidateIds);
-      const jobTitles = new Map(initialJobs.map((j) => [j.code, j.title]));
-      const csv = buildCsvContent(selectedApplications, enrichments, jobTitles);
+      const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
+      const csv = buildCsvContent(selectedApplications, enrichments, jobTitles, notesByAppId);
       downloadCsv(csv, "candidates.csv");
     } finally {
       setIsExporting(false);
     }
-  }, [applications, selectedIds, initialJobs]);
+  }, [getExportData]);
+
+  const handleExportExcel = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
+      downloadExcel(selectedApplications, enrichments, jobTitles, notesByAppId, "candidates.xlsx");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [getExportData]);
 
   return (
     <>
@@ -360,22 +391,22 @@ export function ApplicationsList({
           <EmptyState filter={filter} hasAny={allApplications.length > 0} />
         ) : (
           <ul className="max-w-5xl">
-            {/* Header row with select-all checkbox */}
-            <li className="relative group border-b border-border/60 border-t border-border/60">
-              <div className="py-5 flex items-center gap-3 md:gap-5">
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                />
-                <span className="text-xs text-muted-foreground caps-meta">
-                  {selectedIds.size > 0
-                    ? `${selectedIds.size} selected`
-                    : "Select to export"}
-                </span>
-              </div>
-            </li>
+            {/* Header row with select-all — only visible when something is selected */}
+            {selectedIds.size > 0 && (
+              <li className="relative group border-b border-border/60 border-t border-border/60">
+                <div className="py-5 flex items-center gap-3 md:gap-5">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  />
+                  <span className="text-xs text-muted-foreground caps-meta">
+                    {selectedIds.size} selected
+                  </span>
+                </div>
+              </li>
+            )}
 
             {applications.map((app, idx) => {
               const job = jobsByCode.get(app.jobCode);
@@ -389,7 +420,9 @@ export function ApplicationsList({
                 >
                   <input
                     type="checkbox"
-                    className="absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer"
+                    className={`absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer transition-opacity ${
+                      selectedIds.has(app.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
                     checked={selectedIds.has(app.id)}
                     onChange={(e) => {
                       const newSet = new Set(selectedIds);
@@ -420,13 +453,33 @@ export function ApplicationsList({
           <span className="caps-meta text-muted-foreground tabular">
             {selectedIds.size} selected
           </span>
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="caps-action bg-primary text-primary-foreground px-3 py-1.5 rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {isExporting ? "Exporting..." : "Export CSV"}
-          </button>
+          <div className="relative group">
+            <button
+              disabled={isExporting}
+              className="caps-action bg-primary text-primary-foreground px-3 py-1.5 rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {isExporting ? "Exporting…" : "Export"}
+              <span className="text-[10px] opacity-70">▾</span>
+            </button>
+            {/* No gap between button and menu — hover area is continuous */}
+            <div className="absolute bottom-full left-0 hidden group-hover:flex flex-col bg-background border border-border rounded-sm shadow-[0_4px_16px_rgb(0,0,0,0.10)] overflow-hidden min-w-[148px] z-10">
+              <button
+                onClick={handleExportCsv}
+                disabled={isExporting}
+                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                Export CSV
+              </button>
+              <div className="border-t border-border" />
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                Export as Excel
+              </button>
+            </div>
+          </div>
           <button
             onClick={() => setSelectedIds(new Set())}
             aria-label="Clear selection"

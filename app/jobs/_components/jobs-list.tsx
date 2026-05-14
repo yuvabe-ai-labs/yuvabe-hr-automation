@@ -122,7 +122,7 @@ export function JobsList({
                       </span>
                       <span className="text-border hidden lg:inline">·</span>
                       <span className="caps-meta text-muted-foreground hidden lg:inline">
-                        {relativeTime(job.createdAt)}
+                        Published {relativeTime(job.createdAt)}
                       </span>
                     </div>
                   </Link>

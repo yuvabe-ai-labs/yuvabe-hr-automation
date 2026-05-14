@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { listJobs } from "@/lib/jobs-store";
 import { listApplications } from "@/lib/applications-store";
-import { ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import NavTabClient from "./_components/nav-tab";
-import { JobIdBadge } from "@/app/_components/job-id-badge";
-import { JobActionsMenu } from "./_components/job-actions-menu";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { JobsList } from "./_components/jobs-list";
-import type { Job } from "@/types/jobs";
 
 /* —————————————————————————— small typographic atoms —————————————————————————— */
 

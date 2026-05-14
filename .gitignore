@@ -49,3 +49,9 @@ next-env.d.ts
 # `.claude/settings.local.json` is per-machine (permission grants etc.)
 .claude/settings.local.json
 .claude/worktrees/
+
+# Playwright
+/tests/
+/playwright.config.ts
+.claude/skills/playwright-skill/
+.claude/skills/yuvabe-playwright/
