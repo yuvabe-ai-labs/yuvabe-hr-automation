@@ -47,6 +47,7 @@ export type Job = {
    * applications referencing it keep rendering. Reversible.
    */
   archivedAt?: string;
+  status: "active" | "archived";
 };
 
 /** Row shape as returned by Supabase (snake_case columns). */
@@ -71,6 +72,7 @@ type JobRow = {
   workculture: string[] | null;
   created_at: string;
   archived_at: string | null;
+  status: string;
 };
 
 function rowToJob(row: JobRow): Job {
@@ -87,6 +89,7 @@ function rowToJob(row: JobRow): Job {
     benefitsInPerson: row.benefits_inperson ?? [],
     workCulture: row.workculture ?? [],
     createdAt: row.created_at,
+    status: (row.status === "archived" ? "archived" : "active") as "active" | "archived",
   };
   if (row.department) job.department = row.department;
   if (row.location) job.location = row.location;
@@ -99,18 +102,15 @@ function rowToJob(row: JobRow): Job {
   return job;
 }
 
-/** List all jobs, newest first. Archived jobs are hidden by default. */
-export async function listJobs(opts?: { includeArchived?: boolean }): Promise<Job[]> {
-  let query = supabase
+/** List all jobs, newest first. Filters by status (default: 'active'). */
+export async function listJobs(opts?: { status?: "active" | "archived" }): Promise<Job[]> {
+  const filterStatus = opts?.status ?? "active";
+  const { data, error } = await supabase
     .from("jobs")
     .select("*")
+    .eq("status", filterStatus)
     .order("created_at", { ascending: false });
 
-  if (!opts?.includeArchived) {
-    query = query.is("archived_at", null);
-  }
-
-  const { data, error } = await query;
   if (error) throw new Error(`listJobs failed: ${error.message}`);
   return (data as JobRow[]).map(rowToJob);
 }
@@ -133,7 +133,7 @@ export async function getJobByCode(code: string): Promise<Job | null> {
 export async function archiveJob(code: string): Promise<Job | null> {
   const { data, error } = await supabase
     .from("jobs")
-    .update({ archived_at: new Date().toISOString() })
+    .update({ archived_at: new Date().toISOString(), status: "archived" })
     .eq("code", code)
     .select()
     .maybeSingle();
@@ -145,7 +145,7 @@ export async function archiveJob(code: string): Promise<Job | null> {
 export async function unarchiveJob(code: string): Promise<Job | null> {
   const { data, error } = await supabase
     .from("jobs")
-    .update({ archived_at: null })
+    .update({ archived_at: null, status: "active" })
     .eq("code", code)
     .select()
     .maybeSingle();
@@ -214,6 +214,7 @@ export async function createJob(input: CreateJobInput): Promise<Job> {
       benefits_remote: input.benefitsRemote ?? [],
       benefits_inperson: input.benefitsInPerson ?? [],
       workculture: input.workCulture ?? [],
+      status: "active",
       // created_at defaults to now() in Postgres; archived_at defaults to null
     };
 

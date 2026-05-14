@@ -44,7 +44,7 @@ const CATEGORY_ORDER: Criterion["category"][] = [
 ];
 
 const IMPORTANCE_LABEL: Record<Importance, string> = {
-  must: "Must",
+  must: "Preferred",
   strong: "Strong",
   nice: "Nice",
 };
@@ -537,20 +537,28 @@ export default function NewJobPage() {
                   </div>
                 )}
 
-                {/* after result, show "See preview" button */}
+                {/* after result: missing fields + reupload / all good */}
                 {!loading && result && (
-                  <div className="mt-8">
+                  <div className="mt-auto pt-8">
                     <HairRule />
                     <div className="mt-6 flex items-center justify-between gap-4">
-                      <p className="text-body-sm text-muted-foreground leading-relaxed">
-                        Extraction complete.
-                      </p>
-                      <button
-                        onClick={() => setPreviewOpen(true)}
-                        className="caps-action text-primary hover:text-primary/70 transition-colors"
-                      >
-                        See preview →
-                      </button>
+                      {missingRequired.length > 0 ? (
+                        <p className="caps-action text-primary truncate">
+                          Missing: {missingRequired.join(" · ")}
+                        </p>
+                      ) : (
+                        <p className="text-body-sm text-muted-foreground leading-relaxed">
+                          Extraction complete.
+                        </p>
+                      )}
+                      {missingRequired.length > 0 && (
+                        <button
+                          onClick={pick}
+                          className="caps-action text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+                        >
+                          Reupload →
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -630,7 +638,7 @@ export default function NewJobPage() {
                         }`}
                       >
                         <div className={`h-4 ${w} bg-muted rounded-sm animate-pulse`} />
-                        <div className="h-7 w-[96px] bg-muted/70 rounded-sm animate-pulse shrink-0" />
+                        <div className="h-7 w-29 bg-muted/70 rounded-sm animate-pulse shrink-0" />
                       </li>
                     ))}
                   </ul>
@@ -651,7 +659,7 @@ export default function NewJobPage() {
                         }`}
                       >
                         <div className={`h-4 ${w} bg-muted rounded-sm animate-pulse`} />
-                        <div className="h-7 w-[96px] bg-muted/70 rounded-sm animate-pulse shrink-0" />
+                        <div className="h-7 w-29 bg-muted/70 rounded-sm animate-pulse shrink-0" />
                       </li>
                     ))}
                   </ul>
@@ -682,7 +690,7 @@ export default function NewJobPage() {
                       active={filter === "must"}
                       onClick={() => setFilter("must")}
                       count={mustCount}
-                      label="Must"
+                      label="Preferred"
                       tone="primary"
                     />
                     <FilterChip
@@ -757,7 +765,7 @@ export default function NewJobPage() {
                             >
                               <SelectTrigger
                                 className={`
-                                  h-7 w-[96px] gap-1.5 px-2.5 py-0 shrink-0
+                                  h-7 w-29 gap-1.5 px-2.5 py-0 shrink-0
                                   border-0 shadow-none rounded-sm
                                   bg-secondary/50 hover:bg-secondary
                                   data-[state=open]:bg-accent/60
@@ -810,11 +818,7 @@ export default function NewJobPage() {
           {result && !loading && (
             <div className="border-t border-border bg-background px-4 sm:px-6 md:px-12 py-4 flex items-center justify-between gap-4 flex-shrink-0">
               <div className="flex-1 min-w-0">
-                {!canSave && result ? (
-                  <p className="caps-action text-primary truncate">
-                    Missing: {missingRequired.join(" · ")}
-                  </p>
-                ) : saveState === "error" && saveError ? (
+                {saveState === "error" && saveError ? (
                   <p className="caps-action text-primary truncate">
                     Couldn&apos;t save · {saveError}
                   </p>

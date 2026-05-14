@@ -17,7 +17,7 @@ function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
       <span className="font-serif italic text-display md:text-display-xl leading-none text-primary tabular">
         {numeral}.
       </span>
-      <span className="font-serif italic text-h2 md:text-h1 leading-none text-foreground/85">
+      <span className="font-serifjobs-store italic text-h2 md:text-h1 leading-none text-foreground/85">
         {title}
       </span>
     </div>
@@ -85,8 +85,8 @@ export default async function ApplicationsListPage({
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
-          <NavTabClient href="/applications" label="Applicants" prefix="/applications" />
-          <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" />
+          {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
+          {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
           <SignOutButton className="ml-auto" />
         </nav>
       </header>

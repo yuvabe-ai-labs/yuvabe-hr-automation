@@ -27,6 +27,7 @@ export type Job = {
   workCulture: string[];
   createdAt: string;
   archivedAt?: string;
+  status: "active" | "archived";
 };
 
 export type JobRow = Tables<"jobs">;

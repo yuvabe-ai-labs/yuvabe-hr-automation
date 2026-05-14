@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowUpRight, Filter, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowUpRight, Filter, Search, X } from "lucide-react";
 import { useApplicationsByJobCode } from "@/hooks/use-applications";
+import type { ApplicationsQueryParams, ApplicationsPageResult } from "@/hooks/use-applications";
 import { getCandidatesByIds } from "@/services/candidates.service";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
 import type { Application, ApplicationStatus } from "@/types/applications";
 
-type TopN = 10 | 15 | 20;
+const DEFAULT_PAGE_SIZE = 15;
+
+const VALID_STATUSES: ApplicationStatus[] = [
+  "new", "reviewing", "shortlisted", "rejected", "offered",
+];
+
 type SortOrder = "asc" | "desc";
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
@@ -40,8 +47,7 @@ function relativeTime(iso: string): string {
 }
 
 function ScoreChip({ score }: { score: number }) {
-  const band =
-    score >= 75 ? "high" : score >= 50 ? "mid" : "low";
+  const band = score >= 75 ? "high" : score >= 50 ? "mid" : "low";
   const colorClass =
     band === "high"
       ? "text-[#3F6B3F] border-[#3F6B3F]/40 bg-[#3F6B3F]/[0.06]"
@@ -60,34 +66,21 @@ function ScoreChip({ score }: { score: number }) {
 
 function buildHref(
   jobCode: string,
-  overrides: {
-    status?: ApplicationStatus | null;
-    top?: number | null;
-    search?: string | null;
-    minScore?: number;
-    maxScore?: number;
-  },
-  current: {
-    filter: ApplicationStatus | null;
-    topN: TopN | null;
-    sortOrder: SortOrder;
-    searchQuery: string;
-    minScore: number;
-    maxScore: number;
-  }
+  overrides: { status?: ApplicationStatus | null; search?: string | null; minScore?: number; pageSize?: number | null },
+  current: { filter: ApplicationStatus | null; searchQuery: string; minScore: number; sortOrder: SortOrder; pageSize: number }
 ): string {
   const params = new URLSearchParams();
   const status = "status" in overrides ? overrides.status : current.filter;
-  const top = "top" in overrides ? overrides.top : current.topN;
   const search = "search" in overrides ? overrides.search : current.searchQuery;
   const minScore = "minScore" in overrides ? overrides.minScore : current.minScore;
-  const maxScore = "maxScore" in overrides ? overrides.maxScore : current.maxScore;
+  const pageSize = "pageSize" in overrides ? overrides.pageSize : current.pageSize;
 
   if (status) params.set("status", status);
-  if (top) params.set("top", String(top));
-  if (search) params.set("search", encodeURIComponent(search));
-  if (minScore !== 0) params.set("minScore", String(minScore));
-  if (maxScore !== 100) params.set("maxScore", String(maxScore));
+  if (search) params.set("search", search);
+  if (minScore !== undefined && minScore > 0) params.set("minScore", String(minScore));
+  if (current.sortOrder !== "desc") params.set("sort", current.sortOrder);
+  if (pageSize && pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(pageSize));
+  // Always reset page when filter changes
 
   const qs = params.toString();
   return `/jobs/${jobCode}${qs ? `?${qs}` : ""}`;
@@ -96,80 +89,111 @@ function buildHref(
 export function JobApplicantsList({
   jobCode,
   jobTitle,
-  initialApplications,
-  filter,
-  topN,
-  sortOrder,
-  minScore,
-  searchQuery,
+  initialData,
+  initialParams,
 }: {
   jobCode: string;
   jobTitle: string;
-  initialApplications: Application[];
-  filter: ApplicationStatus | null;
-  topN: TopN | null;
-  sortOrder: SortOrder;
-  minScore: number;
-  searchQuery: string;
+  initialData: ApplicationsPageResult;
+  initialParams: ApplicationsQueryParams;
 }) {
-  const { data: allApplications = initialApplications } = useApplicationsByJobCode(
-    jobCode,
-    initialApplications
-  );
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFirstRender = useRef(true);
+
+  // URL-derived state
+  const search = searchParams.get("search") ?? "";
+  const filter: ApplicationStatus | null = VALID_STATUSES.includes(
+    searchParams.get("status") as ApplicationStatus
+  )
+    ? (searchParams.get("status") as ApplicationStatus)
+    : null;
+  const sortOrder: SortOrder = searchParams.get("sort") === "asc" ? "asc" : "desc";
+  const minScore = Math.max(0, Math.min(100, Number(searchParams.get("minScore") ?? "0")));
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const pageSizeParam = searchParams.get("pageSize");
+  const pageSize = pageSizeParam ? Math.max(10, Math.min(100, parseInt(pageSizeParam, 10))) : DEFAULT_PAGE_SIZE;
+
+  // Search input with derived-state sync for back/forward nav
+  const [prevSearch, setPrevSearch] = useState(search);
+  const [searchInput, setSearchInput] = useState(search);
+  if (prevSearch !== search) {
+    setPrevSearch(search);
+    setSearchInput(search);
+  }
+
+  // Debounce search input → URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput) {
+        params.set("search", searchInput);
+      } else {
+        params.delete("search");
+      }
+      params.delete("page");
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [localSearch, setLocalSearch] = useState(searchQuery);
-  const [localMinScore, setLocalMinScore] = useState(minScore);
   const [tempMinScore, setTempMinScore] = useState(minScore);
-  const [tempTopN, setTempTopN] = useState(topN);
+  const [tempPageSize, setTempPageSize] = useState<number | null>(pageSizeParam ? pageSize : null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
-  const sorted = sortOrder === "asc"
-    ? [...allApplications].reverse()
-    : allApplications;
+  const currentParams: ApplicationsQueryParams = {
+    status: filter,
+    search,
+    sort: sortOrder,
+    minScore,
+    page,
+    pageSize,
+  };
 
-  const filtered = filter
-    ? sorted.filter((a) => a.status === filter)
-    : sorted;
+  const isInitialParams =
+    (filter ?? null) === (initialParams.status ?? null) &&
+    search === (initialParams.search ?? "") &&
+    sortOrder === (initialParams.sort ?? "desc") &&
+    minScore === (initialParams.minScore ?? 0) &&
+    page === (initialParams.page ?? 1) &&
+    pageSize === (initialParams.pageSize ?? DEFAULT_PAGE_SIZE);
 
-  // Apply search by name
-  const searched = localSearch
-    ? filtered.filter((a) =>
-        a.candidateName.toLowerCase().includes(localSearch.toLowerCase())
-      )
-    : filtered;
-
-  // Apply score range filter
-  const scored = searched.filter(
-    (a) => a.matchScore >= localMinScore && a.matchScore <= 100
+  const { data, isPending } = useApplicationsByJobCode(
+    jobCode,
+    currentParams,
+    isInitialParams ? initialData : undefined
   );
 
-  const applications = topN !== null ? scored.slice(0, topN) : scored;
+  const applications = data?.applications ?? [];
+  const total = data?.total ?? 0;
+  const statusCounts = data?.statusCounts ?? initialData.statusCounts;
+  const totalPages = Math.ceil(total / pageSize);
+  const totalAll = Object.values(statusCounts).reduce((s, n) => s + n, 0);
 
-  const statusCounts = allApplications.reduce<Record<ApplicationStatus, number>>(
-    (acc, a) => {
-      acc[a.status] = (acc[a.status] ?? 0) + 1;
-      return acc;
-    },
-    { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0 }
-  );
+  function goToPage(newPage: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newPage <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(newPage));
+    }
+    router.push(`?${params.toString()}`, { scroll: false });
+  }
 
-  const hasActiveFilters =
-    localSearch !== "" ||
-    localMinScore !== 0 ||
-    100 !== 100 ||
-    topN !== null;
-
-  // Sync select-all checkbox indeterminate state
+  // Sync select-all indeterminate state
   useEffect(() => {
     if (!selectAllRef.current) return;
     const visibleCount = applications.length;
     const selectedCount = Array.from(selectedIds).filter((id) =>
       applications.some((a) => a.id === id)
     ).length;
-
     if (selectedCount === 0) {
       selectAllRef.current.checked = false;
       selectAllRef.current.indeterminate = false;
@@ -183,15 +207,13 @@ export function JobApplicantsList({
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
+      const newSet = new Set(selectedIds);
       if (checked) {
-        const newSet = new Set(selectedIds);
         applications.forEach((a) => newSet.add(a.id));
-        setSelectedIds(newSet);
       } else {
-        const newSet = new Set(selectedIds);
         applications.forEach((a) => newSet.delete(a.id));
-        setSelectedIds(newSet);
       }
+      setSelectedIds(newSet);
     },
     [selectedIds, applications]
   );
@@ -199,34 +221,28 @@ export function JobApplicantsList({
   const handleExport = useCallback(async () => {
     setIsExporting(true);
     try {
-      const selectedApplications = applications.filter((a) =>
-        selectedIds.has(a.id)
-      );
-      const candidateIds = [
-        ...new Set(selectedApplications.map((a) => a.candidateId)),
-      ];
+      const selectedApplications = applications.filter((a) => selectedIds.has(a.id));
+      const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
       const enrichments = await getCandidatesByIds(candidateIds);
       const jobTitles = new Map([[jobCode, jobTitle]]);
-      const csv = buildCsvContent(
-        selectedApplications,
-        enrichments,
-        jobTitles
-      );
+      const csv = buildCsvContent(selectedApplications, enrichments, jobTitles);
       downloadCsv(csv, `candidates-${jobCode}.csv`);
     } finally {
       setIsExporting(false);
     }
   }, [applications, selectedIds, jobCode, jobTitle]);
 
+  const current = { filter, searchQuery: search, minScore, sortOrder, pageSize };
+
   return (
     <>
       {/* Status filter chips */}
-      {allApplications.length > 0 && (
+      {totalAll > 0 && (
         <div className="mt-6 flex items-center gap-1 flex-wrap -ml-2.5">
           <StatusFilterChip
-            href={buildHref(jobCode, { status: null }, { filter, topN, sortOrder, searchQuery: localSearch, minScore: localMinScore, maxScore: 100 })}
+            href={buildHref(jobCode, { status: null }, current)}
             label="All"
-            count={allApplications.length}
+            count={totalAll}
             tone="neutral"
             active={!filter}
           />
@@ -235,7 +251,7 @@ export function JobApplicantsList({
             .map((s) => (
               <StatusFilterChip
                 key={s}
-                href={buildHref(jobCode, { status: s }, { filter, topN, sortOrder, searchQuery: localSearch, minScore: localMinScore, maxScore: 100 })}
+                href={buildHref(jobCode, { status: s }, current)}
                 label={STATUS_LABEL[s]}
                 count={statusCounts[s]}
                 tone={s === "shortlisted" ? "shortlist" : s === "offered" ? "offered" : "neutral"}
@@ -246,22 +262,24 @@ export function JobApplicantsList({
       )}
 
       {/* Search + Filter Row */}
-      {allApplications.length > 0 && (
+      {totalAll > 0 && (
         <div className="mt-6 relative w-full max-w-2xl">
           <div className="relative w-full">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
+              strokeWidth={1.75}
+            />
             <input
               type="text"
-              placeholder="Search by applicant name..."
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full px-4 py-2 md:py-2.5 pr-10 border border-border rounded-sm bg-background text-foreground text-body focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Search by applicant name…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-9 py-2 md:py-2.5 pr-10 border border-border rounded-sm bg-background text-foreground text-body focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors ${
-                hasActiveFilters
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                minScore > 0 || pageSize !== DEFAULT_PAGE_SIZE ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
               aria-label="Open filters"
             >
@@ -269,29 +287,23 @@ export function JobApplicantsList({
             </button>
           </div>
 
-          {/* Filter Popover - positioned under filter icon on right */}
           {isFilterOpen && (
             <>
-              {/* Backdrop to close popover */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setIsFilterOpen(false)}
-              />
-              {/* Popover */}
+              <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
               <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
                 <div className="space-y-3">
-                  {/* Top N Selector */}
+                  {/* Top N selector */}
                   <div>
                     <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
                       Show Top
                     </label>
                     <div className="flex gap-1.5">
-                      {[null, 10, 15, 20].map((n) => (
+                      {([null, 10, 15, 20] as (number | null)[]).map((n) => (
                         <button
                           key={n ?? "all"}
-                          onClick={() => setTempTopN(n as TopN | null)}
+                          onClick={() => setTempPageSize(n)}
                           className={`flex-1 px-2 py-1 rounded-sm text-xs font-medium transition-colors text-center ${
-                            n === tempTopN
+                            n === tempPageSize
                               ? "bg-primary text-primary-foreground"
                               : "bg-secondary text-foreground hover:bg-secondary/80"
                           }`}
@@ -302,7 +314,7 @@ export function JobApplicantsList({
                     </div>
                   </div>
 
-                  {/* Match Score Min */}
+                  {/* Min score */}
                   <div>
                     <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
                       Min Score: {tempMinScore}
@@ -312,10 +324,7 @@ export function JobApplicantsList({
                       min="0"
                       max="100"
                       value={tempMinScore}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        setTempMinScore(val);
-                      }}
+                      onChange={(e) => setTempMinScore(parseInt(e.target.value))}
                       className="w-full h-1.5 bg-secondary rounded-sm appearance-none cursor-pointer accent-primary"
                     />
                     <input
@@ -323,22 +332,16 @@ export function JobApplicantsList({
                       min="0"
                       max="100"
                       value={tempMinScore}
-                      onChange={(e) => {
-                        const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
-                        setTempMinScore(val);
-                      }}
+                      onChange={(e) =>
+                        setTempMinScore(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))
+                      }
                       className="w-full mt-1 px-2 py-1 border border-border rounded-sm text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
-
-                  {/* Apply Filters Button */}
                   <div className="pt-1">
                     <Link
-                      href={buildHref(jobCode, { search: localSearch, top: tempTopN, minScore: tempMinScore }, { filter, topN: tempTopN, sortOrder, searchQuery: localSearch, minScore: tempMinScore, maxScore: 100 })}
-                      onClick={() => {
-                        setLocalMinScore(tempMinScore);
-                        setIsFilterOpen(false);
-                      }}
+                      href={buildHref(jobCode, { minScore: tempMinScore, pageSize: tempPageSize }, current)}
+                      onClick={() => setIsFilterOpen(false)}
                       className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm text-xs font-medium transition-colors hover:bg-primary/90 text-center"
                     >
                       Apply
@@ -353,70 +356,92 @@ export function JobApplicantsList({
 
       {/* Scrolling list */}
       <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-12">
-        {applications.length === 0 ? (
+        {!isPending && applications.length === 0 ? (
           <EmptyState
             code={jobCode}
             filter={filter}
-            hasAny={allApplications.length > 0}
+            hasAny={totalAll > 0}
+            hasSearch={!!search}
+            onClearSearch={() => setSearchInput("")}
           />
         ) : (
-          <ul className="max-w-5xl">
-            {/* Header row with select-all checkbox */}
-            <li className="relative group border-b border-border/60 border-t border-border/60">
-              <div className="py-5 flex items-center gap-3 md:gap-5">
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                />
-                <span className="text-xs text-muted-foreground caps-meta">
-                  {selectedIds.size > 0
-                    ? `${selectedIds.size} selected`
-                    : "Select to export"}
-                </span>
-              </div>
-            </li>
-
-            {applications.map((app, idx) => (
-              <li
-                key={app.id}
-                className={`relative group border-b border-border/60 ${
-                  idx === applications.length - 1 ? "" : ""
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  className="absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer"
-                  checked={selectedIds.has(app.id)}
-                  onChange={(e) => {
-                    const newSet = new Set(selectedIds);
-                    if (e.target.checked) {
-                      newSet.add(app.id);
-                    } else {
-                      newSet.delete(app.id);
-                    }
-                    setSelectedIds(newSet);
-                  }}
-                />
-                <Link
-                  href={`/applications/${app.id}`}
-                  className="block py-5 px-4 pl-12 rounded-sm hover:bg-secondary/40 transition-colors after:absolute after:inset-0 after:content-[''] after:rounded-sm"
-                >
-                  <ApplicationRow application={app} />
-                </Link>
+          <>
+            <ul className="max-w-5xl">
+              <li className="relative group border-y border-border/60">
+                <div className="py-5 flex items-center gap-3 md:gap-5">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  />
+                  <span className="text-xs text-muted-foreground caps-meta">
+                    {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select to export"}
+                  </span>
+                </div>
               </li>
-            ))}
-          </ul>
+
+              {applications.map((app) => (
+                <li key={app.id} className="relative group border-b border-border/60">
+                  <input
+                    type="checkbox"
+                    className="absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer"
+                    checked={selectedIds.has(app.id)}
+                    onChange={(e) => {
+                      const newSet = new Set(selectedIds);
+                      if (e.target.checked) newSet.add(app.id);
+                      else newSet.delete(app.id);
+                      setSelectedIds(newSet);
+                    }}
+                  />
+                  <Link
+                    href={`/applications/${app.id}`}
+                    className="block py-5 px-4 pl-12 rounded-sm hover:bg-secondary/40 transition-colors after:absolute after:inset-0 after:content-[''] after:rounded-sm"
+                  >
+                    <ApplicationRow application={app} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="max-w-5xl mt-8 pt-6 border-t border-border/60 flex items-center justify-between gap-4">
+                <span className="caps-meta text-muted-foreground tabular">
+                  {String((page - 1) * pageSize + 1).padStart(2, "0")}–
+                  {String(Math.min(page * pageSize, total)).padStart(2, "0")} of{" "}
+                  {String(total).padStart(2, "0")}
+                </span>
+                <div className="flex items-center gap-5">
+                  <button
+                    onClick={() => goToPage(page - 1)}
+                    disabled={page <= 1}
+                    className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="caps-meta text-muted-foreground tabular">
+                    {String(page).padStart(2, "0")} /{" "}
+                    {String(totalPages).padStart(2, "0")}
+                  </span>
+                  <button
+                    onClick={() => goToPage(page + 1)}
+                    disabled={page >= totalPages}
+                    className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Floating export bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 bg-background border border-border rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-          <span className="caps-meta text-muted-foreground tabular">
-            {selectedIds.size} selected
-          </span>
+          <span className="caps-meta text-muted-foreground tabular">{selectedIds.size} selected</span>
           <button
             onClick={handleExport}
             disabled={isExporting}
@@ -437,11 +462,7 @@ export function JobApplicantsList({
   );
 }
 
-function ApplicationRow({
-  application,
-}: {
-  application: Application;
-}) {
+function ApplicationRow({ application }: { application: Application }) {
   return (
     <div className="flex items-center justify-between gap-3 md:gap-6">
       <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1">
@@ -518,16 +539,44 @@ function EmptyState({
   code,
   filter,
   hasAny,
+  hasSearch,
+  onClearSearch,
 }: {
   code: string;
   filter: ApplicationStatus | null;
   hasAny: boolean;
+  hasSearch: boolean;
+  onClearSearch: () => void;
 }) {
+  if (!hasAny) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center pb-24">
+        <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
+          No applications yet.
+        </p>
+      </div>
+    );
+  }
+  if (hasSearch) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center pb-24">
+        <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
+          No applicants match.
+        </p>
+        <button
+          onClick={onClearSearch}
+          className="mt-8 inline-flex items-center gap-2 rounded-sm border border-border px-5 py-2.5 caps-action text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Clear search
+        </button>
+      </div>
+    );
+  }
   if (filter && hasAny) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center pb-24">
         <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
-          No {STATUS_LABEL[filter].toLowerCase()} candidates for this role.
+          No {STATUS_LABEL[filter].toLowerCase()} candidates.
         </p>
         <Link
           href={`/jobs/${code}`}
@@ -541,10 +590,7 @@ function EmptyState({
   return (
     <div className="h-full flex flex-col items-center justify-center text-center pb-24">
       <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
-        No applications match your filters.
-      </p>
-      <p className="mt-4 max-w-md text-body-lg text-muted-foreground leading-relaxed">
-        Try adjusting your search, score range, or top N selection.
+        No applicants match your filters.
       </p>
     </div>
   );

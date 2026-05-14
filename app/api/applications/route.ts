@@ -130,10 +130,9 @@ export async function POST(req: Request) {
         upsert: false,
       });
 
-    const supabaseUrl = process.env.SUPABASE_URL;
     const resumeUrl = storageError
       ? undefined
-      : `${supabaseUrl}/storage/v1/object/public/resumes/${storagePath}`;
+      : supabase.storage.from("resumes").getPublicUrl(storagePath).data.publicUrl;
     // storageError is non-fatal — application still created, just without resume link
 
     // Stamp each breakdown row with the parent Job's stable Criterion.id when
