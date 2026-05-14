@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { listApplications, type ApplicationStatus } from "@/lib/applications-store";
+import { listApplications } from "@/lib/applications-store";
+import type { FilterStatus } from "@/services/applications.service";
 import { listJobs } from "@/lib/jobs-store";
 import NavTabClient from "../jobs/_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
@@ -17,7 +18,7 @@ function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
       <span className="font-serif italic text-display md:text-display-xl leading-none text-primary tabular">
         {numeral}.
       </span>
-      <span className="font-serifjobs-store italic text-h2 md:text-h1 leading-none text-foreground/85">
+      <span className="font-serif italic text-h2 md:text-h1 leading-none text-foreground/85">
         {title}
       </span>
     </div>
@@ -26,13 +27,7 @@ function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
 
 /* —————————————————————————— page —————————————————————————— */
 
-const VALID_STATUSES: ApplicationStatus[] = [
-  "new",
-  "reviewing",
-  "shortlisted",
-  "rejected",
-  "offered",
-];
+const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
 
 const VALID_TOP_N = [10, 15, 20] as const;
 type TopN = (typeof VALID_TOP_N)[number];
@@ -43,10 +38,10 @@ export default async function ApplicationsListPage({
   searchParams: Promise<{ status?: string; top?: string; minScore?: string; search?: string }>;
 }) {
   const sp = await searchParams;
-  const filter =
-    sp.status && VALID_STATUSES.includes(sp.status as ApplicationStatus)
-      ? (sp.status as ApplicationStatus)
-      : null;
+  const filter: FilterStatus =
+    sp.status && FILTER_STATUSES.includes(sp.status as FilterStatus)
+      ? (sp.status as FilterStatus)
+      : "reviewing";
 
   const topNRaw = sp.top ? parseInt(sp.top, 10) : null;
   const topN: TopN | null =

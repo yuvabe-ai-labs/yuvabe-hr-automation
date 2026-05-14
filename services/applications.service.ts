@@ -21,10 +21,18 @@ function mapRowToApplication(row: ApplicationRow): Application {
   };
 }
 
+export type FilterStatus = "reviewing" | "shortlisted" | "rejected";
+
 export type ApplicationsPageResult = {
   applications: Application[];
   total: number;
-  statusCounts: Record<ApplicationStatus, number>;
+  statusCounts: Record<FilterStatus, number>;
+};
+
+const STATUS_GROUP: Record<FilterStatus, ApplicationStatus[]> = {
+  reviewing:   ["reviewing", "new"],
+  shortlisted: ["shortlisted", "offered"],
+  rejected:    ["rejected"],
 };
 
 export type ApplicationsQueryParams = {
@@ -81,13 +89,18 @@ export async function listApplicationsByJobCode(
       .select("status")
       .eq("job_code", jobCode);
 
-    const statusCounts: Record<ApplicationStatus, number> = {
+    const rawCounts: Record<ApplicationStatus, number> = {
       new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0,
     };
     for (const row of statusRows ?? []) {
       const s = row.status as ApplicationStatus;
-      if (s in statusCounts) statusCounts[s]++;
+      if (s in rawCounts) rawCounts[s]++;
     }
+    const statusCounts: Record<FilterStatus, number> = {
+      reviewing:   rawCounts.reviewing + rawCounts.new,
+      shortlisted: rawCounts.shortlisted + rawCounts.offered,
+      rejected:    rawCounts.rejected,
+    };
 
     // Paginated main query
     let query = client
@@ -96,7 +109,10 @@ export async function listApplicationsByJobCode(
       .eq("job_code", jobCode)
       .order("match_score", { ascending: sort === "asc" });
 
-    if (status) query = query.eq("status", status);
+    if (status) {
+      const group = STATUS_GROUP[status as FilterStatus] ?? [status];
+      query = query.in("status", group);
+    }
     if (search) query = query.ilike("candidate_name", `%${search}%`);
     if (minScore > 0) query = query.gte("match_score", minScore);
 

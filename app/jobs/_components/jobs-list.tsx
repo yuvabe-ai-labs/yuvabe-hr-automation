@@ -134,7 +134,8 @@ export function JobsList({
   const isEmpty = jobs.length === 0;
 
   return (
-    <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-12">
+    <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
+      <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-8">
       {/* Active / Archived tabs */}
       <div className="max-w-4xl flex items-center gap-6 border-b border-border mb-6">
         {(["active", "archived"] as const).map((t) => (
@@ -303,38 +304,41 @@ export function JobsList({
               );
             })}
           </ul>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="max-w-4xl mt-8 pt-6 border-t border-border/60 flex items-center justify-between gap-4">
-              <span className="caps-meta text-muted-foreground tabular">
-                {String((page - 1) * PAGE_SIZE + 1).padStart(2, "0")}–
-                {String(Math.min(page * PAGE_SIZE, total)).padStart(2, "0")} of{" "}
-                {String(total).padStart(2, "0")}
-              </span>
-              <div className="flex items-center gap-5">
-                <button
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page <= 1}
-                  className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                >
-                  ← Prev
-                </button>
-                <span className="caps-meta text-muted-foreground tabular">
-                  {String(page).padStart(2, "0")} /{" "}
-                  {String(totalPages).padStart(2, "0")}
-                </span>
-                <button
-                  onClick={() => goToPage(page + 1)}
-                  disabled={page >= totalPages}
-                  className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                >
-                  Next →
-                </button>
-              </div>
-            </div>
-          )}
         </>
+      )}
+      </div>
+
+      {/* Pagination — always visible at the bottom of the content area */}
+      {totalPages > 1 && jobs.length > 0 && (
+        <div className="shrink-0 border-t border-border/60 bg-background px-4 sm:px-6 md:px-10">
+          <div className="max-w-4xl py-4 flex items-center justify-between gap-4">
+            <span className="caps-meta text-muted-foreground tabular">
+              {String((page - 1) * PAGE_SIZE + 1).padStart(2, "0")}–
+              {String(Math.min(page * PAGE_SIZE, total)).padStart(2, "0")} of{" "}
+              {String(total).padStart(2, "0")}
+            </span>
+            <div className="flex items-center gap-5">
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={page <= 1}
+                className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              >
+                ← Prev
+              </button>
+              <span className="caps-meta text-muted-foreground tabular">
+                {String(page).padStart(2, "0")} /{" "}
+                {String(totalPages).padStart(2, "0")}
+              </span>
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={page >= totalPages}
+                className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

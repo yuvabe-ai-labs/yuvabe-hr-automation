@@ -71,11 +71,7 @@ export default async function JobsPage({
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
-          {/* <NavTabClient
-            href="/applications"
-            label="Applicants"
-            prefix="/applications"
-          /> */}
+          {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
           {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
           <SignOutButton className="ml-auto" />
         </nav>
@@ -87,13 +83,21 @@ export default async function JobsPage({
           <div className="flex-shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-6 border-b border-border bg-background">
             <div className="flex items-end justify-between gap-6">
               <ColumnMarker numeral="i" title="Jobs" />
-              <Link
-                href="/jobs/new"
-                className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-4 py-2 caps-action hover:bg-primary/90 transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                New job
-              </Link>
+              <div className="flex items-center gap-2.5">
+                <Link
+                  href="/applications"
+                  className="inline-flex items-center gap-2 rounded-sm border border-border px-4 py-2 caps-action text-foreground hover:bg-secondary transition-colors"
+                >
+                  All applicants
+                </Link>
+                <Link
+                  href="/jobs/new"
+                  className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-4 py-2 caps-action hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  New job
+                </Link>
+              </div>
             </div>
           </div>
 
