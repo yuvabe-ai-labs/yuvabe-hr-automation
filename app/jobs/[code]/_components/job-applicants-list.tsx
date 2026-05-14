@@ -1,23 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, Filter, Search, X } from "lucide-react";
 import { useApplicationsByJobCode } from "@/hooks/use-applications";
 import type { ApplicationsQueryParams, ApplicationsPageResult } from "@/hooks/use-applications";
 import { getCandidatesByIds } from "@/services/candidates.service";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
+import { downloadExcel } from "@/lib/export-excel";
 import type { Application, ApplicationStatus } from "@/types/applications";
+import type { FilterStatus } from "@/services/applications.service";
 
 const DEFAULT_PAGE_SIZE = 15;
 
-const VALID_STATUSES: ApplicationStatus[] = [
-  "new", "reviewing", "shortlisted", "rejected", "offered",
-];
+const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
 
 type SortOrder = "asc" | "desc";
 
+const FILTER_LABEL: Record<FilterStatus, string> = {
+  reviewing:   "Review",
+  shortlisted: "Shortlist",
+  rejected:    "Reject",
+};
+
+// Used for individual row display (all 5 DB statuses)
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
   new: "New",
   reviewing: "Reviewing",
@@ -66,8 +73,8 @@ function ScoreChip({ score }: { score: number }) {
 
 function buildHref(
   jobCode: string,
-  overrides: { status?: ApplicationStatus | null; search?: string | null; minScore?: number; pageSize?: number | null },
-  current: { filter: ApplicationStatus | null; searchQuery: string; minScore: number; sortOrder: SortOrder; pageSize: number }
+  overrides: { status?: FilterStatus; search?: string | null; minScore?: number; pageSize?: number | null },
+  current: { filter: FilterStatus; searchQuery: string; minScore: number; sortOrder: SortOrder; pageSize: number }
 ): string {
   const params = new URLSearchParams();
   const status = "status" in overrides ? overrides.status : current.filter;
@@ -75,12 +82,12 @@ function buildHref(
   const minScore = "minScore" in overrides ? overrides.minScore : current.minScore;
   const pageSize = "pageSize" in overrides ? overrides.pageSize : current.pageSize;
 
-  if (status) params.set("status", status);
+  // Omit "reviewing" from URL — it's the default
+  if (status && status !== "reviewing") params.set("status", status);
   if (search) params.set("search", search);
   if (minScore !== undefined && minScore > 0) params.set("minScore", String(minScore));
   if (current.sortOrder !== "desc") params.set("sort", current.sortOrder);
   if (pageSize && pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(pageSize));
-  // Always reset page when filter changes
 
   const qs = params.toString();
   return `/jobs/${jobCode}${qs ? `?${qs}` : ""}`;
@@ -103,11 +110,11 @@ export function JobApplicantsList({
 
   // URL-derived state
   const search = searchParams.get("search") ?? "";
-  const filter: ApplicationStatus | null = VALID_STATUSES.includes(
-    searchParams.get("status") as ApplicationStatus
+  const filter: FilterStatus = FILTER_STATUSES.includes(
+    searchParams.get("status") as FilterStatus
   )
-    ? (searchParams.get("status") as ApplicationStatus)
-    : null;
+    ? (searchParams.get("status") as FilterStatus)
+    : "reviewing";
   const sortOrder: SortOrder = searchParams.get("sort") === "asc" ? "asc" : "desc";
   const minScore = Math.max(0, Math.min(100, Number(searchParams.get("minScore") ?? "0")));
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
@@ -158,7 +165,7 @@ export function JobApplicantsList({
   };
 
   const isInitialParams =
-    (filter ?? null) === (initialParams.status ?? null) &&
+    filter === (initialParams.status ?? "reviewing") &&
     search === (initialParams.search ?? "") &&
     sortOrder === (initialParams.sort ?? "desc") &&
     minScore === (initialParams.minScore ?? 0) &&
@@ -171,7 +178,7 @@ export function JobApplicantsList({
     isInitialParams ? initialData : undefined
   );
 
-  const applications = data?.applications ?? [];
+  const applications = useMemo(() => data?.applications ?? [], [data]);
   const total = data?.total ?? 0;
   const statusCounts = data?.statusCounts ?? initialData.statusCounts;
   const totalPages = Math.ceil(total / pageSize);
@@ -207,63 +214,89 @@ export function JobApplicantsList({
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
-      const newSet = new Set(selectedIds);
-      if (checked) {
-        applications.forEach((a) => newSet.add(a.id));
-      } else {
-        applications.forEach((a) => newSet.delete(a.id));
-      }
-      setSelectedIds(newSet);
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        if (checked) {
+          applications.forEach((a) => newSet.add(a.id));
+        } else {
+          applications.forEach((a) => newSet.delete(a.id));
+        }
+        return newSet;
+      });
     },
-    [selectedIds, applications]
+    [applications, setSelectedIds]
   );
 
-  const handleExport = useCallback(async () => {
+  const getExportData = useCallback(async () => {
+    const selectedApplications = applications.filter((a) => selectedIds.has(a.id));
+    const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
+    const jobTitles = new Map([[jobCode, jobTitle]]);
+
+    const [enrichments, ...notesResults] = await Promise.all([
+      getCandidatesByIds(candidateIds),
+      ...selectedApplications.map((a) =>
+        fetch(`/api/applications/${a.id}/notes`)
+          .then((r) => r.json())
+          .then((d) => ({ id: a.id, notes: (d.notes ?? []) as { body: string }[] }))
+          .catch(() => ({ id: a.id, notes: [] }))
+      ),
+    ]);
+
+    const notesByAppId = new Map<string, string>(
+      notesResults.map(({ id, notes }) => [
+        id,
+        notes.map((n: { body: string }) => n.body).join(" | "),
+      ])
+    );
+
+    return { selectedApplications, enrichments, jobTitles, notesByAppId };
+  }, [applications, selectedIds, jobCode, jobTitle]);
+
+  const handleExportCsv = useCallback(async () => {
     setIsExporting(true);
     try {
-      const selectedApplications = applications.filter((a) => selectedIds.has(a.id));
-      const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
-      const enrichments = await getCandidatesByIds(candidateIds);
-      const jobTitles = new Map([[jobCode, jobTitle]]);
-      const csv = buildCsvContent(selectedApplications, enrichments, jobTitles);
+      const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
+      const csv = buildCsvContent(selectedApplications, enrichments, jobTitles, notesByAppId);
       downloadCsv(csv, `candidates-${jobCode}.csv`);
     } finally {
       setIsExporting(false);
     }
-  }, [applications, selectedIds, jobCode, jobTitle]);
+  }, [getExportData, jobCode]);
+
+  const handleExportExcel = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
+      downloadExcel(selectedApplications, enrichments, jobTitles, notesByAppId, `candidates-${jobCode}.xlsx`);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [getExportData, jobCode]);
 
   const current = { filter, searchQuery: search, minScore, sortOrder, pageSize };
 
   return (
-    <>
+    <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
       {/* Status filter chips */}
       {totalAll > 0 && (
-        <div className="mt-6 flex items-center gap-1 flex-wrap -ml-2.5">
-          <StatusFilterChip
-            href={buildHref(jobCode, { status: null }, current)}
-            label="All"
-            count={totalAll}
-            tone="neutral"
-            active={!filter}
-          />
-          {(["shortlisted", "reviewing", "new", "offered", "rejected"] as ApplicationStatus[])
-            .filter((s) => statusCounts[s] > 0)
-            .map((s) => (
-              <StatusFilterChip
-                key={s}
-                href={buildHref(jobCode, { status: s }, current)}
-                label={STATUS_LABEL[s]}
-                count={statusCounts[s]}
-                tone={s === "shortlisted" ? "shortlist" : s === "offered" ? "offered" : "neutral"}
-                active={filter === s}
-              />
-            ))}
+        <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-5 flex items-center gap-1 flex-wrap -ml-2.5">
+          {FILTER_STATUSES.map((s) => (
+            <StatusFilterChip
+              key={s}
+              href={buildHref(jobCode, { status: s }, current)}
+              label={FILTER_LABEL[s]}
+              count={statusCounts[s]}
+              tone={s === "shortlisted" ? "shortlist" : s === "rejected" ? "reject" : "neutral"}
+              active={filter === s}
+            />
+          ))}
         </div>
       )}
 
       {/* Search + Filter Row */}
       {totalAll > 0 && (
-        <div className="mt-6 relative w-full max-w-2xl">
+        <div className="shrink-0 px-4 sm:px-6 md:px-10 mt-4">
+          <div className="relative w-full max-w-2xl">
           <div className="relative w-full">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
@@ -351,11 +384,12 @@ export function JobApplicantsList({
               </div>
             </>
           )}
+          </div>
         </div>
       )}
 
       {/* Scrolling list */}
-      <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-12">
+      <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-8">
         {!isPending && applications.length === 0 ? (
           <EmptyState
             code={jobCode}
@@ -367,25 +401,29 @@ export function JobApplicantsList({
         ) : (
           <>
             <ul className="max-w-5xl">
-              <li className="relative group border-y border-border/60">
-                <div className="py-5 flex items-center gap-3 md:gap-5">
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                  />
-                  <span className="text-xs text-muted-foreground caps-meta">
-                    {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select to export"}
-                  </span>
-                </div>
-              </li>
+              {selectedIds.size > 0 && (
+                <li className="relative group border-y border-border/60">
+                  <div className="py-5 flex items-center gap-3 md:gap-5">
+                    <input
+                      ref={selectAllRef}
+                      type="checkbox"
+                      className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                    <span className="text-xs text-muted-foreground caps-meta">
+                      {selectedIds.size} selected
+                    </span>
+                  </div>
+                </li>
+              )}
 
               {applications.map((app) => (
                 <li key={app.id} className="relative group border-b border-border/60">
                   <input
                     type="checkbox"
-                    className="absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer"
+                    className={`absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer transition-opacity ${
+                      selectedIds.has(app.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
                     checked={selectedIds.has(app.id)}
                     onChange={(e) => {
                       const newSet = new Set(selectedIds);
@@ -404,51 +442,73 @@ export function JobApplicantsList({
               ))}
             </ul>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="max-w-5xl mt-8 pt-6 border-t border-border/60 flex items-center justify-between gap-4">
-                <span className="caps-meta text-muted-foreground tabular">
-                  {String((page - 1) * pageSize + 1).padStart(2, "0")}–
-                  {String(Math.min(page * pageSize, total)).padStart(2, "0")} of{" "}
-                  {String(total).padStart(2, "0")}
-                </span>
-                <div className="flex items-center gap-5">
-                  <button
-                    onClick={() => goToPage(page - 1)}
-                    disabled={page <= 1}
-                    className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                  >
-                    ← Prev
-                  </button>
-                  <span className="caps-meta text-muted-foreground tabular">
-                    {String(page).padStart(2, "0")} /{" "}
-                    {String(totalPages).padStart(2, "0")}
-                  </span>
-                  <button
-                    onClick={() => goToPage(page + 1)}
-                    disabled={page >= totalPages}
-                    className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                  >
-                    Next →
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
+
+      {/* Pagination — always visible at the bottom of the content area */}
+      {totalPages > 1 && applications.length > 0 && (
+        <div className="shrink-0 border-t border-border/60 bg-background px-4 sm:px-6 md:px-10">
+          <div className="max-w-5xl py-4 flex items-center justify-between gap-4">
+            <span className="caps-meta text-muted-foreground tabular">
+              {String((page - 1) * pageSize + 1).padStart(2, "0")}–
+              {String(Math.min(page * pageSize, total)).padStart(2, "0")} of{" "}
+              {String(total).padStart(2, "0")}
+            </span>
+            <div className="flex items-center gap-5">
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={page <= 1}
+                className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              >
+                ← Prev
+              </button>
+              <span className="caps-meta text-muted-foreground tabular">
+                {String(page).padStart(2, "0")} /{" "}
+                {String(totalPages).padStart(2, "0")}
+              </span>
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={page >= totalPages}
+                className="caps-action text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating export bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 bg-background border border-border rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
           <span className="caps-meta text-muted-foreground tabular">{selectedIds.size} selected</span>
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="caps-action bg-primary text-primary-foreground px-3 py-1.5 rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {isExporting ? "Exporting..." : "Export CSV"}
-          </button>
+          <div className="relative group">
+            <button
+              disabled={isExporting}
+              className="caps-action bg-primary text-primary-foreground px-3 py-1.5 rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {isExporting ? "Exporting…" : "Export"}
+              <span className="text-[10px] opacity-70">▾</span>
+            </button>
+            <div className="absolute bottom-full left-0 hidden group-hover:flex flex-col bg-background border border-border rounded-sm shadow-[0_4px_16px_rgb(0,0,0,0.10)] overflow-hidden min-w-[148px] z-10">
+              <button
+                onClick={handleExportCsv}
+                disabled={isExporting}
+                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                Export CSV
+              </button>
+              <div className="border-t border-border" />
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                Export as Excel
+              </button>
+            </div>
+          </div>
           <button
             onClick={() => setSelectedIds(new Set())}
             aria-label="Clear selection"
@@ -458,7 +518,7 @@ export function JobApplicantsList({
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -486,7 +546,7 @@ function ApplicationRow({ application }: { application: Application }) {
         <span className={`caps-meta ${STATUS_COLOR[application.status]}`}>
           {STATUS_LABEL[application.status]}
         </span>
-        <span className="caps-meta text-muted-foreground tabular hidden md:inline">
+        <span className="caps-meta text-muted-foreground tabular">
           {relativeTime(application.receivedAt)}
         </span>
         <ArrowUpRight
@@ -508,14 +568,14 @@ function StatusFilterChip({
   href: string;
   label: string;
   count: number;
-  tone: "neutral" | "shortlist" | "offered";
+  tone: "neutral" | "shortlist" | "reject";
   active: boolean;
 }) {
   const toneClass =
     tone === "shortlist"
       ? "text-[#2F5E7A]"
-      : tone === "offered"
-      ? "text-[#3F6B3F]"
+      : tone === "reject"
+      ? "text-primary"
       : "text-muted-foreground";
   return (
     <Link
@@ -543,7 +603,7 @@ function EmptyState({
   onClearSearch,
 }: {
   code: string;
-  filter: ApplicationStatus | null;
+  filter: FilterStatus;
   hasAny: boolean;
   hasSearch: boolean;
   onClearSearch: () => void;
@@ -572,11 +632,11 @@ function EmptyState({
       </div>
     );
   }
-  if (filter && hasAny) {
+  if (hasAny) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center pb-24">
         <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
-          No {STATUS_LABEL[filter].toLowerCase()} candidates.
+          No {FILTER_LABEL[filter].toLowerCase()} candidates.
         </p>
         <Link
           href={`/jobs/${code}`}

@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useApplicationById } from "@/hooks/use-applications";
 import type { Application, CriterionMatch } from "@/types/applications";
-import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, MessageSquare } from "lucide-react";
 import NavTabClient from "@/app/jobs/_components/nav-tab";
 import { StatusActions } from "./status-actions";
+import { NotesThread } from "./notes-thread";
+import type { ApplicationNote } from "@/lib/notes-store";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -134,13 +136,14 @@ interface ApplicationDetailContentProps {
   education?: Array<{ degree: string; institution: string; year: number | string }>;
   links?: { linkedin?: string; portfolio?: string; github?: string };
   resumeUrl?: string;
+  initialNotes?: ApplicationNote[];
+  currentUser?: string;
 }
 
 export function ApplicationDetailContent({
   id,
   initialApplication,
   jobTitle,
-  jobCode,
   candidateName,
   candidateEmail,
   candidatePhone,
@@ -149,9 +152,11 @@ export function ApplicationDetailContent({
   education,
   links,
   resumeUrl,
+  initialNotes = [],
+  currentUser = "unknown",
 }: ApplicationDetailContentProps) {
-  const router = useRouter();
   const { data: application, isLoading } = useApplicationById(id, initialApplication);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   if (isLoading && !application) {
     return (
@@ -200,7 +205,14 @@ export function ApplicationDetailContent({
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
           {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
           {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
-          <SignOutButton className="ml-auto" />
+          <button
+            onClick={() => setNotesOpen(true)}
+            className="ml-auto inline-flex items-center gap-1.5 caps-action text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
+          >
+            <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Notes</span>
+          </button>
+          <SignOutButton />
         </nav>
       </header>
 
@@ -291,7 +303,7 @@ export function ApplicationDetailContent({
             )}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-border space-y-2">
+          <div className="mt-6 pt-6 border-t border-border flex flex-col items-start gap-2">
             {resumeUrl ? (
               <button
                 onClick={() => downloadResume(id)}
@@ -306,39 +318,29 @@ export function ApplicationDetailContent({
                 No resume on file
               </span>
             )}
-            {links?.linkedin && (
-              <a
-                href={ensureHttps(links.linkedin)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors"
-              >
-                <span>LinkedIn</span>
-                <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-              </a>
-            )}
-            {links?.portfolio && (
-              <a
-                href={ensureHttps(links.portfolio)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors"
-              >
-                <span>Portfolio</span>
-                <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-              </a>
-            )}
-            {links?.github && (
-              <a
-                href={ensureHttps(links.github)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors"
-              >
-                <span>GitHub</span>
-                <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-              </a>
-            )}
+            {(["linkedin", "github", "portfolio"] as const).map((key) => {
+              const url = links?.[key];
+              const label = key === "linkedin" ? "LinkedIn" : key === "github" ? "GitHub" : "Portfolio";
+              return url ? (
+                <a
+                  key={key}
+                  href={ensureHttps(url)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                >
+                  {label}
+                  <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+                </a>
+              ) : (
+                <span
+                  key={key}
+                  className="inline-flex items-center caps-meta text-muted-foreground border border-border rounded-sm px-1.5 py-0.5 leading-none"
+                >
+                  {label} missing
+                </span>
+              );
+            })}
           </div>
         </aside>
 
@@ -401,7 +403,16 @@ export function ApplicationDetailContent({
             </div>
           </div>
         </section>
+
       </main>
+
+      <NotesThread
+        applicationId={id}
+        initialNotes={initialNotes}
+        currentUser={currentUser}
+        open={notesOpen}
+        onOpenChange={setNotesOpen}
+      />
     </div>
   );
 }

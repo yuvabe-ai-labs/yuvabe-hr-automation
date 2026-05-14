@@ -5,7 +5,6 @@ import {
   getApplicationById,
   listApplications,
   listApplicationsByJobCode,
-  updateApplicationStatus,
 } from "@/services/applications.service";
 import type { ApplicationsPageResult, ApplicationsQueryParams } from "@/services/applications.service";
 import type { Application, ApplicationStatus } from "@/types/applications";
@@ -50,8 +49,19 @@ export function useUpdateApplicationStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: ApplicationStatus }) =>
-      updateApplicationStatus(id, status),
+    mutationFn: async ({ id, status }: { id: string; status: ApplicationStatus }) => {
+      const res = await fetch(`/api/applications/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to update status");
+      }
+      const { application } = await res.json();
+      return application as Application;
+    },
     onSuccess: (_data: Application | undefined, variables: { id: string; status: ApplicationStatus }) => {
       queryClient.invalidateQueries({
         queryKey: ["applications", "detail", variables.id],

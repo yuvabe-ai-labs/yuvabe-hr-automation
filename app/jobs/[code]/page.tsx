@@ -2,8 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJobById } from "@/services/jobs.service";
 import { listApplicationsByJobCode } from "@/services/applications.service";
-import type { ApplicationsQueryParams } from "@/services/applications.service";
-import type { ApplicationStatus } from "@/types/applications";
+import type { ApplicationsQueryParams, FilterStatus } from "@/services/applications.service";
 import { ArrowLeft, Eye } from "lucide-react";
 import NavTabClient from "../_components/nav-tab";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
@@ -31,13 +30,7 @@ function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
 
 /* —————————————————————————— page —————————————————————————— */
 
-const VALID_STATUSES: ApplicationStatus[] = [
-  "new",
-  "reviewing",
-  "shortlisted",
-  "rejected",
-  "offered",
-];
+const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
 
 type SortOrder = "asc" | "desc";
 
@@ -58,10 +51,10 @@ export default async function JobDetailPage({
   const { code } = await params;
   const sp = await searchParams;
 
-  const filter: ApplicationStatus | null =
-    sp.status && VALID_STATUSES.includes(sp.status as ApplicationStatus)
-      ? (sp.status as ApplicationStatus)
-      : null;
+  const filter: FilterStatus =
+    sp.status && FILTER_STATUSES.includes(sp.status as FilterStatus)
+      ? (sp.status as FilterStatus)
+      : "reviewing";
 
   const sortOrder: SortOrder = sp.sort === "asc" ? "asc" : "desc";
   const minScore = sp.minScore
@@ -164,15 +157,15 @@ export default async function JobDetailPage({
                   <Eye className="h-3 w-3" strokeWidth={1.75} />
                 </Link>
               </div>
-
-              <JobApplicantsList
-                jobCode={code}
-                jobTitle={job.title}
-                initialData={result}
-                initialParams={initialParams}
-              />
             </div>
           </div>
+
+          <JobApplicantsList
+            jobCode={code}
+            jobTitle={job.title}
+            initialData={result}
+            initialParams={initialParams}
+          />
         </section>
       </main>
 

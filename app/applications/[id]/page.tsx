@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getApplicationById } from "@/lib/applications-store";
 import { getCandidateById } from "@/lib/candidates-store";
 import { listJobs } from "@/lib/jobs-store";
-import { supabase } from "@/lib/supabase";
+import { listNotes } from "@/lib/notes-store";
 import { ApplicationDetailContent } from "./_components/application-detail-content";
 
 export default async function ApplicationDetailPage({
@@ -21,6 +21,9 @@ export default async function ApplicationDetailPage({
   const job = jobs.find((j) => j.id === application.jobId);
   if (!job) notFound();
 
+  const initialNotes = await listNotes(id).catch(() => []);
+  const currentUser = process.env.AUTH_USER ?? "unknown";
+
   return (
     <ApplicationDetailContent
       id={application.id}
@@ -35,6 +38,8 @@ export default async function ApplicationDetailPage({
       education={candidate.education}
       links={candidate.links}
       resumeUrl={application.resumeUrl}
+      initialNotes={initialNotes}
+      currentUser={currentUser}
     />
   );
 }

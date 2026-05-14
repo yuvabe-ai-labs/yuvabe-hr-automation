@@ -3,15 +3,32 @@
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowUpRight, Filter, X } from "lucide-react";
-import { useApplications } from "@/hooks/use-applications";
 import { getCandidatesByIds } from "@/services/candidates.service";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
+import { downloadExcel } from "@/lib/export-excel";
 import type { Application, ApplicationStatus } from "@/types/applications";
 import type { Job } from "@/types/jobs";
+import type { FilterStatus } from "@/services/applications.service";
 
 type TopN = 10 | 15 | 20;
 type SortOrder = "asc" | "desc";
 
+const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
+
+const FILTER_LABEL: Record<FilterStatus, string> = {
+  reviewing:   "Review",
+  shortlisted: "Shortlist",
+  rejected:    "Reject",
+};
+
+// Groups for client-side JS filtering
+const STATUS_GROUP: Record<FilterStatus, ApplicationStatus[]> = {
+  reviewing:   ["reviewing", "new"],
+  shortlisted: ["shortlisted", "offered"],
+  rejected:    ["rejected"],
+};
+
+// Used for individual row display
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
   new: "New",
   reviewing: "Reviewing",
@@ -61,13 +78,13 @@ function ScoreChip({ score }: { score: number }) {
 
 function buildHref(
   overrides: {
-    status?: ApplicationStatus | null;
+    status?: FilterStatus;
     top?: number | null;
     search?: string | null;
     minScore?: number;
   },
   current: {
-    filter: ApplicationStatus | null;
+    filter: FilterStatus;
     topN: TopN | null;
     sortOrder: SortOrder;
     searchQuery: string;
@@ -80,7 +97,8 @@ function buildHref(
   const search = "search" in overrides ? overrides.search : current.searchQuery;
   const minScore = "minScore" in overrides ? overrides.minScore : current.minScore;
 
-  if (status) params.set("status", status);
+  // Omit "reviewing" from URL — it's the default
+  if (status && status !== "reviewing") params.set("status", status);
   if (top) params.set("top", String(top));
   if (search) params.set("search", encodeURIComponent(search));
   if (minScore !== 0) params.set("minScore", String(minScore));
@@ -99,14 +117,12 @@ export function ApplicationsList({
 }: {
   initialApplications: Application[];
   initialJobs: Job[];
-  filter: ApplicationStatus | null;
+  filter: FilterStatus;
   topN: TopN | null;
   minScore: number;
   searchQuery: string;
 }) {
-  const { data: allApplications = initialApplications } = useApplications(
-    initialApplications
-  );
+  const allApplications = initialApplications;
 
   const jobsByCode = new Map<string, Job>(initialJobs.map((j) => [j.code, j]));
 
@@ -123,7 +139,9 @@ export function ApplicationsList({
 
   const sorted = allApplications;
 
-  const filtered = filter ? sorted.filter((a) => a.status === filter) : sorted;
+  const filtered = sorted.filter((a) =>
+    (STATUS_GROUP[filter] as ApplicationStatus[]).includes(a.status)
+  );
 
   const searched = localSearch
     ? filtered.filter((a) =>
@@ -135,13 +153,11 @@ export function ApplicationsList({
 
   const applications = topN !== null ? scored.slice(0, topN) : scored;
 
-  const statusCounts = allApplications.reduce<Record<ApplicationStatus, number>>(
-    (acc, a) => {
-      acc[a.status] = (acc[a.status] ?? 0) + 1;
-      return acc;
-    },
-    { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0 }
-  );
+  const groupedCounts: Record<FilterStatus, number> = {
+    reviewing:   allApplications.filter((a) => a.status === "reviewing" || a.status === "new").length,
+    shortlisted: allApplications.filter((a) => a.status === "shortlisted" || a.status === "offered").length,
+    rejected:    allApplications.filter((a) => a.status === "rejected").length,
+  };
 
   const hasActiveFilters =
     localSearch !== "" || localMinScore !== 0 || topN !== null;
@@ -180,64 +196,70 @@ export function ApplicationsList({
     [selectedIds, applications]
   );
 
-  const handleExport = useCallback(async () => {
+  const getExportData = useCallback(async () => {
+    const selectedApplications = applications.filter((a) => selectedIds.has(a.id));
+    const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
+    const jobTitles = new Map(initialJobs.map((j) => [j.code, j.title]));
+
+    const [enrichments, ...notesResults] = await Promise.all([
+      getCandidatesByIds(candidateIds),
+      ...selectedApplications.map((a) =>
+        fetch(`/api/applications/${a.id}/notes`)
+          .then((r) => r.json())
+          .then((d) => ({ id: a.id, notes: (d.notes ?? []) as { body: string }[] }))
+          .catch(() => ({ id: a.id, notes: [] }))
+      ),
+    ]);
+
+    const notesByAppId = new Map<string, string>(
+      notesResults.map(({ id, notes }) => [
+        id,
+        notes.map((n: { body: string }) => n.body).join(" | "),
+      ])
+    );
+
+    return { selectedApplications, enrichments, jobTitles, notesByAppId };
+  }, [applications, selectedIds, initialJobs]);
+
+  const handleExportCsv = useCallback(async () => {
     setIsExporting(true);
     try {
-      const selectedApplications = applications.filter((a) =>
-        selectedIds.has(a.id)
-      );
-      const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
-      const enrichments = await getCandidatesByIds(candidateIds);
-      const jobTitles = new Map(initialJobs.map((j) => [j.code, j.title]));
-      const csv = buildCsvContent(selectedApplications, enrichments, jobTitles);
+      const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
+      const csv = buildCsvContent(selectedApplications, enrichments, jobTitles, notesByAppId);
       downloadCsv(csv, "candidates.csv");
     } finally {
       setIsExporting(false);
     }
-  }, [applications, selectedIds, initialJobs]);
+  }, [getExportData]);
+
+  const handleExportExcel = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
+      downloadExcel(selectedApplications, enrichments, jobTitles, notesByAppId, "candidates.xlsx");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [getExportData]);
 
   return (
     <>
       {/* Status filter chips */}
       {allApplications.length > 0 && (
         <div className="mt-6 flex items-center gap-1 flex-wrap ml-6">
-          <StatusFilterChip
-            href={buildHref(
-              { status: null },
-              {
-                filter,
-                topN,
-                sortOrder,
-                searchQuery: localSearch,
-                minScore: localMinScore,
-              }
-            )}
-            label="All"
-            count={allApplications.length}
-            tone="neutral"
-            active={!filter}
-          />
-          {(["shortlisted", "reviewing", "new", "offered", "rejected"] as ApplicationStatus[])
-            .filter((s) => statusCounts[s] > 0)
-            .map((s) => (
-              <StatusFilterChip
-                key={s}
-                href={buildHref(
-                  { status: s },
-                  {
-                    filter,
-                    topN,
-                    sortOrder,
-                    searchQuery: localSearch,
-                    minScore: localMinScore,
-                  }
-                )}
-                label={STATUS_LABEL[s]}
-                count={statusCounts[s]}
-                tone={s === "shortlisted" ? "shortlist" : s === "offered" ? "offered" : "neutral"}
-                active={filter === s}
-              />
-            ))}
+          {FILTER_STATUSES.map((s) => (
+            <StatusFilterChip
+              key={s}
+              href={buildHref(
+                { status: s },
+                { filter, topN, sortOrder, searchQuery: localSearch, minScore: localMinScore }
+              )}
+              label={FILTER_LABEL[s]}
+              count={groupedCounts[s]}
+              tone={s === "shortlisted" ? "shortlist" : s === "rejected" ? "reject" : "neutral"}
+              active={filter === s}
+            />
+          ))}
         </div>
       )}
 
@@ -360,22 +382,22 @@ export function ApplicationsList({
           <EmptyState filter={filter} hasAny={allApplications.length > 0} />
         ) : (
           <ul className="max-w-5xl">
-            {/* Header row with select-all checkbox */}
-            <li className="relative group border-b border-border/60 border-t border-border/60">
-              <div className="py-5 flex items-center gap-3 md:gap-5">
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                />
-                <span className="text-xs text-muted-foreground caps-meta">
-                  {selectedIds.size > 0
-                    ? `${selectedIds.size} selected`
-                    : "Select to export"}
-                </span>
-              </div>
-            </li>
+            {/* Header row with select-all — only visible when something is selected */}
+            {selectedIds.size > 0 && (
+              <li className="relative group border-b border-border/60 border-t border-border/60">
+                <div className="py-5 flex items-center gap-3 md:gap-5">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  />
+                  <span className="text-xs text-muted-foreground caps-meta">
+                    {selectedIds.size} selected
+                  </span>
+                </div>
+              </li>
+            )}
 
             {applications.map((app, idx) => {
               const job = jobsByCode.get(app.jobCode);
@@ -389,7 +411,9 @@ export function ApplicationsList({
                 >
                   <input
                     type="checkbox"
-                    className="absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer"
+                    className={`absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer transition-opacity ${
+                      selectedIds.has(app.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
                     checked={selectedIds.has(app.id)}
                     onChange={(e) => {
                       const newSet = new Set(selectedIds);
@@ -420,13 +444,33 @@ export function ApplicationsList({
           <span className="caps-meta text-muted-foreground tabular">
             {selectedIds.size} selected
           </span>
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="caps-action bg-primary text-primary-foreground px-3 py-1.5 rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {isExporting ? "Exporting..." : "Export CSV"}
-          </button>
+          <div className="relative group">
+            <button
+              disabled={isExporting}
+              className="caps-action bg-primary text-primary-foreground px-3 py-1.5 rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {isExporting ? "Exporting…" : "Export"}
+              <span className="text-[10px] opacity-70">▾</span>
+            </button>
+            {/* No gap between button and menu — hover area is continuous */}
+            <div className="absolute bottom-full left-0 hidden group-hover:flex flex-col bg-background border border-border rounded-sm shadow-[0_4px_16px_rgb(0,0,0,0.10)] overflow-hidden min-w-[148px] z-10">
+              <button
+                onClick={handleExportCsv}
+                disabled={isExporting}
+                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                Export CSV
+              </button>
+              <div className="border-t border-border" />
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                Export as Excel
+              </button>
+            </div>
+          </div>
           <button
             onClick={() => setSelectedIds(new Set())}
             aria-label="Clear selection"
@@ -468,7 +512,7 @@ function ApplicationRow({
         <span className={`caps-meta ${STATUS_COLOR[application.status]}`}>
           {STATUS_LABEL[application.status]}
         </span>
-        <span className="caps-meta text-muted-foreground tabular hidden md:inline">
+        <span className="caps-meta text-muted-foreground tabular">
           {relativeTime(application.receivedAt)}
         </span>
         <ArrowUpRight
@@ -490,14 +534,14 @@ function StatusFilterChip({
   href: string;
   label: string;
   count: number;
-  tone: "neutral" | "shortlist" | "offered";
+  tone: "neutral" | "shortlist" | "reject";
   active: boolean;
 }) {
   const toneClass =
     tone === "shortlist"
       ? "text-[#2F5E7A]"
-      : tone === "offered"
-      ? "text-[#3F6B3F]"
+      : tone === "reject"
+      ? "text-primary"
       : "text-muted-foreground";
   return (
     <Link
@@ -521,31 +565,25 @@ function EmptyState({
   filter,
   hasAny,
 }: {
-  filter: ApplicationStatus | null;
+  filter: FilterStatus;
   hasAny: boolean;
 }) {
-  if (filter && hasAny) {
+  if (hasAny) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center pb-24">
         <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
-          No {STATUS_LABEL[filter].toLowerCase()} applications.
+          No {FILTER_LABEL[filter].toLowerCase()} applications.
         </p>
-        <Link
-          href="/applications"
-          className="mt-4 eyebrow text-primary hover:text-primary/70 transition-colors"
-        >
-          Show all ←
-        </Link>
+        <p className="mt-4 max-w-md text-body-lg text-muted-foreground leading-relaxed">
+          Try adjusting your search or score range.
+        </p>
       </div>
     );
   }
   return (
     <div className="h-full flex flex-col items-center justify-center text-center pb-24">
       <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
-        No applications match your filters.
-      </p>
-      <p className="mt-4 max-w-md text-body-lg text-muted-foreground leading-relaxed">
-        Try adjusting your search, score range, or top N selection.
+        No applications yet.
       </p>
     </div>
   );
