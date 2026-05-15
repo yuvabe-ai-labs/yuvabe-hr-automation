@@ -103,7 +103,10 @@ function rowToApplication(row: ApplicationRow): Application {
     candidateYearsOfExperience: row.candidate_years_of_experience,
     matchScore: row.match_score,
     matchSummary: row.match_summary,
-    matchBreakdown: row.match_breakdown ?? [],
+    matchBreakdown: (row.match_breakdown ?? []).map((m) => ({
+      ...m,
+      criterionLabel: m.criterionLabel.replace(/^\[(MUST|STRONG|NICE)\]\s*/i, "").trim(),
+    })),
     coverLetter: row.cover_letter,
     resumeUrl: row.resume_url ?? undefined,
     receivedAt: row.received_at,
