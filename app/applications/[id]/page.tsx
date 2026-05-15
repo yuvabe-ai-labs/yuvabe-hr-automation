@@ -40,7 +40,7 @@ function bandTextClass(score: number): string {
     : "text-primary";
 }
 
-const IMPORTANCE_LABEL = { must: "Must", strong: "Strong", nice: "Nice" } as const;
+const IMPORTANCE_LABEL = { must: "Preferred", strong: "Strong", nice: "Nice" } as const;
 const IMPORTANCE_COLOR = {
   must: "text-primary",
   strong: "text-foreground",
@@ -298,7 +298,7 @@ export default async function ApplicationDetailPage({
                   href={ensureHttps(url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 caps-action text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-2 caps-action text-[#3F6B3F] hover:text-[#3F6B3F]/70 transition-colors"
                 >
                   <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
                   {label}
