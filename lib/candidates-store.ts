@@ -59,7 +59,7 @@ type CandidateRow = {
   skills: string[];
   experience: ExperienceEntry[];
   education: EducationEntry[];
-  links: CandidateLinks | null;
+  links: CandidateLinks | string | null; // text column — Supabase returns raw JSON string, not parsed object
   resume_text: string;
 };
 
@@ -77,8 +77,11 @@ function rowToCandidate(row: CandidateRow): Candidate {
     education: row.education ?? [],
     resumeText: row.resume_text,
   };
-  // Postgres null becomes undefined in the canonical TS shape (links is optional).
-  if (row.links) candidate.links = row.links;
+  // links is a `text` column so Supabase returns it as a raw JSON string, not a parsed object.
+  const parsedLinks = typeof row.links === "string"
+    ? (JSON.parse(row.links) as CandidateLinks)
+    : row.links;
+  if (parsedLinks) candidate.links = parsedLinks;
   return candidate;
 }
 
