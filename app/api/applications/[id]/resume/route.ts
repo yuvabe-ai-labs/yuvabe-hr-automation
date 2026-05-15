@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getApplicationById } from "@/lib/applications-store";
-import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -21,16 +20,23 @@ export async function GET(
   if (prefixIndex === -1) {
     return NextResponse.json({ error: "Invalid resume URL" }, { status: 400 });
   }
-  const storagePath = application.resumeUrl.slice(prefixIndex + STORAGE_PREFIX.length);
+  const storagePath = application.resumeUrl
+    .slice(prefixIndex + STORAGE_PREFIX.length)
+    .split("?")[0];
 
-  const { data, error } = await supabase.storage
-    .from("resumes")
-    .createSignedUrl(storagePath, 60);
-
-  if (error || !data?.signedUrl) {
-    console.error("[resume] createSignedUrl failed:", error);
-    return NextResponse.json({ error: "Failed to generate download URL" }, { status: 500 });
+  const fileRes = await fetch(application.resumeUrl);
+  if (!fileRes.ok) {
+    return NextResponse.json({ error: "Resume file not found in storage" }, { status: 404 });
   }
 
-  return NextResponse.redirect(data.signedUrl);
+  const ext = storagePath.split(".").pop() ?? "pdf";
+  const contentType = fileRes.headers.get("content-type") ?? "application/octet-stream";
+
+  return new Response(fileRes.body, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": `attachment; filename="resume.${ext}"`,
+      "Cache-Control": "no-store",
+    },
+  });
 }
