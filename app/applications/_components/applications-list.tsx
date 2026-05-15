@@ -341,26 +341,6 @@ export function ApplicationsList({
                 <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
                 <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
-                        Show Top
-                      </label>
-                      <div className="flex gap-1.5">
-                        {[null, 10, 15, 20].map((n) => (
-                          <button
-                            key={n ?? "all"}
-                            onClick={() => setTempTopN(n as TopN | null)}
-                            className={`flex-1 px-2 py-1 rounded-sm text-xs font-medium transition-colors text-center ${
-                              n === tempTopN
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary text-foreground hover:bg-secondary/80"
-                            }`}
-                          >
-                            {n === null ? "All" : `${n}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
 
                     <div>
                       <label className="block text-xs caps-meta text-muted-foreground mb-1.5">

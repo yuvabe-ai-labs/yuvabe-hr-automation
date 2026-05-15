@@ -280,15 +280,15 @@ export default async function ApplicationDetailPage({
                 href={application.resumeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 caps-action text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors"
               >
                 <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
                 Download resume
               </a>
             ) : (
-              <span className="inline-flex items-center gap-2 caps-action text-muted-foreground/65 italic">
-                <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
-                Download resume (mock)
+              <span className="inline-flex items-center gap-2 caps-action text-primary/65">
+                <TriangleAlert className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                Resume missing
               </span>
             )}
             {(["linkedin", "github", "portfolio"] as const).map((key) => {
