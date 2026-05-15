@@ -132,6 +132,69 @@ export async function listApplicationsByJobCode(
   }
 }
 
+export type AllApplicationsQueryParams = {
+  status?: FilterStatus;
+  search?: string;
+  minScore?: number;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AllApplicationsPageResult = {
+  applications: Application[];
+  total: number;
+  statusCounts: Record<FilterStatus, number>;
+};
+
+export async function listApplicationsAll(
+  options?: AllApplicationsQueryParams
+): Promise<AllApplicationsPageResult> {
+  const { status, search, minScore = 0, page = 1, pageSize = 15 } = options ?? {};
+  const client = getSupabasePeopleClient();
+
+  // Status counts across ALL apps — for chip display
+  const { data: statusRows } = await client
+    .from("applications")
+    .select("status");
+
+  const rawCounts: Record<ApplicationStatus, number> = {
+    new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0,
+  };
+  for (const row of statusRows ?? []) {
+    const s = row.status as ApplicationStatus;
+    if (s in rawCounts) rawCounts[s]++;
+  }
+  const statusCounts: Record<FilterStatus, number> = {
+    reviewing:   rawCounts.reviewing + rawCounts.new,
+    shortlisted: rawCounts.shortlisted + rawCounts.offered,
+    rejected:    rawCounts.rejected,
+  };
+
+  let query = client
+    .from("applications")
+    .select("*", { count: "exact" })
+    .order("received_at", { ascending: false });
+
+  if (status) {
+    const group = STATUS_GROUP[status] ?? [status];
+    query = query.in("status", group);
+  }
+  if (search) query = query.ilike("candidate_name", `%${search}%`);
+  if (minScore > 0) query = query.gte("match_score", minScore);
+
+  const offset = (page - 1) * pageSize;
+  query = query.range(offset, offset + pageSize - 1);
+
+  const { data, error, count } = await query;
+  if (error || !data) throw new Error(error?.message ?? "Failed to fetch applications");
+
+  return {
+    applications: (data as ApplicationRow[]).map(mapRowToApplication),
+    total: count ?? 0,
+    statusCounts,
+  };
+}
+
 export async function countApplicationsByJobCode(jobCode: string): Promise<number> {
   try {
     const client = getSupabasePeopleClient();

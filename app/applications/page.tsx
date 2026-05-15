@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { listApplications } from "@/lib/applications-store";
+import { listApplicationsAll } from "@/services/applications.service";
 import type { FilterStatus } from "@/services/applications.service";
-import { listJobs } from "@/lib/jobs-store";
+import { listJobs } from "@/services/jobs.service";
 import NavTabClient from "../jobs/_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { ApplicationsList } from "./_components/applications-list";
@@ -27,15 +27,15 @@ function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
 
 /* —————————————————————————— page —————————————————————————— */
 
+const PAGE_SIZE = 10;
 const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
-
 const VALID_TOP_N = [10, 15, 20] as const;
 type TopN = (typeof VALID_TOP_N)[number];
 
 export default async function ApplicationsListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; top?: string; minScore?: string; search?: string }>;
+  searchParams: Promise<{ status?: string; top?: string; minScore?: string; search?: string; page?: string }>;
 }) {
   const sp = await searchParams;
   const filter: FilterStatus =
@@ -51,17 +51,24 @@ export default async function ApplicationsListPage({
 
   const minScore = sp.minScore ? Math.max(0, Math.min(100, parseInt(sp.minScore, 10))) : 0;
   const searchQuery = sp.search ? decodeURIComponent(sp.search) : "";
+  const initialPage = Number(sp.page ?? "1");
 
-  // Listing pages read denormalized snapshots off Application — no candidates
-  // fan-out. The full Candidate doc is only fetched on /applications/[id].
-  const allApplications = await listApplications();
-  const jobs = await listJobs();
+  const [initialData, jobs] = await Promise.all([
+    listApplicationsAll({
+      status: filter,
+      search: searchQuery,
+      minScore,
+      page: initialPage,
+      pageSize: topN ?? PAGE_SIZE,
+    }),
+    listJobs(),
+  ]);
 
-  const total = allApplications.length;
+  const total = Object.values(initialData.statusCounts).reduce((a, b) => a + b, 0);
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
-      <header className="flex-shrink-0 border-b border-border bg-background z-10">
+      <header className="shrink-0 border-b border-border bg-background z-10">
         <div className="px-4 md:px-10 pt-4 pb-3 flex items-center justify-between gap-3">
           <div className="flex items-baseline gap-3 min-w-0">
             <Link href="/" className="font-serif italic text-h3 leading-none hover:opacity-70 transition-opacity">Yuvabe</Link>
@@ -72,13 +79,13 @@ export default async function ApplicationsListPage({
             <span className="tabular">{String(total).padStart(2, "0")}</span>
             &nbsp;
             <span className="hidden sm:inline">
-              {total === 1 ? "application" : "applications"} across {jobs.length}{" "}
-              {jobs.length === 1 ? "role" : "roles"}
+              {total === 1 ? "application" : "applications"} across {jobs.jobs.length}{" "}
+              {jobs.jobs.length === 1 ? "role" : "roles"}
             </span>
             <span className="sm:hidden">{total === 1 ? "app" : "apps"}</span>
           </Eyebrow>
         </div>
-        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
           {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
           {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
@@ -89,23 +96,23 @@ export default async function ApplicationsListPage({
       <main className="md:flex-1 md:overflow-hidden">
         <section className="md:h-full flex flex-col md:overflow-hidden">
           {/* Static top */}
-          <div className="flex-shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-5 border-b border-border bg-background">
+          <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-5 border-b border-border bg-background">
             <ColumnMarker numeral="i" title="Applications" />
           </div>
 
-          {/* Applications list with filters and export */}
           <ApplicationsList
-            initialApplications={allApplications}
-            initialJobs={jobs}
-            filter={filter}
-            topN={topN}
-            minScore={minScore}
-            searchQuery={searchQuery}
+            initialData={initialData}
+            initialJobs={jobs.jobs}
+            initialFilter={filter}
+            initialTopN={topN}
+            initialMinScore={minScore}
+            initialSearch={searchQuery}
+            initialPage={initialPage}
           />
         </section>
       </main>
 
-      <footer className="border-t border-border px-4 sm:px-6 md:px-10 py-3 flex-shrink-0 flex items-center justify-between gap-3 eyebrow text-muted-foreground">
+      <footer className="border-t border-border px-4 sm:px-6 md:px-10 py-3 shrink-0 flex items-center justify-between gap-3 eyebrow text-muted-foreground">
         <span className="truncate">Yuvabe ATS &nbsp; · &nbsp; v0.1</span>
         <span className="italic font-serif normal-case tracking-normal text-muted-foreground/80 hidden md:inline">
           Hiring is a human act.

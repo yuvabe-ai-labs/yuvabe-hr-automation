@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import NavTabClient from "./_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { JobsList } from "./_components/jobs-list";
+import { SearchInput } from "./_components/search-input";
 
 /* —————————————————————————— small typographic atoms —————————————————————————— */
 
@@ -82,7 +83,12 @@ export default async function JobsPage({
           {/* Static top */}
           <div className="flex-shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-6 border-b border-border bg-background">
             <div className="flex items-end justify-between gap-6">
-              <ColumnMarker numeral="i" title="Jobs" />
+              <div className="flex items-end gap-6">
+                <ColumnMarker numeral="i" title="Jobs" />
+                <div className="mb-1">
+                  <SearchInput initialSearch={initialSearch} />
+                </div>
+              </div>
               <div className="flex items-center gap-2.5">
                 <Link
                   href="/applications"
