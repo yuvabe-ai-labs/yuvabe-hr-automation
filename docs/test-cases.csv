@@ -1,0 +1,218 @@
+TEST CASE ID,Test Scenario / Cases,Test Steps,Expected Result,Status,Tested By,Timestamp,Comments
+AUTHENTICATION,,,,,,
+AUTH_01,Verify login page loads,"1. Navigate to /login
+2. Observe page","Login form renders with email and password fields, and a Sign In button",To Be Tested,,,
+AUTH_02,Verify login with valid credentials,"1. Enter correct email and password
+2. Click Sign In",User is authenticated and redirected to /jobs,To Be Tested,,,
+AUTH_03,Verify login with invalid credentials,"1. Enter wrong email or password
+2. Click Sign In",Error message displayed; user stays on login page,To Be Tested,,,
+AUTH_04,Verify login with empty fields,"1. Leave email and/or password blank
+2. Click Sign In",Validation error shown; form does not submit,To Be Tested,,,
+AUTH_05,Verify unauthenticated redirect,"1. Open a protected route (e.g., /jobs) while not logged in",User is automatically redirected to /login,To Be Tested,,,
+AUTH_06,Verify post-login redirect to /jobs,"1. Log in with valid credentials",User lands on /jobs after successful login,To Be Tested,,,
+AUTH_07,Verify logout functionality,"1. Click Sign Out button in the header
+2. Observe redirect",Session cleared; user redirected to /login; protected routes no longer accessible,To Be Tested,,,
+AUTH_08,Verify session persists on page refresh,"1. Log in
+2. Refresh the browser",User remains logged in; session cookie intact,To Be Tested,,,
+AUTH_09,Verify back-navigation after logout,"1. Log out
+2. Press browser Back button",User is redirected back to /login; protected page is not accessible,To Be Tested,,,
+,,,,,,
+JOBS LIST,,,,,,
+JOBS_01,Verify jobs list page loads,"1. Log in and navigate to /jobs
+2. Observe page",Page loads with a list of all jobs and a + New Job button,To Be Tested,,,
+JOBS_02,Verify job row shows correct details,"1. View a job row
+2. Check displayed fields","Job title, applicant count, criteria counts by tier (Must / Strong / Nice), and published date are visible",To Be Tested,,,
+JOBS_03,Verify Active tab shows only active jobs,"1. Click the Active tab
+2. Observe job list",Only active (live) jobs are shown,To Be Tested,,,
+JOBS_04,Verify Paused tab shows only paused jobs,"1. Click the Paused tab
+2. Observe job list",Only paused jobs are shown,To Be Tested,,,
+JOBS_05,Verify Closed tab shows only closed jobs,"1. Click the Closed tab
+2. Observe job list",Only closed jobs are shown,To Be Tested,,,
+JOBS_06,Verify published date on each job row,Observe each job row in the list,Published/creation date is displayed relative to today (e.g. "3 days ago"),To Be Tested,,,
+JOBS_07,Verify View Applicants button navigates to job detail,"1. Click View Applicants on any job row",User is taken to /jobs/[code] for that specific job,To Be Tested,,,
+JOBS_08,Verify Edit Criteria button navigates to edit page,"1. Click Edit Criteria (or actions menu) on a job row",User is taken to /jobs/[code]/edit for that job,To Be Tested,,,
+JOBS_09,Verify + New Job button navigates to create flow,"1. Click + New Job button",User is taken to /jobs/new,To Be Tested,,,
+JOBS_10,Verify actions dropdown menu on each row,"1. Click the actions (…) icon on a job row
+2. Observe dropdown",Dropdown shows relevant actions (View Applicants / Edit Criteria / Archive / Clone etc.),To Be Tested,,,
+JOBS_11,Verify Archive action on active job,"1. Open actions dropdown
+2. Click Archive and confirm","Job is archived, removed from active list, and appears in closed list",To Be Tested,,,
+JOBS_12,Verify Clone as Draft for a closed job,"1. Open actions dropdown for a closed job
+2. Click Clone as Draft","New draft job created with same title and criteria; appears in draft/paused list",To Be Tested,,,
+JOBS_13,Verify Re-open a closed job,"1. Open actions dropdown for a closed job
+2. Click Re-open and confirm","Job status changes back to active, appears in Active tab",To Be Tested,,,
+JOBS_14,Verify empty state when no jobs exist,"1. Open /jobs when there are no jobs in the system","Empty state message shown with a prompt to create the first job",To Be Tested,,,
+JOBS_15,Verify applicant count reflects actual applications,"1. Compare applicant count on job row with actual applicants in job detail",Count on list row matches total applications in job detail page,To Be Tested,,,
+JOBS_16,Verify job code badge shown on each row,Observe each job row,A short 6-character job code badge (e.g. JOB-ABC123) is displayed alongside the title,To Be Tested,,,
+JOBS_17,Verify just saved highlight after job creation,"1. Create a new job
+2. Observe the jobs list on redirect",The newly created job row is highlighted and shows a ← just saved label,To Be Tested,,,
+JOBS_18,Verify entire job row is clickable as a link,"1. Click anywhere on a job row (not on action buttons)",User navigates to /jobs/[code] for that job,To Be Tested,,,
+JOBS_19,Verify total job count shown in header,Observe the header on /jobs,Header displays the total number of jobs (e.g. 03 jobs),To Be Tested,,,
+,,,,,,
+CREATE JOB,,,,,,
+JN_01,Verify new job page loads,Navigate to /jobs/new,Page renders with a file upload area and instructions,To Be Tested,,,
+JN_02,Verify PDF job description upload,"1. Click the upload area or drag a PDF JD file
+2. Wait for processing",File is accepted; AI extracts criteria and suggests a job title,To Be Tested,,,
+JN_03,Verify DOCX job description upload,"1. Upload a .docx JD file",File is parsed and criteria extracted successfully,To Be Tested,,,
+JN_04,Verify TXT/MD job description upload,"1. Upload a .txt or .md JD file",File is parsed and criteria extracted successfully,To Be Tested,,,
+JN_05,Verify unsupported file type is rejected,"1. Try uploading a .jpg or .xlsx file",Error shown: unsupported file type; no criteria extracted,To Be Tested,,,
+JN_06,Verify AI-suggested job title appears after upload,"1. Upload a valid JD
+2. Observe the title field",A suggested job title is auto-populated from the JD content,To Be Tested,,,
+JN_07,Verify extracted criteria list renders,"1. Upload a valid JD
+2. Observe criteria panel","Criteria list displays with labels, categories, and importance tiers",To Be Tested,,,
+JN_08,Verify criteria grouped by Must / Preferred / Nice tier,Observe criteria panel after extraction,"Criteria are displayed in three groups: Must, Preferred, Nice",To Be Tested,,,
+JN_09,Verify editing a criterion label,"1. Click the label of a criterion
+2. Change text and confirm",Updated label saved and displayed in the criteria list,To Be Tested,,,
+JN_10,Verify changing importance tier of a criterion,"1. Open the importance dropdown on a criterion
+2. Switch from Must to Nice (or any other tier)",Criterion moves to the correct tier group,To Be Tested,,,
+JN_11,Verify filtering criteria by importance tier,"1. Click Must / Preferred / Nice filter toggle",Only criteria of the selected tier are shown,To Be Tested,,,
+JN_12,Verify adding a new criterion manually,"1. Click Add Criterion
+2. Enter a label and select a tier",New criterion added to the list with correct tier,To Be Tested,,,
+JN_13,Verify deleting a criterion,"1. Click Delete/Remove on a criterion
+2. Confirm",Criterion removed from the list,To Be Tested,,,
+JN_14,Verify Save as Draft saves without publishing,"1. Fill in title and criteria
+2. Click Save as Draft","Job saved to database with draft status; does not appear in active jobs list",To Be Tested,,,
+JN_15,Verify job preview before publishing,"1. Click Preview
+2. Observe formatted preview","A formatted view of the job title and all criteria is shown before going live",To Be Tested,,,
+JN_16,Verify Publish makes job live,"1. Click Publish (or Publish from preview)
+2. Navigate to /jobs","Job appears in the Active tab of the jobs list",To Be Tested,,,
+JN_17,Verify validation when no file uploaded and no criteria added,"1. Click Save without uploading any file",Error shown; job cannot be saved without criteria,To Be Tested,,,
+JN_18,Verify criteria count split by tier is shown after extraction,Observe the criteria panel after uploading a JD,Counts per tier (e.g. Must: 4 / Preferred: 3 / Nice: 2) are displayed,To Be Tested,,,
+,,,,,,
+JOB DETAIL,,,,,,
+JD_01,Verify job detail page loads,Navigate to /jobs/[code] for any active job,"Job title, criteria summary, and ranked applicant list load correctly",To Be Tested,,,
+JD_02,Verify ranked applicant list order,Observe applicant rows on job detail page,Applicants are sorted by match score descending (highest first),To Be Tested,,,
+JD_03,Verify applicant row shows key fields,"1. Observe any row in the applicant list","Name, match score, status badge, and submission timestamp are visible",To Be Tested,,,
+JD_04,Verify match score color-coding,Observe score badges across applicants,"Strong match (green), Fair match (amber), Weak match (red) color bands applied correctly",To Be Tested,,,
+JD_05,Verify status filter chips render,"1. Open job detail
+2. Observe filter area","Chips for New, Reviewing, Shortlisted, Interview Scheduled, Interviewed, Offered, Hired, Rejected, Withdrawn are visible",To Be Tested,,,
+JD_06,Verify status filter shows only matching applicants,"1. Click Shortlisted chip
+2. Observe list",Only applicants with Shortlisted status appear,To Be Tested,,,
+JD_07,Verify URL reflects selected status filter,"1. Click any status chip
+2. Check browser URL",URL updates to include ?status=shortlisted (or relevant value),To Be Tested,,,
+JD_08,Verify All chip shows every applicant,"1. Click All chip",All applicants regardless of status are shown,To Be Tested,,,
+JD_09,Verify chip counts are accurate,"1. Compare count on each chip with the filtered list",Count displayed on chip matches number of applicants shown when selected,To Be Tested,,,
+JD_10,Verify Top N filter,"1. Select Top 10 (or 15 or 20) from the Top N dropdown
+2. Observe list",Only the top N applicants by score are shown,To Be Tested,,,
+JD_11,Verify clicking applicant row navigates to detail,"1. Click any applicant row",User is navigated to /applications/[id] for that applicant,To Be Tested,,,
+JD_12,Verify breadcrumb back to jobs list,"1. Click the breadcrumb (e.g. Jobs) at top",User is taken back to /jobs,To Be Tested,,,
+JD_13,Verify empty state when no applicants for a status,"1. Select a status filter with zero applicants",Empty state message shown (e.g. "No applicants with this status"),To Be Tested,,,
+JD_14,Verify Edit Criteria button navigates to edit,"1. Click Edit Criteria button on job detail",User is taken to /jobs/[code]/edit,To Be Tested,,,
+,,,,,,
+CRITERIA VIEW & EDIT,,,,,,
+CRIT_01,Verify view criteria page loads,Navigate to /jobs/[code]/view,"Criteria page loads showing full criteria list with labels, categories, and tiers",To Be Tested,,,
+CRIT_02,Verify criteria grouped by importance tier,Observe view criteria page,Criteria displayed in three groups: Must / Preferred / Nice,To Be Tested,,,
+CRIT_03,Verify criterion label and category are shown,"1. Inspect any criterion row","Label (e.g. ""4+ years UX/UI"") and category (skill / experience / education / domain / other) are displayed",To Be Tested,,,
+CRIT_04,Verify criteria count per tier is accurate,Compare counts in header vs. actual items,Number of criteria per tier shown in header matches actual criteria listed,To Be Tested,,,
+CRIT_05,Verify edit criteria page loads,Navigate to /jobs/[code]/edit or click Edit Criteria,"Edit page loads with all criteria pre-populated in editable fields",To Be Tested,,,
+CRIT_06,Verify editing a criterion label and saving,"1. Change a criterion label
+2. Click Save","Updated label persists; navigating back to view/detail shows new label",To Be Tested,,,
+CRIT_07,Verify changing criterion importance tier and saving,"1. Switch a criterion from Must to Nice
+2. Save","Criterion appears under the new tier group in view page and job detail",To Be Tested,,,
+CRIT_08,Verify adding a new criterion via edit page,"1. Click Add Criterion on edit page
+2. Enter label and tier
+3. Save",New criterion added to the job's criteria list,To Be Tested,,,
+CRIT_09,Verify deleting a criterion via edit page,"1. Click Delete on a criterion
+2. Confirm and save",Criterion removed from job; no longer appears in view or match breakdowns,To Be Tested,,,
+CRIT_10,Verify cancel discards changes,"1. Edit a criterion label
+2. Click Cancel without saving",Changes are discarded; original label remains,To Be Tested,,,
+CRIT_11,Verify save shows success feedback,"1. Make any edit and click Save",Success message or toast appears confirming changes saved,To Be Tested,,,
+,,,,,,
+APPLICATIONS LIST,,,,,,
+AL_01,Verify global applicants list loads,Navigate to /applications,Page loads showing all applications across all jobs,To Be Tested,,,
+AL_02,Verify job label shown on each applicant row,"1. Observe rows in the applicants list",Each row shows the role/job title the applicant applied for,To Be Tested,,,
+AL_03,Verify applicant details on each row,"1. Observe a row","Name, location, email, years of experience, match score, status, and submission time are visible",To Be Tested,,,
+AL_04,Verify match score color band on list,Observe match score badges on list rows,Color bands applied correctly (Strong/Fair/Weak) matching score range,To Be Tested,,,
+AL_05,Verify status filter chips on global list,"1. Click any status chip (e.g. Shortlisted)
+2. Observe list",Only applicants with the selected status are shown,To Be Tested,,,
+AL_06,Verify sort by match score (high to low),"1. Click Sort by Match Score
+2. Observe order",Applicants reordered with highest match score first,To Be Tested,,,
+AL_07,Verify filter by job dropdown,"1. Select a specific job from the filter dropdown
+2. Observe list",Only applicants for that job are displayed,To Be Tested,,,
+AL_08,Verify URL-driven filter is bookmarkable,"1. Apply a status filter
+2. Copy and open the URL in a new tab",Page loads with same filter applied,To Be Tested,,,
+AL_09,Verify clicking applicant row navigates to detail,"1. Click any row",User navigated to /applications/[id],To Be Tested,,,
+AL_10,Verify empty state when filter yields no results,"1. Select a status with no applicants",Empty state message shown,To Be Tested,,,
+AL_11,Verify bulk select applicants,"1. Click checkboxes on multiple rows",Multiple applicants selected; bulk action bar appears,To Be Tested,,,
+AL_12,Verify bulk move stage action,"1. Select multiple applicants
+2. Click Move Stage and choose a stage",All selected applicants' statuses updated to the chosen stage,To Be Tested,,,
+AL_13,Verify bulk reject action,"1. Select multiple applicants
+2. Click Reject",All selected applicants' statuses updated to Rejected,To Be Tested,,,
+AL_14,Verify Select All selects every visible applicant,"1. Click Select All checkbox in header",All applicants currently visible are selected,To Be Tested,,,
+,,,,,,
+APPLICANT DETAIL,,,,,,
+AD_01,Verify applicant detail page loads,Navigate to /applications/[id],"Full profile page loads with name, score, and match details",To Be Tested,,,
+AD_02,Verify personal details section,"1. Observe profile aside","Name, email, location, and years of experience are shown accurately",To Be Tested,,,
+AD_03,Verify overall match score and band label,Observe the match score section,"Score (0–100) displayed with band label (Strong / Fair / Weak Match) and color",To Be Tested,,,
+AD_04,Verify match summary paragraph is shown,Observe match summary section,A prose summary of the applicant's fit is displayed below the score,To Be Tested,,,
+AD_05,Verify per-criterion breakdown renders,Observe the breakdown section,"Criteria rows displayed, grouped by Must / Strong / Nice importance tier",To Be Tested,,,
+AD_06,Verify matched status indicators per criterion,"1. Inspect each breakdown row","Icons/indicators for matched (yes), partial, or no are shown",To Be Tested,,,
+AD_07,Verify criterion score (0–10) displayed,Inspect criterion rows,Each criterion shows a numeric score between 0 and 10,To Be Tested,,,
+AD_08,Verify evidence sentence shown per criterion,Inspect criterion rows,Each criterion includes a short evidence sentence from the resume,To Be Tested,,,
+AD_09,Verify LinkedIn link shown for applicant with profile,Open detail for applicant with LinkedIn,LinkedIn link is clickable and opens correct URL,To Be Tested,,,
+AD_10,Verify Portfolio link shown for applicant with portfolio,Open detail for applicant with portfolio URL,Portfolio link is clickable and opens correct URL,To Be Tested,,,
+AD_11,Verify GitHub link shown for applicant with GitHub,Open detail for applicant with GitHub URL,GitHub link is clickable and opens correct URL,To Be Tested,,,
+AD_12,Verify Link missing badge when URL is absent,Open detail for applicant without a specific link,"Link missing badge displayed in place of LinkedIn / Portfolio / GitHub",To Be Tested,,,
+AD_13,Verify resume download or inline view,"1. Click the Resume download/view link",Resume file opens or downloads successfully,To Be Tested,,,
+AD_14,Verify cover letter is displayed,Scroll to cover letter section,"Cover letter text or link is displayed; if absent, a placeholder is shown",To Be Tested,,,
+AD_15,Verify status selector shows current status,Observe the status selector/toggle group,Current application status is highlighted/selected,To Be Tested,,,
+AD_16,Verify changing status to Reviewing,"1. Click Reviewing in the status selector",Status updated to Reviewing; change persists on page refresh,To Be Tested,,,
+AD_17,Verify changing status to Shortlisted,"1. Click Shortlisted",Status updated to Shortlisted,To Be Tested,,,
+AD_18,Verify changing status to Interview Scheduled,"1. Click Interview Scheduled",Status updated to Interview Scheduled,To Be Tested,,,
+AD_19,Verify changing status to Interviewed,"1. Click Interviewed",Status updated to Interviewed,To Be Tested,,,
+AD_20,Verify changing status to Offered,"1. Click Offered",Status updated to Offered,To Be Tested,,,
+AD_21,Verify changing status to Hired,"1. Click Hired",Status updated to Hired,To Be Tested,,,
+AD_22,Verify changing status to Rejected,"1. Click Rejected",Status updated to Rejected,To Be Tested,,,
+AD_23,Verify changing status to Withdrawn,"1. Click Withdrawn",Status updated to Withdrawn,To Be Tested,,,
+AD_24,Verify status change persists after page refresh,"1. Change status
+2. Refresh the page",Status remains as last set,To Be Tested,,,
+AD_25,Verify breadcrumb navigation to job detail,"1. Click the job title in the breadcrumb",User is taken to /jobs/[code] for the associated job,To Be Tested,,,
+AD_26,Verify breadcrumb navigation to jobs list,"1. Click Jobs in breadcrumb",User is taken to /jobs,To Be Tested,,,
+AD_27,Verify criteria labels match job's current criteria,Compare criterion labels in breakdown with job's criteria list,Labels match (renaming a criterion label reflects here),To Be Tested,,,
+,,,,,,
+APPLY FLOW,,,,,,
+APPL_01,Verify apply page loads,Navigate to /apply,Public apply form renders with file upload and cover letter fields,To Be Tested,,,
+APPL_02,Verify PDF resume upload,"1. Upload a PDF resume file
+2. Observe upload feedback",File accepted; filename displayed; no errors,To Be Tested,,,
+APPL_03,Verify DOCX resume upload,"1. Upload a .docx resume file",File accepted; processed correctly,To Be Tested,,,
+APPL_04,Verify TXT/MD resume upload,"1. Upload a .txt or .md resume file",File accepted and parsed,To Be Tested,,,
+APPL_05,Verify unsupported file type rejected,"1. Try uploading a .jpg or .xlsx as resume",Error message shown; upload rejected,To Be Tested,,,
+APPL_06,Verify cover letter text input,"1. Type a cover letter in the text area",Text accepted; no character limit issues,To Be Tested,,,
+APPL_07,Verify form submission triggers parsing and scoring,"1. Upload resume and enter cover letter
+2. Click Submit / Apply","System processes resume (parses + scores); confirmation shown on completion",To Be Tested,,,
+APPL_08,Verify successful submission confirmation,"1. Complete and submit apply form",Success state shown confirming application received,To Be Tested,,,
+APPL_09,Verify application appears in the recruiter's jobs list,Submit application via /apply and check /jobs/[code],New applicant appears in the ranked list for the correct job,To Be Tested,,,
+APPL_10,Verify validation when resume not provided,"1. Submit form without uploading a resume",Validation error: resume file is required,To Be Tested,,,
+APPL_11,Verify large file upload handling,"1. Upload a resume file over the supported size limit",Appropriate error message shown (file too large),To Be Tested,,,
+,,,,,,
+LLM & SCORING,,,,,,
+SC_01,Verify criteria extraction from JD PDF,"1. Upload a real or sample PDF job description",Criteria extracted; each criterion has a label and importance tier,To Be Tested,,,
+SC_02,Verify extraction produces all three importance tiers,"1. Upload a JD with clearly stated must-have and nice-to-have requirements",Criteria distributed across Must / Preferred / Nice tiers,To Be Tested,,,
+SC_03,Verify criterion category labels are assigned,"1. Check extracted criteria",Each criterion has a category: skill / experience / education / domain / other,To Be Tested,,,
+SC_04,Verify title suggestion from JD,"1. Upload a JD with a clear job title in the content",Suggested title in the title field matches the role in the JD,To Be Tested,,,
+SC_05,Verify resume parsing extracts contact details,"1. Submit an application with a resume containing name and email",Application record stores correct name and email,To Be Tested,,,
+SC_06,Verify resume parsing extracts years of experience,"1. Submit resume with clear experience dates",Years of experience shown correctly on applicant detail,To Be Tested,,,
+SC_07,Verify resume parsing extracts education,"1. Submit resume with education section",Education details visible on applicant detail,To Be Tested,,,
+SC_08,Verify resume parsing extracts skills,"1. Submit resume with a skills section",Skills listed on applicant profile,To Be Tested,,,
+SC_09,Verify resume parsing extracts links,"1. Submit resume with LinkedIn and GitHub URLs",Links stored and displayed on applicant detail,To Be Tested,,,
+SC_10,Verify overall match score is generated in 0–100 range,"1. Submit application for a job with criteria",Match score shown between 0 and 100,To Be Tested,,,
+SC_11,Verify per-criterion scores are in 0–10 range,Inspect match breakdown on applicant detail,Each criterion row shows a score between 0 and 10,To Be Tested,,,
+SC_12,Verify evidence sentences are present per criterion,Inspect match breakdown on applicant detail,Each criterion row includes a non-empty evidence sentence,To Be Tested,,,
+SC_13,Verify matched status is one of yes / partial / no,Inspect each breakdown row,matched field displays exactly one of: yes / partial / no,To Be Tested,,,
+SC_14,Verify match summary paragraph is generated,Observe the summary section on applicant detail,Summary is a coherent prose paragraph describing the applicant's fit,To Be Tested,,,
+SC_15,Verify deterministic scoring on same input,"1. Submit the same resume + cover letter twice for the same job","Both applications receive the same score and breakdown (gpt-4o with temperature=0, seed=42)",To Be Tested,,,
+SC_16,Verify high-match applicant scores significantly higher than low-match,"1. Submit a resume clearly matching all criteria
+2. Submit a resume clearly not matching",Strong-match applicant scores at least 20+ points higher,To Be Tested,,,
+,,,,,,
+NAVIGATION & LAYOUT,,,,,,
+NAV_01,Verify header renders on all authenticated pages,"1. Visit /jobs, /applications, and /applications/[id]","Header with Yuvabe / ATS branding, Jobs and Applicants tabs, and Sign Out is visible",To Be Tested,,,
+NAV_02,Verify Jobs tab highlights when on a jobs route,"1. Navigate to /jobs or /jobs/[code]",Jobs tab appears active/highlighted in the header,To Be Tested,,,
+NAV_03,Verify Applicants tab highlights when on applications route,"1. Navigate to /applications",Applicants tab appears active/highlighted,To Be Tested,,,
+NAV_04,Verify root redirect to /jobs,"1. Navigate to /",User is redirected to /jobs,To Be Tested,,,
+NAV_05,Verify breadcrumbs on job detail page,"1. Open /jobs/[code]","Breadcrumb shows Jobs > [Job Title]",To Be Tested,,,
+NAV_06,Verify breadcrumbs on applicant detail page,"1. Open /applications/[id]","Breadcrumb shows Jobs > [Job Title] > [Applicant Name] or similar path",To Be Tested,,,
+NAV_07,Verify shortlist page loads,Navigate to /shortlist,"Coming soon / placeholder page renders without errors",To Be Tested,,,
+NAV_08,Verify loading states appear during navigation,"1. Navigate between pages on a slow connection
+2. Observe",Loading skeleton or spinner is shown before content renders,To Be Tested,,,
+NAV_09,Verify responsive layout on mobile viewport,"1. Resize browser to mobile width (<768px)
+2. Visit /jobs and /applications/[id]","Layouts stack vertically, text remains readable, no horizontal scroll",To Be Tested,,,
+NAV_10,Verify responsive layout on tablet viewport,"1. Resize to tablet width (~768px)",Two-column layouts adjust gracefully; no overflow,To Be Tested,,,

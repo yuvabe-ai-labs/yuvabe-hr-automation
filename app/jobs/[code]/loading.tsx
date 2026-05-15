@@ -53,6 +53,15 @@ export default function JobDetailLoading() {
                   <div key={i} className={`h-7 ${w} bg-muted/70 rounded-sm animate-pulse`} />
                 ))}
               </div>
+              {/* Controls row skeleton: Top N chips + sort toggle */}
+              <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1 -ml-2.5">
+                  {["w-[36px]", "w-[56px]", "w-[56px]", "w-[56px]"].map((w, i) => (
+                    <div key={i} className={`h-7 ${w} bg-muted/70 rounded-sm animate-pulse`} />
+                  ))}
+                </div>
+                <div className="h-5 w-16 bg-muted/70 rounded-sm animate-pulse" />
+              </div>
             </div>
           </div>
 
