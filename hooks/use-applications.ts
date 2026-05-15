@@ -44,7 +44,10 @@ export function useApplicationsByJobCode(
     queryKey: ["applications", "list", jobCode, params],
     queryFn: () => listApplicationsByJobCode(jobCode, params),
     initialData,
-    initialDataUpdatedAt: initialData ? Date.now() : undefined,
+    // No initialDataUpdatedAt — omitting it means React Query only uses
+    // initialData to seed an EMPTY cache (first visit). It will never
+    // override an existing (possibly invalidated) cache entry, so
+    // invalidateQueries always wins and the background refetch fires.
     placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -59,7 +62,6 @@ export function useApplicationsAll(
     queryKey: ["applications", "all", params],
     queryFn: () => listApplicationsAll(params),
     initialData,
-    initialDataUpdatedAt: initialData ? Date.now() : undefined,
     placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -83,14 +85,37 @@ export function useUpdateApplicationStatus() {
       const { application } = await res.json();
       return application as Application;
     },
-    onSuccess: (_data: Application | undefined, variables: { id: string; status: ApplicationStatus }) => {
-      queryClient.invalidateQueries({
-        queryKey: ["applications", "detail", variables.id],
-        exact: true,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["applications", "list"],
-      });
+    onSuccess: (data: Application | undefined, variables: { id: string; status: ApplicationStatus }) => {
+      // Immediately patch the status in every cached list query so the UI
+      // updates without waiting for a background refetch.
+      queryClient.setQueriesData<ApplicationsPageResult>(
+        { queryKey: ["applications", "list"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            applications: old.applications.map((app) =>
+              app.id === variables.id ? { ...app, status: variables.status } : app
+            ),
+          };
+        }
+      );
+      queryClient.setQueriesData<AllApplicationsPageResult>(
+        { queryKey: ["applications", "all"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            applications: old.applications.map((app) =>
+              app.id === variables.id ? { ...app, status: variables.status } : app
+            ),
+          };
+        }
+      );
+      // Invalidate so statusCounts chips and detail page get a fresh server fetch.
+      queryClient.invalidateQueries({ queryKey: ["applications", "detail", variables.id], exact: true });
+      queryClient.invalidateQueries({ queryKey: ["applications", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications", "all"] });
     },
   });
 }
