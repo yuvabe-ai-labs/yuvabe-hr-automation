@@ -326,12 +326,6 @@ export default function NewJobPage() {
         {/* Tabs row */}
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto">
           <NavTab href="/jobs" label="Jobs" prefix="/jobs" />
-          <NavTab
-            href="/applications"
-            label="Applicants"
-            prefix="/applications"
-          />
-          <NavTab href="/review" label="Review" prefix="/review" />
         </nav>
       </header>
 
@@ -663,7 +657,7 @@ export default function NewJobPage() {
                             >
                               <SelectTrigger
                                 className={`
-                                  h-7 w-29 gap-1.5 px-2.5 py-0 shrink-0
+                                  h-7 w-35 gap-1.5 px-2.5 py-0 shrink-0
                                   border-0 shadow-none rounded-sm
                                   bg-secondary/50 hover:bg-secondary
                                   data-[state=open]:bg-accent/60
@@ -723,9 +717,7 @@ export default function NewJobPage() {
                 ) : (
                   <p className="text-body-sm text-muted-foreground italic font-serif truncate">
                     {criteria.length} criteria locked in.
-                    <span className="font-sans not-italic ml-2 text-muted-foreground hidden md:inline">
-                      Saving stores the job in Supabase.
-                    </span>
+                    
                   </p>
                 )}
               </div>
