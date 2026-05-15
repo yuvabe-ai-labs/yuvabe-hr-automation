@@ -82,7 +82,7 @@ export default async function ApplicationsListPage({
             <span className="sm:hidden">{totalAll === 1 ? "app" : "apps"}</span>
           </Eyebrow>
         </div>
-        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
           {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
           {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}

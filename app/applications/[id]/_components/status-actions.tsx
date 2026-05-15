@@ -8,8 +8,8 @@ import type { ApplicationStatus } from "@/types/applications";
 
 type ToggleStatus = "reviewing" | "shortlisted" | "rejected";
 
-function toToggleStatus(status: ApplicationStatus): ToggleStatus {
-  // `new` → "Review" (pre-triage); `offered` → "Shortlist" (post-shortlist progression).
+function toToggleStatus(status: ApplicationStatus): ToggleStatus | null {
+  if (status === "new") return null;
   if (status === "shortlisted" || status === "offered") return "shortlisted";
   if (status === "rejected") return "rejected";
   return "reviewing";
@@ -29,7 +29,7 @@ export function StatusActions({
   const displayValue = toToggleStatus(optimisticStatus);
 
   const setStatus = (next: ToggleStatus) => {
-    if (next === toToggleStatus(currentStatus)) return;
+    if (next === toToggleStatus(optimisticStatus)) return;
     setError(null);
     setOptimisticStatus(next);
     updateMutation.mutate(
@@ -49,7 +49,7 @@ export function StatusActions({
         type="single"
         orientation="vertical"
         variant="outline"
-        value={displayValue}
+        value={displayValue ?? ""}
         onValueChange={(v) => v && setStatus(v as ToggleStatus)}
         disabled={updateMutation.isPending}
         className="w-full"
