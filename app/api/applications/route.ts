@@ -130,9 +130,10 @@ export async function POST(req: Request) {
         upsert: false,
       });
 
+    const safeName = name.replace(/[^\w\s-]/g, "").trim();
     const resumeUrl = storageError
       ? undefined
-      : supabase.storage.from("resumes").getPublicUrl(storagePath).data.publicUrl;
+      : supabase.storage.from("resumes").getPublicUrl(storagePath, { download: `${safeName} Resume.${ext}` }).data.publicUrl;
     // storageError is non-fatal — application still created, just without resume link
 
     // Stamp each breakdown row with the parent Job's stable Criterion.id when

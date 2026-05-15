@@ -278,15 +278,13 @@ export default async function ApplicationDetailPage({
             {application.resumeUrl ? (
               <a
                 href={application.resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 caps-action text-primary hover:text-primary/70 transition-colors"
+                className="inline-flex items-center gap-2 caps-action text-[#3F6B3F] hover:text-[#3F6B3F]/70 transition-colors"
               >
                 <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
                 Download resume
               </a>
             ) : (
-              <span className="inline-flex items-center gap-2 caps-action text-primary/65">
+              <span className="inline-flex items-center gap-2 caps-action text-primary">
                 <TriangleAlert className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                 Resume missing
               </span>
@@ -306,7 +304,7 @@ export default async function ApplicationDetailPage({
                   {label}
                 </a>
               ) : (
-                <span key={key} className="inline-flex items-center gap-2 caps-action text-primary/65">
+                <span key={key} className="inline-flex items-center gap-2 caps-action text-primary/75">
                   <TriangleAlert className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                   {label} missing
                 </span>
@@ -379,29 +377,6 @@ export default async function ApplicationDetailPage({
                 </div>
               ))}
             </div>
-
-            {/* Cover letter */}
-            <div className="mt-16">
-              <Eyebrow>Cover letter</Eyebrow>
-              <div className="mt-4 border-l-2 border-border pl-6 max-w-[60ch]">
-                <p className="font-serif italic text-body-lg leading-[1.7] text-foreground/85 whitespace-pre-line">
-                  {application.coverLetter}
-                </p>
-              </div>
-            </div>
-
-            {/* Resume text — collapsible */}
-            <details className="mt-16 group">
-              <summary className="cursor-pointer list-none flex items-center gap-3 eyebrow text-muted-foreground hover:text-foreground transition-colors">
-                <span className="font-mono text-body-sm leading-none group-open:rotate-90 transition-transform">
-                  ▸
-                </span>
-                Show resume text
-              </summary>
-              <p className="mt-5 text-body-lg leading-relaxed text-foreground/80 max-w-[68ch] whitespace-pre-line">
-                {candidate.resumeText}
-              </p>
-            </details>
 
             {/* Experience timeline */}
             <div className="mt-16 mb-8">
