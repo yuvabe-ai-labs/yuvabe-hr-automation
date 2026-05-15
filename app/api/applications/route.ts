@@ -6,6 +6,7 @@ import { createCandidate } from "@/lib/candidates-store";
 import { createApplication, type CriterionMatch } from "@/lib/applications-store";
 import { parseResume, scoreResume } from "@/lib/llm";
 import { IMPORTANCE_WEIGHT } from "@/lib/prompts/extractCriteria.v1";
+import type { Job } from "@/lib/jobs-store";
 
 /**
  * Deterministic 0-100 match score, computed in code (not asked of the LLM)
@@ -27,13 +28,83 @@ function computeMatchScore(breakdown: CriterionMatch[]): number {
 }
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
 
 const FormSchema = z.object({
   jobCode: z.string().min(1, "Missing jobCode."),
   name: z.string().min(1, "Missing name."),
   email: z.string().email("Invalid email."),
 });
+
+// Runs after response is flushed — does the heavy LLM work and updates the records.
+async function processInBackground(
+  resumeFile: File,
+  candidateId: string,
+  applicationId: string,
+  job: Job,
+) {
+  try {
+    let parsedFile;
+    try {
+      parsedFile = await extractTextFromFile(resumeFile);
+    } catch (err) {
+      console.error("[applications/bg] file extraction failed:", err);
+      return;
+    }
+
+    const resumeText = parsedFile.text.trim();
+    if (resumeText.length < 50) {
+      console.error("[applications/bg] resume too short to score — possible image-only PDF");
+      return;
+    }
+
+    const [profile, scoring] = await Promise.all([
+      parseResume(resumeText),
+      scoreResume(resumeText, "", job.criteria),
+    ]);
+
+    const links: { linkedin?: string; portfolio?: string; github?: string } = {};
+    if (profile.links.linkedin)  links.linkedin  = profile.links.linkedin;
+    if (profile.links.portfolio) links.portfolio = profile.links.portfolio;
+    if (profile.links.github)    links.github    = profile.links.github;
+
+    const criteriaByLabel = new Map(job.criteria.map((c) => [c.label, c]));
+    const matchBreakdown: CriterionMatch[] = scoring.matchBreakdown.map((row: CriterionMatch) => {
+      // Strip the [MUST] / [STRONG] / [NICE] prefix the LLM echoes back from the prompt format
+      const cleanLabel = row.criterionLabel.replace(/^\[(MUST|STRONG|NICE)\]\s*/i, "").trim();
+      const parent = criteriaByLabel.get(cleanLabel);
+      return parent
+        ? { ...row, criterionLabel: cleanLabel, criterionId: parent.id }
+        : { ...row, criterionLabel: cleanLabel };
+    });
+    const matchScore = computeMatchScore(matchBreakdown);
+
+    const { supabase } = await import("@/lib/supabase");
+
+    await supabase.from("candidates").update({
+      phone:                profile.phone,
+      location:             profile.location,
+      summary:              profile.summary,
+      years_of_experience:  profile.yearsOfExperience,
+      skills:               profile.skills,
+      experience:           profile.experience,
+      education:            profile.education,
+      links:                Object.keys(links).length > 0 ? links : null,
+      resume_text:          resumeText,
+    }).eq("id", candidateId);
+
+    await supabase.from("applications").update({
+      match_score:                   matchScore,
+      match_summary:                 scoring.matchSummary,
+      match_breakdown:               matchBreakdown,
+      candidate_location:            profile.location,
+      candidate_years_of_experience: profile.yearsOfExperience,
+    }).eq("id", applicationId);
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[applications/bg]", message);
+  }
+}
 
 export async function POST(req: Request) {
   let formData: FormData;
@@ -72,105 +143,66 @@ export async function POST(req: Request) {
     );
   }
 
-  let parsedFile;
-  try {
-    parsedFile = await extractTextFromFile(resume);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Couldn't read file";
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
+  // Read the file buffer now — arrayBuffer() can only be consumed once.
+  // The buffer is passed to the background task so it can reconstruct the File.
+  const fileBuffer = Buffer.from(await resume.arrayBuffer());
 
-  const resumeText = parsedFile.text.trim();
-  if (resumeText.length < 50) {
-    return NextResponse.json(
-      { error: "Couldn't read enough text from this resume (might be an image-only PDF)." },
-      { status: 400 }
-    );
-  }
+  const { supabase } = await import("@/lib/supabase");
 
-  try {
-    // Two LLM calls in parallel: structured candidate parse + criteria scoring.
-    // Both depend only on resumeText (and the job's criteria for scoring), so
-    // running them concurrently halves the user-perceived latency.
-    const [profile, scoring] = await Promise.all([
-      parseResume(resumeText),
-      scoreResume(resumeText, "", job.criteria),
-    ]);
+  // Upload raw resume to storage immediately so the download link is available
+  // from the moment the application record exists.
+  const ext = resume.name.split(".").pop()?.toLowerCase() ?? "bin";
+  const candidate = await createCandidate({
+    name,
+    email,
+    phone: "",
+    location: "",
+    summary: "",
+    yearsOfExperience: 0,
+    skills: [],
+    experience: [],
+    education: [],
+  });
 
-    // Drop empty link strings so the UI's `links?.linkedin` checks behave like
-    // the seeded examples (where a missing URL means the key is absent).
-    const links: { linkedin?: string; portfolio?: string; github?: string } = {};
-    if (profile.links.linkedin) links.linkedin = profile.links.linkedin;
-    if (profile.links.portfolio) links.portfolio = profile.links.portfolio;
-    if (profile.links.github) links.github = profile.links.github;
-
-    const candidate = await createCandidate({
-      name,
-      email,
-      phone: profile.phone,
-      location: profile.location,
-      summary: profile.summary,
-      yearsOfExperience: profile.yearsOfExperience,
-      skills: profile.skills,
-      experience: profile.experience,
-      education: profile.education,
-      ...(Object.keys(links).length > 0 ? { links } : {}),
+  const storagePath = `${jobCode}/${candidate.id}.${ext}`;
+  const { error: storageError } = await supabase.storage
+    .from("resumes")
+    .upload(storagePath, fileBuffer, {
+      contentType: resume.type || "application/octet-stream",
+      upsert: false,
     });
 
-    // Upload resume to Supabase Storage
-    const { supabase } = await import("@/lib/supabase");
-    const ext = resume.name.split(".").pop()?.toLowerCase() ?? "bin";
-    const storagePath = `${jobCode}/${candidate.id}.${ext}`;
-    const buffer = Buffer.from(await resume.arrayBuffer());
+  const safeName = name.replace(/[^\w\s-]/g, "").trim();
+  const resumeUrl = storageError
+    ? undefined
+    : supabase.storage.from("resumes").getPublicUrl(storagePath, {
+        download: `${safeName} Resume.${ext}`,
+      }).data.publicUrl;
 
-    const { error: storageError } = await supabase.storage
-      .from("resumes")
-      .upload(storagePath, buffer, {
-        contentType: resume.type || "application/octet-stream",
-        upsert: false,
-      });
+  const application = await createApplication({
+    jobId: job.id,
+    jobCode: job.code,
+    candidateId: candidate.id,
+    candidateName: candidate.name,
+    candidateEmail: candidate.email,
+    candidateLocation: "",
+    candidateYearsOfExperience: 0,
+    matchScore: 0,
+    matchSummary: "",
+    matchBreakdown: [],
+    coverLetter: "",
+    resumeUrl,
+    status: "new",
+  });
 
-    const safeName = name.replace(/[^\w\s-]/g, "").trim();
-    const resumeUrl = storageError
-      ? undefined
-      : supabase.storage.from("resumes").getPublicUrl(storagePath, { download: `${safeName} Resume.${ext}` }).data.publicUrl;
-    // storageError is non-fatal — application still created, just without resume link
+  // Schedule background processing — runs after response is sent.
+  const resumeForBg = new File([fileBuffer], resume.name, { type: resume.type });
+  processInBackground(resumeForBg, candidate.id, application.id, job).catch(
+    (err) => console.error("[applications/bg]", err)
+  );
 
-    // Stamp each breakdown row with the parent Job's stable Criterion.id when
-    // we can resolve it by label. If the LLM ever drifts the label slightly,
-    // the row falls through with `criterionId` undefined and we still have the
-    // denormalized label/importance for display.
-    const criteriaByLabel = new Map(job.criteria.map((c) => [c.label, c]));
-    const matchBreakdown: CriterionMatch[] = scoring.matchBreakdown.map((row) => {
-      const parent = criteriaByLabel.get(row.criterionLabel);
-      return parent ? { ...row, criterionId: parent.id } : row;
-    });
-    const matchScore = computeMatchScore(matchBreakdown);
-
-    const application = await createApplication({
-      jobId: job.id,
-      jobCode: job.code,
-      candidateId: candidate.id,
-      // Snapshots — read-side denormalization for listing pages.
-      candidateName: candidate.name,
-      candidateEmail: candidate.email,
-      candidateLocation: candidate.location,
-      candidateYearsOfExperience: candidate.yearsOfExperience,
-      matchScore,
-      matchSummary: scoring.matchSummary,
-      matchBreakdown,
-      coverLetter: "",
-      resumeUrl,
-      status: "new",
-    });
-
-    return NextResponse.json(
-      { applicationId: application.id },
-      { status: 201 }
-    );
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[applications]", message);
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  return NextResponse.json(
+    { applicationId: application.id },
+    { status: 201 }
+  );
 }
