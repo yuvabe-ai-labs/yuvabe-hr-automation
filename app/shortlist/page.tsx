@@ -36,8 +36,8 @@ export default function ShortlistPage() {
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
-          <NavTabClient href="/applications" label="Applicants" prefix="/applications" />
-          <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" />
+          {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
+          {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
           <SignOutButton className="ml-auto" />
         </nav>
       </header>
