@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { useJobs } from "@/hooks/use-jobs";
-import { Input } from "@/components/ui/input";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 import { JobActionsMenu } from "./job-actions-menu";
 import type { JobsListResult } from "@/services/jobs.service";
@@ -153,22 +152,6 @@ export function JobsList({
         ))}
       </div>
 
-      {/* Search */}
-      <div className="max-w-4xl mb-5">
-        <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
-            strokeWidth={1.75}
-          />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by job title…"
-            className="pl-9 rounded-sm border-border bg-background text-body placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary"
-          />
-        </div>
-      </div>
-
       {/* Count / context line */}
       {(total > 0 || isFiltered) && (
         <div className="max-w-4xl mb-4">
@@ -245,10 +228,6 @@ export function JobsList({
                       <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                         <JobIdBadge code={job.code} />
                         <span className="text-border">·</span>
-                        <span className="caps-meta text-muted-foreground tabular">
-                          {String(job.criteria.length).padStart(2, "0")} criteria
-                        </span>
-                        <span className="text-border hidden sm:inline">·</span>
                         <span className="caps-meta tabular hidden sm:inline">
                           <span
                             className={
@@ -261,24 +240,6 @@ export function JobsList({
                           </span>{" "}
                           <span className="text-muted-foreground">
                             {appCount === 1 ? "applicant" : "applicants"}
-                          </span>
-                        </span>
-                        <span className="text-border hidden md:inline">·</span>
-                        <span className="caps-meta tabular hidden md:inline">
-                          <span className="text-primary">
-                            {String(counts.must).padStart(2, "0")} preferred
-                          </span>
-                          <span className="text-muted-foreground/60 mx-1.5">
-                            ·
-                          </span>
-                          <span className="text-foreground">
-                            {String(counts.strong).padStart(2, "0")} strong
-                          </span>
-                          <span className="text-muted-foreground/60 mx-1.5">
-                            ·
-                          </span>
-                          <span className="text-muted-foreground">
-                            {String(counts.nice).padStart(2, "0")} nice
                           </span>
                         </span>
                         <span className="text-border hidden lg:inline">·</span>

@@ -92,8 +92,8 @@ export function JobActionsMenu({
               Archive &ldquo;{jobTitle}&rdquo;?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-body text-foreground/70">
-              This hides the job from the active list. Existing applicants stay
-              visible. You can restore it later.
+              Archiving this job will remove it from the Yuvabe Studios Careers listings.
+              You can restore the job later by unarchiving it.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
