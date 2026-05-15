@@ -5,11 +5,17 @@ import {
   getApplicationById,
   listApplications,
   listApplicationsByJobCode,
+  listApplicationsAll,
 } from "@/services/applications.service";
-import type { ApplicationsPageResult, ApplicationsQueryParams } from "@/services/applications.service";
+import type {
+  ApplicationsPageResult,
+  ApplicationsQueryParams,
+  AllApplicationsQueryParams,
+  AllApplicationsPageResult,
+} from "@/services/applications.service";
 import type { Application, ApplicationStatus } from "@/types/applications";
 
-export type { ApplicationsQueryParams, ApplicationsPageResult };
+export type { ApplicationsQueryParams, ApplicationsPageResult, AllApplicationsQueryParams, AllApplicationsPageResult };
 
 export function useApplicationById(id: string, initialData?: Application) {
   return useQuery({
@@ -37,6 +43,21 @@ export function useApplicationsByJobCode(
   return useQuery({
     queryKey: ["applications", "list", jobCode, params],
     queryFn: () => listApplicationsByJobCode(jobCode, params),
+    initialData,
+    initialDataUpdatedAt: initialData ? Date.now() : undefined,
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+}
+
+export function useApplicationsAll(
+  params?: AllApplicationsQueryParams,
+  initialData?: AllApplicationsPageResult
+) {
+  return useQuery({
+    queryKey: ["applications", "all", params],
+    queryFn: () => listApplicationsAll(params),
     initialData,
     initialDataUpdatedAt: initialData ? Date.now() : undefined,
     placeholderData: keepPreviousData,

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { listApplications } from "@/lib/applications-store";
+import { listApplicationsAll } from "@/services/applications.service";
+import { listJobs } from "@/services/jobs.service";
 import type { FilterStatus } from "@/services/applications.service";
-import { listJobs } from "@/lib/jobs-store";
 import NavTabClient from "../jobs/_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { ApplicationsList } from "./_components/applications-list";
@@ -12,36 +12,24 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return <span className="eyebrow text-muted-foreground">{children}</span>;
 }
 
-function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
-  return (
-    <div className="flex items-baseline gap-3 md:gap-4">
-      <span className="font-serif italic text-display md:text-display-xl leading-none text-primary tabular">
-        {numeral}.
-      </span>
-      <span className="font-serif italic text-h2 md:text-h1 leading-none text-foreground/85">
-        {title}
-      </span>
-    </div>
-  );
-}
-
 /* —————————————————————————— page —————————————————————————— */
 
+const PAGE_SIZE = 10;
 const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
-const VALID_STATUSES = [...FILTER_STATUSES, "all", "new"] as const;
-type ExtendedFilter = FilterStatus | "all" | "new";
-
 const VALID_TOP_N = [10, 15, 20] as const;
 type TopN = (typeof VALID_TOP_N)[number];
+type ExtendedFilter = FilterStatus | "all" | "new";
+const VALID_EXTENDED: ExtendedFilter[] = ["all", "new", ...FILTER_STATUSES];
 
 export default async function ApplicationsListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; top?: string; minScore?: string; search?: string }>;
+  searchParams: Promise<{ status?: string; top?: string; minScore?: string; search?: string; page?: string }>;
 }) {
   const sp = await searchParams;
+
   const filter: ExtendedFilter =
-    sp.status && (VALID_STATUSES as readonly string[]).includes(sp.status)
+    sp.status && VALID_EXTENDED.includes(sp.status as ExtendedFilter)
       ? (sp.status as ExtendedFilter)
       : "all";
 
@@ -53,17 +41,31 @@ export default async function ApplicationsListPage({
 
   const minScore = sp.minScore ? Math.max(0, Math.min(100, parseInt(sp.minScore, 10))) : 0;
   const searchQuery = sp.search ? decodeURIComponent(sp.search) : "";
+  const initialPage = Number(sp.page ?? "1");
 
-  // Listing pages read denormalized snapshots off Application — no candidates
-  // fan-out. The full Candidate doc is only fetched on /applications/[id].
-  const allApplications = await listApplications();
-  const jobs = await listJobs();
+  const apiStatus = filter === "all" ? undefined : filter as FilterStatus | "new";
 
-  const total = allApplications.length;
+  const [initialData, jobsResult] = await Promise.all([
+    listApplicationsAll({
+      status: apiStatus,
+      search: searchQuery,
+      minScore,
+      page: initialPage,
+      pageSize: topN ?? PAGE_SIZE,
+    }),
+    listJobs(),
+  ]);
+
+  const jobs = jobsResult.jobs;
+  const totalAll =
+    initialData.statusCounts.new +
+    initialData.statusCounts.reviewing +
+    initialData.statusCounts.shortlisted +
+    initialData.statusCounts.rejected;
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
-      <header className="flex-shrink-0 border-b border-border bg-background z-10">
+      <header className="shrink-0 border-b border-border bg-background z-10">
         <div className="px-4 md:px-10 pt-4 pb-3 flex items-center justify-between gap-3">
           <div className="flex items-baseline gap-3 min-w-0">
             <Link href="/" className="font-serif italic text-h3 leading-none hover:opacity-70 transition-opacity">Yuvabe</Link>
@@ -71,13 +73,13 @@ export default async function ApplicationsListPage({
             <Eyebrow>ATS</Eyebrow>
           </div>
           <Eyebrow>
-            <span className="tabular">{String(total).padStart(2, "0")}</span>
+            <span className="tabular">{String(totalAll).padStart(2, "0")}</span>
             &nbsp;
             <span className="hidden sm:inline">
-              {total === 1 ? "application" : "applications"} across {jobs.length}{" "}
+              {totalAll === 1 ? "application" : "applications"} across {jobs.length}{" "}
               {jobs.length === 1 ? "role" : "roles"}
             </span>
-            <span className="sm:hidden">{total === 1 ? "app" : "apps"}</span>
+            <span className="sm:hidden">{totalAll === 1 ? "app" : "apps"}</span>
           </Eyebrow>
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -90,19 +92,19 @@ export default async function ApplicationsListPage({
 
       <main className="md:flex-1 md:overflow-hidden">
         <section className="md:h-full flex flex-col md:overflow-hidden">
-          {/* Applications list with filters and export */}
           <ApplicationsList
-            initialApplications={allApplications}
+            initialData={initialData}
             initialJobs={jobs}
-            filter={filter}
-            topN={topN}
-            minScore={minScore}
-            searchQuery={searchQuery}
+            initialFilter={filter}
+            initialTopN={topN}
+            initialMinScore={minScore}
+            initialSearch={searchQuery}
+            initialPage={initialPage}
           />
         </section>
       </main>
 
-      <footer className="border-t border-border px-4 sm:px-6 md:px-10 py-3 flex-shrink-0 flex items-center justify-between gap-3 eyebrow text-muted-foreground">
+      <footer className="border-t border-border px-4 sm:px-6 md:px-10 py-3 shrink-0 flex items-center justify-between gap-3 eyebrow text-muted-foreground">
         <span className="truncate">Yuvabe ATS &nbsp; · &nbsp; v0.1</span>
         <span className="italic font-serif normal-case tracking-normal text-muted-foreground/80 hidden md:inline">
           Hiring is a human act.
