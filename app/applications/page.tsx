@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { listApplicationsAll } from "@/services/applications.service";
-import type { FilterStatus } from "@/services/applications.service";
 import { listJobs } from "@/services/jobs.service";
+import type { FilterStatus } from "@/services/applications.service";
 import NavTabClient from "../jobs/_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { ApplicationsList } from "./_components/applications-list";
@@ -12,25 +12,14 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return <span className="eyebrow text-muted-foreground">{children}</span>;
 }
 
-function ColumnMarker({ numeral, title }: { numeral: string; title: string }) {
-  return (
-    <div className="flex items-baseline gap-3 md:gap-4">
-      <span className="font-serif italic text-display md:text-display-xl leading-none text-primary tabular">
-        {numeral}.
-      </span>
-      <span className="font-serif italic text-h2 md:text-h1 leading-none text-foreground/85">
-        {title}
-      </span>
-    </div>
-  );
-}
-
 /* —————————————————————————— page —————————————————————————— */
 
 const PAGE_SIZE = 10;
 const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
 const VALID_TOP_N = [10, 15, 20] as const;
 type TopN = (typeof VALID_TOP_N)[number];
+type ExtendedFilter = FilterStatus | "all" | "new";
+const VALID_EXTENDED: ExtendedFilter[] = ["all", "new", ...FILTER_STATUSES];
 
 export default async function ApplicationsListPage({
   searchParams,
@@ -38,10 +27,11 @@ export default async function ApplicationsListPage({
   searchParams: Promise<{ status?: string; top?: string; minScore?: string; search?: string; page?: string }>;
 }) {
   const sp = await searchParams;
-  const filter: FilterStatus =
-    sp.status && FILTER_STATUSES.includes(sp.status as FilterStatus)
-      ? (sp.status as FilterStatus)
-      : "reviewing";
+
+  const filter: ExtendedFilter =
+    sp.status && VALID_EXTENDED.includes(sp.status as ExtendedFilter)
+      ? (sp.status as ExtendedFilter)
+      : "all";
 
   const topNRaw = sp.top ? parseInt(sp.top, 10) : null;
   const topN: TopN | null =
@@ -53,9 +43,11 @@ export default async function ApplicationsListPage({
   const searchQuery = sp.search ? decodeURIComponent(sp.search) : "";
   const initialPage = Number(sp.page ?? "1");
 
-  const [initialData, jobs] = await Promise.all([
+  const apiStatus = filter === "all" ? undefined : filter as FilterStatus | "new";
+
+  const [initialData, jobsResult] = await Promise.all([
     listApplicationsAll({
-      status: filter,
+      status: apiStatus,
       search: searchQuery,
       minScore,
       page: initialPage,
@@ -64,7 +56,12 @@ export default async function ApplicationsListPage({
     listJobs(),
   ]);
 
-  const total = Object.values(initialData.statusCounts).reduce((a, b) => a + b, 0);
+  const jobs = jobsResult.jobs;
+  const totalAll =
+    initialData.statusCounts.new +
+    initialData.statusCounts.reviewing +
+    initialData.statusCounts.shortlisted +
+    initialData.statusCounts.rejected;
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
@@ -76,13 +73,13 @@ export default async function ApplicationsListPage({
             <Eyebrow>ATS</Eyebrow>
           </div>
           <Eyebrow>
-            <span className="tabular">{String(total).padStart(2, "0")}</span>
+            <span className="tabular">{String(totalAll).padStart(2, "0")}</span>
             &nbsp;
             <span className="hidden sm:inline">
-              {total === 1 ? "application" : "applications"} across {jobs.jobs.length}{" "}
-              {jobs.jobs.length === 1 ? "role" : "roles"}
+              {totalAll === 1 ? "application" : "applications"} across {jobs.length}{" "}
+              {jobs.length === 1 ? "role" : "roles"}
             </span>
-            <span className="sm:hidden">{total === 1 ? "app" : "apps"}</span>
+            <span className="sm:hidden">{totalAll === 1 ? "app" : "apps"}</span>
           </Eyebrow>
         </div>
         <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
@@ -95,14 +92,9 @@ export default async function ApplicationsListPage({
 
       <main className="md:flex-1 md:overflow-hidden">
         <section className="md:h-full flex flex-col md:overflow-hidden">
-          {/* Static top */}
-          <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-5 border-b border-border bg-background">
-            <ColumnMarker numeral="i" title="Applications" />
-          </div>
-
           <ApplicationsList
             initialData={initialData}
-            initialJobs={jobs.jobs}
+            initialJobs={jobs}
             initialFilter={filter}
             initialTopN={topN}
             initialMinScore={minScore}

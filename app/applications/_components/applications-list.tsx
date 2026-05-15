@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
-import { ArrowUpRight, Filter, X } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { ArrowUpRight, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useApplicationsAll } from "@/hooks/use-applications";
 import { getCandidatesByIds } from "@/services/candidates.service";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
@@ -13,15 +13,18 @@ import type { Job } from "@/types/jobs";
 import type { FilterStatus, AllApplicationsPageResult } from "@/services/applications.service";
 
 type TopN = 10 | 15 | 20;
-type SortOrder = "asc" | "desc";
+type ExtendedFilter = FilterStatus | "all" | "new";
 
 const PAGE_SIZE = 10;
-const FILTER_STATUSES: FilterStatus[] = ["reviewing", "shortlisted", "rejected"];
+const ALL_TABS: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "rejected"];
+const ALL_EXTENDED: ExtendedFilter[] = ALL_TABS;
 
-const FILTER_LABEL: Record<FilterStatus, string> = {
-  reviewing:   "Review",
+const FILTER_LABEL: Record<ExtendedFilter, string> = {
+  all: "All",
+  new: "New",
+  reviewing: "Review",
   shortlisted: "Shortlist",
-  rejected:    "Reject",
+  rejected: "Reject",
 };
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
@@ -72,27 +75,27 @@ function ScoreChip({ score }: { score: number }) {
 
 function buildHref(
   overrides: {
-    status?: FilterStatus;
+    status?: ExtendedFilter;
     top?: number | null;
     search?: string | null;
     minScore?: number;
     page?: number;
   },
   current: {
-    filter: FilterStatus;
+    filter: ExtendedFilter;
     topN: TopN | null;
     searchQuery: string;
     minScore: number;
   }
 ): string {
   const params = new URLSearchParams();
-  const status  = "status"   in overrides ? overrides.status   : current.filter;
-  const top     = "top"      in overrides ? overrides.top      : current.topN;
-  const search  = "search"   in overrides ? overrides.search   : current.searchQuery;
+  const status   = "status"   in overrides ? overrides.status   : current.filter;
+  const top      = "top"      in overrides ? overrides.top      : current.topN;
+  const search   = "search"   in overrides ? overrides.search   : current.searchQuery;
   const minScore = "minScore" in overrides ? overrides.minScore : current.minScore;
-  const page    = "page"     in overrides ? overrides.page     : undefined;
+  const page     = "page"     in overrides ? overrides.page     : undefined;
 
-  if (status && status !== "reviewing") params.set("status", status);
+  if (status && status !== "all") params.set("status", status);
   if (top) params.set("top", String(top));
   if (search) params.set("search", encodeURIComponent(search));
   if (minScore !== 0) params.set("minScore", String(minScore));
@@ -113,7 +116,7 @@ export function ApplicationsList({
 }: {
   initialData: AllApplicationsPageResult;
   initialJobs: Job[];
-  initialFilter: FilterStatus;
+  initialFilter: ExtendedFilter;
   initialTopN: TopN | null;
   initialMinScore: number;
   initialSearch: string;
@@ -125,10 +128,10 @@ export function ApplicationsList({
 
   // Derive current params from URL
   const filter = (
-    FILTER_STATUSES.includes(searchParams.get("status") as FilterStatus)
+    ALL_EXTENDED.includes(searchParams.get("status") as ExtendedFilter)
       ? searchParams.get("status")
-      : "reviewing"
-  ) as FilterStatus;
+      : "all"
+  ) as ExtendedFilter;
   const page = Number(searchParams.get("page") ?? "1");
   const topNRaw = searchParams.get("top") ? parseInt(searchParams.get("top")!, 10) : null;
   const topN = (topNRaw !== null && [10, 15, 20].includes(topNRaw) ? topNRaw : null) as TopN | null;
@@ -139,13 +142,14 @@ export function ApplicationsList({
 
   const [localSearch, setLocalSearch] = useState(search);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [tempMinScore, setTempMinScore] = useState(minScore);
   const [tempTopN, setTempTopN] = useState(topN);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<"csv" | "excel" | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
-  // Sync localSearch when URL changes externally (back/forward)
+  // Sync localSearch when URL changes (back/forward navigation)
   const [prevSearch, setPrevSearch] = useState(search);
   if (prevSearch !== search) {
     setPrevSearch(search);
@@ -160,11 +164,8 @@ export function ApplicationsList({
     }
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
-      if (localSearch) {
-        params.set("search", encodeURIComponent(localSearch));
-      } else {
-        params.delete("search");
-      }
+      if (localSearch) params.set("search", encodeURIComponent(localSearch));
+      else params.delete("search");
       params.delete("page");
       router.replace(`/applications?${params.toString()}`, { scroll: false });
     }, 300);
@@ -178,19 +179,30 @@ export function ApplicationsList({
     minScore === initialMinScore &&
     topN === initialTopN;
 
+  const apiStatus = filter === "all" ? undefined : (filter as FilterStatus | "new");
+
   const { data } = useApplicationsAll(
-    { status: filter, search, minScore, page, pageSize: topN ?? PAGE_SIZE },
+    { status: apiStatus, search, minScore, page, pageSize: topN ?? PAGE_SIZE },
     isInitialParams ? initialData : undefined
   );
 
-  const applications  = data?.applications  ?? [];
-  const total         = data?.total         ?? 0;
-  const statusCounts  = data?.statusCounts  ?? { reviewing: 0, shortlisted: 0, rejected: 0 };
-  const totalPages    = topN ? 1 : Math.ceil(total / PAGE_SIZE);
+  const applications = useMemo(() => data?.applications ?? [], [data]);
+  const total        = data?.total        ?? 0;
+  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 };
+  const totalPages   = topN ? 1 : Math.ceil(total / PAGE_SIZE);
+
+  const allCount = statusCounts.new + statusCounts.reviewing + statusCounts.shortlisted + statusCounts.rejected;
+  const groupedCounts: Record<ExtendedFilter, number> = {
+    all:         allCount,
+    new:         statusCounts.new,
+    reviewing:   statusCounts.reviewing,
+    shortlisted: statusCounts.shortlisted,
+    rejected:    statusCounts.rejected,
+  };
 
   const jobsByCode = new Map<string, Job>(initialJobs.map((j) => [j.code, j]));
-  const isFiltered = !!search || minScore > 0 || !!topN;
-  const hasData    = total > 0 || isFiltered;
+  const hasActiveFilters = !!search || minScore > 0 || !!topN;
+  const hasData = allCount > 0;
 
   // Sync select-all checkbox indeterminate state
   useEffect(() => {
@@ -210,17 +222,17 @@ export function ApplicationsList({
     }
   }, [selectedIds, applications]);
 
-  function handleSelectAll(checked: boolean) {
-    setSelectedIds((prev) => {
-      const newSet = new Set(prev);
-      if (checked) {
-        applications.forEach((a) => newSet.add(a.id));
-      } else {
-        applications.forEach((a) => newSet.delete(a.id));
-      }
-      return newSet;
-    });
-  }
+  const handleSelectAll = useCallback(
+    (checked: boolean) => {
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        if (checked) applications.forEach((a) => newSet.add(a.id));
+        else applications.forEach((a) => newSet.delete(a.id));
+        return newSet;
+      });
+    },
+    [applications]
+  );
 
   function goToPage(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -229,8 +241,9 @@ export function ApplicationsList({
     router.push(`/applications?${params.toString()}`, { scroll: false });
   }
 
-  async function getExportData() {
-    const selectedApplications = applications.filter((a) => selectedIds.has(a.id));
+  const getExportData = useCallback(async () => {
+    const selectedApplications =
+      selectedIds.size > 0 ? applications.filter((a) => selectedIds.has(a.id)) : applications;
     const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
     const jobTitles = new Map(initialJobs.map((j) => [j.code, j.title]));
 
@@ -252,85 +265,82 @@ export function ApplicationsList({
     );
 
     return { selectedApplications, enrichments, jobTitles, notesByAppId };
-  }
+  }, [applications, initialJobs, selectedIds]);
 
-  async function handleExportCsv() {
-    setIsExporting(true);
+  const handleExportCsv = useCallback(async () => {
+    setExportingFormat("csv");
     try {
       const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
       const csv = buildCsvContent(selectedApplications, enrichments, jobTitles, notesByAppId);
       downloadCsv(csv, "candidates.csv");
     } finally {
-      setIsExporting(false);
+      setExportingFormat(null);
     }
-  }
+  }, [getExportData]);
 
-  async function handleExportExcel() {
-    setIsExporting(true);
+  const handleExportExcel = useCallback(async () => {
+    setExportingFormat("excel");
     try {
       const { selectedApplications, enrichments, jobTitles, notesByAppId } = await getExportData();
       downloadExcel(selectedApplications, enrichments, jobTitles, notesByAppId, "candidates.xlsx");
     } finally {
-      setIsExporting(false);
+      setExportingFormat(null);
     }
-  }
-
-  const sortOrder: SortOrder = "desc";
+  }, [getExportData]);
 
   return (
     <>
-      {/* Status filter chips */}
-      {hasData && (
-        <div className="mt-6 flex items-center gap-1 flex-wrap ml-6">
-          {FILTER_STATUSES.map((s) => (
-            <StatusFilterChip
-              key={s}
-              href={buildHref(
-                { status: s },
-                { filter, topN, searchQuery: localSearch, minScore }
-              )}
-              label={FILTER_LABEL[s]}
-              count={statusCounts[s]}
-              tone={s === "shortlisted" ? "shortlist" : s === "rejected" ? "reject" : "neutral"}
-              active={filter === s}
-            />
-          ))}
+      {/* Title row: "i. Applications" + Search + Controls */}
+      <div className="flex-shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 border-b border-border flex items-center gap-3 md:gap-5">
+        <div className="flex items-baseline gap-2 md:gap-3 flex-shrink-0">
+          <span className="font-serif italic text-display md:text-display-xl leading-none text-primary tabular">
+            i.
+          </span>
+          <span className="font-serif italic text-h2 md:text-h1 leading-none text-foreground/85">
+            Applications
+          </span>
         </div>
-      )}
 
-      {/* Search + Filter Row */}
-      {hasData && (
-        <div className="mt-6 relative w-full ml-6">
-          <div className="relative w-full max-w-2xl px-4 sm:px-6 md:px-10 -mx-4 sm:-mx-6 md:-mx-10">
+        {hasData && (
+          <div className="relative flex-1 min-w-0 max-w-sm ml-8 md:ml-12">
             <input
               type="text"
               placeholder="Search by applicant name..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full px-4 py-2 md:py-2.5 pr-10 border border-border rounded-sm bg-background text-foreground text-body focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-1.5 pr-8 border border-border rounded-sm bg-background text-foreground text-body-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            {localSearch && (
+              <button
+                onClick={() => setLocalSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {hasData && (
+          <div className="relative flex-shrink-0">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors ${
-                isFiltered
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+              className={`p-1.5 border rounded-sm transition-colors ${
+                hasActiveFilters
+                  ? "text-primary border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
               aria-label="Open filters"
             >
               <Filter className="h-4 w-4" strokeWidth={2} />
             </button>
 
-            {/* Filter Popover */}
             {isFilterOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsFilterOpen(false)}
-                />
+                <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
                 <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
                   <div className="space-y-3">
-                    {/* Top N Selector */}
                     <div>
                       <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
                         Show Top
@@ -352,7 +362,6 @@ export function ApplicationsList({
                       </div>
                     </div>
 
-                    {/* Match Score Min */}
                     <div>
                       <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
                         Min Score: {tempMinScore}
@@ -377,7 +386,6 @@ export function ApplicationsList({
                       />
                     </div>
 
-                    {/* Apply Filters Button */}
                     <div className="pt-1">
                       <Link
                         href={buildHref(
@@ -395,25 +403,100 @@ export function ApplicationsList({
               </>
             )}
           </div>
+        )}
+
+        {selectedIds.size > 0 && (
+          <>
+            <span className="caps-meta text-muted-foreground tabular whitespace-nowrap flex-shrink-0">
+              {selectedIds.size} selected
+            </span>
+
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => !exportingFormat && setIsExportMenuOpen(!isExportMenuOpen)}
+                className="p-1.5 border border-border rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Export options"
+              >
+                {exportingFormat ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                ) : (
+                  <MoreHorizontal className="h-4 w-4" />
+                )}
+              </button>
+              {(isExportMenuOpen || exportingFormat) && (
+                <>
+                  {!exportingFormat && (
+                    <div className="fixed inset-0 z-40" onClick={() => setIsExportMenuOpen(false)} />
+                  )}
+                  <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-sm shadow-[0_4px_16px_rgb(0,0,0,0.10)] overflow-hidden min-w-[148px] z-50">
+                    <button
+                      onClick={() => { handleExportCsv(); setIsExportMenuOpen(false); }}
+                      disabled={!!exportingFormat}
+                      className="w-full px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {exportingFormat === "csv" && <Loader2 className="h-3 w-3 animate-spin text-primary flex-shrink-0" />}
+                      {exportingFormat === "csv" ? "Exporting…" : "Export CSV"}
+                    </button>
+                    <div className="border-t border-border" />
+                    <button
+                      onClick={() => { handleExportExcel(); setIsExportMenuOpen(false); }}
+                      disabled={!!exportingFormat}
+                      className="w-full px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                    >
+                      {exportingFormat === "excel" && <Loader2 className="h-3 w-3 animate-spin text-primary flex-shrink-0" />}
+                      {exportingFormat === "excel" ? "Exporting…" : "Export as Excel"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => { setSelectedIds(new Set()); setIsExportMenuOpen(false); }}
+              aria-label="Clear selection"
+              className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Status filter tabs */}
+      {hasData && (
+        <div className="flex-shrink-0 flex items-center gap-1 flex-wrap px-4 sm:px-6 md:px-10 py-3">
+          {ALL_TABS.map((s) => (
+            <StatusFilterChip
+              key={s}
+              href={buildHref(
+                { status: s, page: 1 },
+                { filter, topN, searchQuery: localSearch, minScore }
+              )}
+              label={FILTER_LABEL[s]}
+              count={groupedCounts[s]}
+              tone={s === "shortlisted" ? "shortlist" : s === "rejected" ? "reject" : "neutral"}
+              active={filter === s}
+            />
+          ))}
         </div>
       )}
 
       {/* Scrolling list */}
-      <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-12">
+      <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-4 md:pt-6 pb-12">
         {applications.length === 0 ? (
-          <EmptyState filter={filter} hasAny={total > 0 || !isFiltered ? data !== undefined && total === 0 && !isFiltered ? false : isFiltered : false} isFiltered={isFiltered} />
+          <EmptyState filter={filter} hasAny={allCount > 0} />
         ) : (
           <ul className="max-w-5xl">
             {selectedIds.size > 0 && (
-              <li className="relative group border-y border-border/60">
-                <div className="py-5 flex items-center gap-3 md:gap-5">
+              <li className="border-b border-border/60 border-t border-border/60">
+                <div className="py-4 flex items-center gap-3 md:gap-5 pl-4">
                   <input
                     ref={selectAllRef}
                     type="checkbox"
-                    className="relative z-10 accent-primary h-4 w-4 cursor-pointer"
+                    className="accent-primary h-4 w-4 cursor-pointer"
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
-                  <span className="text-xs text-muted-foreground caps-meta">
+                  <span className="caps-meta text-muted-foreground">
                     {selectedIds.size} selected
                   </span>
                 </div>
@@ -427,9 +510,7 @@ export function ApplicationsList({
                 <li key={app.id} className="relative group border-b border-border/60">
                   <input
                     type="checkbox"
-                    className={`absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer transition-opacity ${
-                      selectedIds.has(app.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    }`}
+                    className="absolute z-10 left-4 top-1/2 -translate-y-1/2 accent-primary h-4 w-4 cursor-pointer"
                     checked={selectedIds.has(app.id)}
                     onChange={(e) => {
                       const newSet = new Set(selectedIds);
@@ -480,48 +561,6 @@ export function ApplicationsList({
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Floating export bar */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 bg-background border border-border rounded-sm shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-          <span className="caps-meta text-muted-foreground tabular">
-            {selectedIds.size} selected
-          </span>
-          <div className="relative group">
-            <button
-              disabled={isExporting}
-              className="caps-action bg-primary text-primary-foreground px-3 py-1.5 rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {isExporting ? "Exporting…" : "Export"}
-              <span className="text-[10px] opacity-70">▾</span>
-            </button>
-            <div className="absolute bottom-full left-0 hidden group-hover:flex flex-col bg-background border border-border rounded-sm shadow-[0_4px_16px_rgb(0,0,0,0.10)] overflow-hidden min-w-37 z-10">
-              <button
-                onClick={handleExportCsv}
-                disabled={isExporting}
-                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
-              >
-                Export CSV
-              </button>
-              <div className="border-t border-border" />
-              <button
-                onClick={handleExportExcel}
-                disabled={isExporting}
-                className="px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
-              >
-                Export as Excel
-              </button>
-            </div>
-          </div>
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            aria-label="Clear selection"
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
         </div>
       )}
     </>
@@ -608,13 +647,11 @@ function StatusFilterChip({
 function EmptyState({
   filter,
   hasAny,
-  isFiltered,
 }: {
-  filter: FilterStatus;
+  filter: ExtendedFilter;
   hasAny: boolean;
-  isFiltered: boolean;
 }) {
-  if (isFiltered || hasAny) {
+  if (hasAny) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center pb-24">
         <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">

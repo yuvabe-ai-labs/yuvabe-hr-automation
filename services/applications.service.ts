@@ -26,11 +26,11 @@ export type FilterStatus = "reviewing" | "shortlisted" | "rejected";
 export type ApplicationsPageResult = {
   applications: Application[];
   total: number;
-  statusCounts: Record<FilterStatus, number>;
+  statusCounts: Record<FilterStatus | "new", number>;
 };
 
 const STATUS_GROUP: Record<FilterStatus, ApplicationStatus[]> = {
-  reviewing:   ["reviewing", "new"],
+  reviewing:   ["reviewing"],
   shortlisted: ["shortlisted", "offered"],
   rejected:    ["rejected"],
 };
@@ -42,6 +42,20 @@ export type ApplicationsQueryParams = {
   minScore?: number;
   page?: number;
   pageSize?: number;
+};
+
+export type AllApplicationsQueryParams = {
+  status?: FilterStatus | "new";
+  search?: string;
+  minScore?: number;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AllApplicationsPageResult = {
+  applications: Application[];
+  total: number;
+  statusCounts: Record<FilterStatus | "new", number>;
 };
 
 export async function getApplicationById(id: string): Promise<Application | undefined> {
@@ -96,8 +110,9 @@ export async function listApplicationsByJobCode(
       const s = row.status as ApplicationStatus;
       if (s in rawCounts) rawCounts[s]++;
     }
-    const statusCounts: Record<FilterStatus, number> = {
-      reviewing:   rawCounts.reviewing + rawCounts.new,
+    const statusCounts: Record<FilterStatus | "new", number> = {
+      new:         rawCounts.new,
+      reviewing:   rawCounts.reviewing,
       shortlisted: rawCounts.shortlisted + rawCounts.offered,
       rejected:    rawCounts.rejected,
     };
@@ -132,30 +147,13 @@ export async function listApplicationsByJobCode(
   }
 }
 
-export type AllApplicationsQueryParams = {
-  status?: FilterStatus;
-  search?: string;
-  minScore?: number;
-  page?: number;
-  pageSize?: number;
-};
-
-export type AllApplicationsPageResult = {
-  applications: Application[];
-  total: number;
-  statusCounts: Record<FilterStatus, number>;
-};
-
 export async function listApplicationsAll(
   options?: AllApplicationsQueryParams
 ): Promise<AllApplicationsPageResult> {
-  const { status, search, minScore = 0, page = 1, pageSize = 15 } = options ?? {};
+  const { status, search, minScore = 0, page = 1, pageSize = 10 } = options ?? {};
   const client = getSupabasePeopleClient();
 
-  // Status counts across ALL apps — for chip display
-  const { data: statusRows } = await client
-    .from("applications")
-    .select("status");
+  const { data: statusRows } = await client.from("applications").select("status");
 
   const rawCounts: Record<ApplicationStatus, number> = {
     new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0,
@@ -164,8 +162,9 @@ export async function listApplicationsAll(
     const s = row.status as ApplicationStatus;
     if (s in rawCounts) rawCounts[s]++;
   }
-  const statusCounts: Record<FilterStatus, number> = {
-    reviewing:   rawCounts.reviewing + rawCounts.new,
+  const statusCounts: Record<FilterStatus | "new", number> = {
+    new:         rawCounts.new,
+    reviewing:   rawCounts.reviewing,
     shortlisted: rawCounts.shortlisted + rawCounts.offered,
     rejected:    rawCounts.rejected,
   };
@@ -176,8 +175,12 @@ export async function listApplicationsAll(
     .order("received_at", { ascending: false });
 
   if (status) {
-    const group = STATUS_GROUP[status] ?? [status];
-    query = query.in("status", group);
+    if (status === "new") {
+      query = query.eq("status", "new");
+    } else {
+      const group = STATUS_GROUP[status] ?? [status];
+      query = query.in("status", group);
+    }
   }
   if (search) query = query.ilike("candidate_name", `%${search}%`);
   if (minScore > 0) query = query.gte("match_score", minScore);
