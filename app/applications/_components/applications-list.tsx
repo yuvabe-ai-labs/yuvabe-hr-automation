@@ -65,7 +65,7 @@ function ScoreChip({ score }: { score: number }) {
       : "text-primary border-primary/40 bg-primary/[0.06]";
   return (
     <div
-      className={`inline-flex items-baseline justify-center min-w-[44px] md:min-w-[58px] px-2 md:px-2.5 py-1.5 border rounded-sm font-mono text-body-lg md:text-h3 tabular leading-none ${colorClass}`}
+      className={`inline-flex items-baseline justify-center min-w-11 md:min-w-14.5 px-2 md:px-2.5 py-1.5 border rounded-sm font-mono text-body-lg md:text-h3 tabular leading-none ${colorClass}`}
       aria-label={`Match score ${score}`}
     >
       {String(score).padStart(2, "0")}
@@ -265,7 +265,7 @@ export function ApplicationsList({
     );
 
     return { selectedApplications, enrichments, jobTitles, notesByAppId };
-  }, [applications, selectedIds, initialJobs]);
+  }, [applications, initialJobs, selectedIds]);
 
   const handleExportCsv = useCallback(async () => {
     setExportingFormat("csv");
@@ -341,26 +341,6 @@ export function ApplicationsList({
                 <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
                 <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
-                        Show Top
-                      </label>
-                      <div className="flex gap-1.5">
-                        {[null, 10, 15, 20].map((n) => (
-                          <button
-                            key={n ?? "all"}
-                            onClick={() => setTempTopN(n as TopN | null)}
-                            className={`flex-1 px-2 py-1 rounded-sm text-xs font-medium transition-colors text-center ${
-                              n === tempTopN
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary text-foreground hover:bg-secondary/80"
-                            }`}
-                          >
-                            {n === null ? "All" : `${n}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
 
                     <div>
                       <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
@@ -591,7 +571,7 @@ function ApplicationRow({
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-3 md:gap-5 flex-shrink-0">
+      <div className="flex items-center gap-3 md:gap-5 shrink-0">
         <span className={`caps-meta ${STATUS_COLOR[application.status]}`}>
           {STATUS_LABEL[application.status]}
         </span>
@@ -599,7 +579,7 @@ function ApplicationRow({
           {relativeTime(application.receivedAt)}
         </span>
         <ArrowUpRight
-          className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px group-hover:-translate-y-px transition-all flex-shrink-0"
+          className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px group-hover:-translate-y-px transition-all shrink-0"
           strokeWidth={1.75}
         />
       </div>

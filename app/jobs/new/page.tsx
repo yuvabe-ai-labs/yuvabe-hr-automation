@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Loader2, FileText, ArrowUpRight } from "lucide-react";
+import { Upload, Loader2, FileText, ArrowUpRight, TriangleAlert, OctagonAlert } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -126,46 +126,6 @@ function NavTab({
   );
 }
 
-/** Inline filter chip. Color tone is stable; opacity + bg signal active state. */
-function FilterChip({
-  active,
-  onClick,
-  count,
-  label,
-  tone,
-}: {
-  active: boolean;
-  onClick: () => void;
-  count: number;
-  label: string;
-  tone: "neutral" | "primary" | "ink";
-}) {
-  const toneClass = {
-    neutral: "text-muted-foreground",
-    primary: "text-primary",
-    ink: "text-foreground",
-  }[tone];
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`
-        caps-meta tabular
-        flex items-center gap-1.5 px-2.5 py-1 rounded-sm
-        transition-all duration-150
-        ${toneClass}
-        ${
-          active
-            ? "bg-secondary opacity-100"
-            : "opacity-55 hover:opacity-100 hover:bg-secondary/40"
-        }
-      `}
-    >
-      <span>{String(count).padStart(2, "0")}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
 
 /* —————————————————————————— page —————————————————————————— */
 
@@ -176,8 +136,6 @@ export default function NewJobPage() {
   const [result, setResult] = useState<Result | null>(null);
   /** Local editable copy of result.criteria. The recruiter can change importance per row. */
   const [criteria, setCriteria] = useState<Criterion[]>([]);
-  /** Active filter for the criteria list. "all" shows everything. */
-  const [filter, setFilter] = useState<"all" | Importance>("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -199,7 +157,6 @@ export default function NewJobPage() {
     setFile(null);
     setResult(null);
     setCriteria([]);
-    setFilter("all");
     setError(null);
     setSaveState("idle");
     setSaveError(null);
@@ -225,7 +182,6 @@ export default function NewJobPage() {
     setError(null);
     setResult(null);
     setCriteria([]);
-    setFilter("all");
     try {
       const fd = new FormData();
       fd.append("file", f);
@@ -304,24 +260,14 @@ export default function NewJobPage() {
     if (f) onFile(f);
   }
 
-  /** Group from the editable `criteria`, preserving each row's index in the source array
-   *  so dropdown changes can mutate the right row. Also applies the active filter. */
   const grouped = result
     ? CATEGORY_ORDER.map((cat) => ({
         category: cat,
         items: criteria
           .map((c, idx) => ({ ...c, idx }))
-          .filter((c) => c.category === cat)
-          .filter((c) => filter === "all" || c.importance === filter),
+          .filter((c) => c.category === cat),
       })).filter((g) => g.items.length > 0)
     : [];
-
-  /** Counts always reflect the FULL criteria set, not the filtered view —
-   *  the chips are navigators, not status indicators. */
-  const mustCount = criteria.filter((c) => c.importance === "must").length;
-  const strongCount = criteria.filter((c) => c.importance === "strong").length;
-  const niceCount = criteria.filter((c) => c.importance === "nice").length;
-  const visibleCount = grouped.reduce((n, g) => n + g.items.length, 0);
 
   const canSave =
     result !== null &&
@@ -491,6 +437,27 @@ export default function NewJobPage() {
                   )}
                 </div>
 
+                {/* missing fields after extraction */}
+                {result && !loading && missingRequired.length > 0 && (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {missingRequired.map((field) => (
+                      <div key={field} className="flex items-center gap-2">
+                        <TriangleAlert
+                          className="h-3.5 w-3.5 text-primary shrink-0"
+                          strokeWidth={1.75}
+                        />
+                        <p className="caps-action text-primary">{field}</p>
+                      </div>
+                    ))}
+                    <div className="mt-3 flex items-start gap-2.5 bg-yellow-50 border border-yellow-200 rounded-sm px-3 py-2.5">
+                      <OctagonAlert className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" strokeWidth={1.75} />
+                      <p className="text-body-sm text-yellow-800 leading-relaxed">
+                        Update the missing fields in your JD and replace the file to continue.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* loading state */}
                 {loading && (
                   <div className="mt-8 flex flex-col items-start gap-3">
@@ -521,10 +488,7 @@ export default function NewJobPage() {
                 {!loading && file && !result && (
                   <div className="mt-auto pt-10">
                     <HairRule />
-                    <div className="pt-6 flex items-center justify-between gap-4">
-                      <p className="text-body-sm text-muted-foreground max-w-[12rem] leading-relaxed">
-                        One LLM call. No data leaves until you save.
-                      </p>
+                    <div className="pt-6 flex justify-end">
                       <Button
                         size="lg"
                         onClick={() => submit(file)}
@@ -537,28 +501,14 @@ export default function NewJobPage() {
                   </div>
                 )}
 
-                {/* after result: missing fields + reupload / all good */}
-                {!loading && result && (
+                {/* after result: extraction complete */}
+                {!loading && result && missingRequired.length === 0 && (
                   <div className="mt-auto pt-8">
                     <HairRule />
-                    <div className="mt-6 flex items-center justify-between gap-4">
-                      {missingRequired.length > 0 ? (
-                        <p className="caps-action text-primary truncate">
-                          Missing: {missingRequired.join(" · ")}
-                        </p>
-                      ) : (
-                        <p className="text-body-sm text-muted-foreground leading-relaxed">
-                          Extraction complete.
-                        </p>
-                      )}
-                      {missingRequired.length > 0 && (
-                        <button
-                          onClick={pick}
-                          className="caps-action text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
-                        >
-                          Reupload →
-                        </button>
-                      )}
+                    <div className="mt-6">
+                      <p className="text-body-sm text-muted-foreground leading-relaxed">
+                        Extraction complete.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -570,7 +520,7 @@ export default function NewJobPage() {
         {/* ════════ RIGHT — the analysis ════════ */}
         <section className="flex flex-col overflow-hidden">
           {/* —— Empty / Loading: single scrolling area —— */}
-          {!result && (
+          {(!result || missingRequired.length > 0) && (
             <div className="md:flex-1 px-4 sm:px-6 md:px-12 pt-6 md:pt-12 pb-8 md:overflow-y-auto">
               {/* Empty state */}
               {!loading && (
@@ -669,7 +619,7 @@ export default function NewJobPage() {
           )}
 
           {/* —— Result: static header (title + filters) + scrolling criteria —— */}
-          {result && (
+          {result && missingRequired.length === 0 && (
             <>
               {/* Static top — does not scroll */}
               <div className="flex-shrink-0 px-4 sm:px-6 md:px-12 pt-6 md:pt-10 pb-5 border-b border-border bg-background">
@@ -678,64 +628,12 @@ export default function NewJobPage() {
                   <h2 className="font-serif italic text-display md:text-display-md leading-[1.05] mt-3 mb-4 tracking-tight">
                     {result.title_suggestion}
                   </h2>
-                  <div className="flex items-center gap-1 flex-wrap -ml-2.5">
-                    <FilterChip
-                      active={filter === "all"}
-                      onClick={() => setFilter("all")}
-                      count={criteria.length}
-                      label="All"
-                      tone="neutral"
-                    />
-                    <FilterChip
-                      active={filter === "must"}
-                      onClick={() => setFilter("must")}
-                      count={mustCount}
-                      label="Preferred"
-                      tone="primary"
-                    />
-                    <FilterChip
-                      active={filter === "strong"}
-                      onClick={() => setFilter("strong")}
-                      count={strongCount}
-                      label="Strong"
-                      tone="ink"
-                    />
-                    <FilterChip
-                      active={filter === "nice"}
-                      onClick={() => setFilter("nice")}
-                      count={niceCount}
-                      label="Nice"
-                      tone="neutral"
-                    />
-                  </div>
-                  <p className="mt-3 caps-meta text-muted-foreground tabular">
-                    Showing {String(visibleCount).padStart(2, "0")} of {String(criteria.length).padStart(2, "0")}
-                    {filter !== "all" && (
-                      <span className="ml-2 text-muted-foreground/75">
-                        · filtered by {filter}
-                      </span>
-                    )}
-                  </p>
                 </div>
               </div>
 
               {/* Scrolling middle — criteria only */}
               <div className="md:flex-1 px-4 sm:px-6 md:px-12 pt-6 md:pt-8 pb-8 md:overflow-y-auto">
                 <div className="max-w-2xl">
-                  {grouped.length === 0 && (
-                    <div className="py-12 text-center border border-dashed border-border rounded-sm">
-                      <p className="font-serif italic text-h2 text-foreground/55">
-                        No {filter} criteria for this role.
-                      </p>
-                      <button
-                        onClick={() => setFilter("all")}
-                        className="mt-3 eyebrow text-primary hover:text-primary/70 transition-colors"
-                      >
-                        Show all ←
-                      </button>
-                    </div>
-                  )}
-
                   <div className="space-y-10">
                     {grouped.map((group) => (
                     <div key={group.category}>
@@ -815,7 +713,7 @@ export default function NewJobPage() {
           )}
 
           {/* —— Sticky action bar — outside scroll container, only when result is shown —— */}
-          {result && !loading && (
+          {result && !loading && missingRequired.length === 0 && (
             <div className="border-t border-border bg-background px-4 sm:px-6 md:px-12 py-4 flex items-center justify-between gap-4 flex-shrink-0">
               <div className="flex-1 min-w-0">
                 {saveState === "error" && saveError ? (

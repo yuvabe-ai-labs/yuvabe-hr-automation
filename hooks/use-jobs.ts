@@ -52,7 +52,27 @@ export function useUpdateJobStatus() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "updateStatus", status }),
       }).then((r) => r.json()),
-    onSuccess: () => {
+    onMutate: async ({ code }) => {
+      await queryClient.cancelQueries({ queryKey: ["jobs", "list"] });
+      const previousData = queryClient.getQueriesData<JobsListResult>({
+        queryKey: ["jobs", "list"],
+      });
+      queryClient.setQueriesData<JobsListResult>(
+        { queryKey: ["jobs", "list"] },
+        (old) => {
+          if (!old) return old;
+          const jobs = old.jobs.filter((j) => j.code !== code);
+          return { ...old, jobs, total: Math.max(0, old.total - 1) };
+        }
+      );
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      for (const [key, data] of context?.previousData ?? []) {
+        queryClient.setQueryData(key, data);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     },
   });
