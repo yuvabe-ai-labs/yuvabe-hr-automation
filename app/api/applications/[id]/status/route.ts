@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { updateApplicationStatus } from "@/lib/applications-store";
 
@@ -33,6 +34,12 @@ export async function PATCH(
     const application = await updateApplicationStatus(id, parsed.data.status);
     if (!application) {
       return NextResponse.json({ error: "Application not found" }, { status: 404 });
+    }
+    try {
+      revalidatePath(`/jobs/${application.jobCode}`);
+      revalidatePath(`/applications/${id}`);
+    } catch {
+      // revalidatePath may not be available in all runtime contexts (e.g. dev without incremental cache)
     }
     return NextResponse.json({ application });
   } catch (err) {
