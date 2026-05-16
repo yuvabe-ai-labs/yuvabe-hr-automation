@@ -43,8 +43,8 @@ const CATEGORY_ORDER: Criterion["category"][] = [
 ];
 
 const IMPORTANCE_LABEL: Record<Importance, string> = {
-  must: "Preferred",
-  strong: "Strong",
+  must: "Must",
+  strong: "Preferred",
   nice: "Nice",
 };
 
@@ -183,7 +183,7 @@ export default async function JobViewPage({
                   {String(counts.must).padStart(2, "0")} must
                 </span>
                 <span className="caps-meta tabular text-foreground">
-                  {String(counts.strong).padStart(2, "0")} strong
+                  {String(counts.strong).padStart(2, "0")} preferred
                 </span>
                 <span className="caps-meta tabular text-muted-foreground">
                   {String(counts.nice).padStart(2, "0")} nice
