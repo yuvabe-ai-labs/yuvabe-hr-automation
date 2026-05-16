@@ -102,16 +102,17 @@ export function useUpdateApplicationStatus() {
       const prevList = queryClient.getQueriesData<ApplicationsPageResult>({ queryKey: ["applications", "list"] });
       const prevAll  = queryClient.getQueriesData<AllApplicationsPageResult>({ queryKey: ["applications", "all"] });
 
-      // Find the application's current status from any cached list
+      // Find the app + its current status from any cached list
       let oldStatus: ApplicationStatus | undefined;
+      let mutatedApp: Application | undefined;
       for (const [, data] of prevList) {
         const found = data?.applications.find((a) => a.id === id);
-        if (found) { oldStatus = found.status; break; }
+        if (found) { mutatedApp = found; oldStatus = found.status; break; }
       }
       if (!oldStatus) {
         for (const [, data] of prevAll) {
           const found = data?.applications.find((a) => a.id === id);
-          if (found) { oldStatus = found.status; break; }
+          if (found) { mutatedApp = found; oldStatus = found.status; break; }
         }
       }
 
@@ -126,9 +127,9 @@ export function useUpdateApplicationStatus() {
       }
 
       // Query key shape: ["applications", "list", jobCode, params]
-      // params.status is the active filter for that cache entry.
+      // params.status is the filter for that cache entry.
 
-      // Caches filtered to the old status: remove the row + decrement total
+      // 1. Source tab: remove app + decrement total
       queryClient.setQueriesData<ApplicationsPageResult>(
         {
           queryKey: ["applications", "list"],
@@ -145,12 +146,31 @@ export function useUpdateApplicationStatus() {
         }
       );
 
-      // All other caches (unfiltered "all" tab, or filtered to a different status):
-      // update the row's status in-place and patch counts
+      // 2. Target tab (existing caches): add app + increment total
       queryClient.setQueriesData<ApplicationsPageResult>(
         {
           queryKey: ["applications", "list"],
-          predicate: (q) => (q.queryKey[3] as ApplicationsQueryParams | undefined)?.status !== oldStatus,
+          predicate: (q) => (q.queryKey[3] as ApplicationsQueryParams | undefined)?.status === newStatus,
+        },
+        (old) => {
+          if (!old || !mutatedApp) return old;
+          return {
+            ...old,
+            applications: [{ ...mutatedApp, status: newStatus }, ...old.applications],
+            total: old.total + 1,
+            statusCounts: patchCounts(old.statusCounts),
+          };
+        }
+      );
+
+      // 3. "All" tab and unrelated filter tabs: update app in-place + patch counts
+      queryClient.setQueriesData<ApplicationsPageResult>(
+        {
+          queryKey: ["applications", "list"],
+          predicate: (q) => {
+            const s = (q.queryKey[3] as ApplicationsQueryParams | undefined)?.status;
+            return s !== oldStatus && s !== newStatus;
+          },
         },
         (old) => {
           if (!old) return old;
@@ -162,9 +182,83 @@ export function useUpdateApplicationStatus() {
         }
       );
 
-      // "all" cross-job list: update in-place, patch counts
+      // 4. Seed the target-tab cache from the "all" tab if it doesn't exist yet.
+      //    Without this, navigating to the target tab triggers a fresh fetch that
+      //    races against the in-flight PATCH and may arrive before it commits.
+      if (mutatedApp) {
+        const updatedApp = { ...mutatedApp, status: newStatus };
+        for (const [qk, oldData] of prevList) {
+          if (!oldData) continue;
+          const params = (qk as unknown[])[3] as ApplicationsQueryParams | undefined;
+          // Only seed from "all" tab entries that actually contain this app
+          if (params?.status !== undefined) continue;
+          if (!oldData.applications.some((a) => a.id === id)) continue;
+
+          // Build the target-tab key: same key but with status = newStatus
+          const targetKey = [
+            (qk as unknown[])[0],
+            (qk as unknown[])[1],
+            (qk as unknown[])[2],
+            { ...params, status: newStatus },
+          ];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (!queryClient.getQueryData(targetKey as any)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            queryClient.setQueryData(targetKey as any, {
+              applications: [updatedApp],
+              total: 1,
+              statusCounts: patchCounts(oldData.statusCounts),
+            });
+          }
+        }
+      }
+
+      // "all" cross-job list — same four-part pattern.
+      // Query key shape: ["applications", "all", params] — params is at index 2.
+
+      // 1. Source tab: remove + decrement total
       queryClient.setQueriesData<AllApplicationsPageResult>(
-        { queryKey: ["applications", "all"] },
+        {
+          queryKey: ["applications", "all"],
+          predicate: (q) => (q.queryKey[2] as AllApplicationsQueryParams | undefined)?.status === oldStatus,
+        },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            applications: old.applications.filter((a) => a.id !== id),
+            total: Math.max(0, old.total - 1),
+            statusCounts: patchCounts(old.statusCounts),
+          };
+        }
+      );
+
+      // 2. Target tab (existing caches): add app + increment total
+      queryClient.setQueriesData<AllApplicationsPageResult>(
+        {
+          queryKey: ["applications", "all"],
+          predicate: (q) => (q.queryKey[2] as AllApplicationsQueryParams | undefined)?.status === newStatus,
+        },
+        (old) => {
+          if (!old || !mutatedApp) return old;
+          return {
+            ...old,
+            applications: [{ ...mutatedApp, status: newStatus }, ...old.applications],
+            total: old.total + 1,
+            statusCounts: patchCounts(old.statusCounts),
+          };
+        }
+      );
+
+      // 3. "All" tab and unrelated filter tabs: update in-place + patch counts
+      queryClient.setQueriesData<AllApplicationsPageResult>(
+        {
+          queryKey: ["applications", "all"],
+          predicate: (q) => {
+            const s = (q.queryKey[2] as AllApplicationsQueryParams | undefined)?.status;
+            return s !== oldStatus && s !== newStatus;
+          },
+        },
         (old) => {
           if (!old) return old;
           return {
@@ -174,6 +268,32 @@ export function useUpdateApplicationStatus() {
           };
         }
       );
+
+      // 4. Seed the target-tab cache from the "all" tab if it doesn't exist yet
+      if (mutatedApp) {
+        const updatedApp = { ...mutatedApp, status: newStatus };
+        for (const [qk, oldData] of prevAll) {
+          if (!oldData) continue;
+          const params = (qk as unknown[])[2] as AllApplicationsQueryParams | undefined;
+          if (params?.status !== undefined) continue;
+          if (!oldData.applications.some((a) => a.id === id)) continue;
+
+          const targetKey = [
+            (qk as unknown[])[0],
+            (qk as unknown[])[1],
+            { ...params, status: newStatus },
+          ];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (!queryClient.getQueryData(targetKey as any)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            queryClient.setQueryData(targetKey as any, {
+              applications: [updatedApp],
+              total: 1,
+              statusCounts: patchCounts(oldData.statusCounts),
+            });
+          }
+        }
+      }
 
       return { prevList, prevAll };
     },
