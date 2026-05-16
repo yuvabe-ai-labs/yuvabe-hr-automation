@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+        "Bash(pnpm build)",
+      "Bash(pnpm dlx shadcn *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(ls *)",
+      "Bash(node *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

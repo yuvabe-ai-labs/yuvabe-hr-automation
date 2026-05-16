@@ -1,6 +1,6 @@
 ---
 name: yuvabe-data-modeling
-description: Use proactively whenever data model, schema, or feature/module planning is being discussed for the Yuvabe ATS — at the *planning* phase, not just at code-edit time. Triggers include: any conversation about adding a new entity (Interview, Stage, FeedbackNote, ReviewRound, Offer, Note, Tag, etc.); modifying or extending Job, Candidate, Application, Criterion, CriterionMatch, ExperienceEntry, EducationEntry, or any sub-document type; designing a new screen or route that introduces persistence; adding fields to existing entity types; planning database migrations or the eventual Supabase / MongoDB swap; questions like "where should X live?", "should this be embedded or its own table?", "what does the schema look like?", "how do we model Y?". Activate **before** any change to `lib/*-store.ts`, `lib/prompts/*.v1.ts` (when the change affects type shapes), or new API routes that introduce new persistence shapes. Activate during product/design discussions about new screens *before* code is written. The skill embeds the project's NoSQL-friendly access-pattern rules and the MIGRATION BOUNDARY discipline — apply both *before* proposing any schema.
+description: Use proactively whenever data model, schema, or feature/module planning is being discussed for the Yuvabe ATS — at the *planning* phase, not just at code-edit time. Triggers include: any conversation about adding a new entity (Interview, Stage, FeedbackNote, ReviewRound, Offer, Note, Tag, etc.); modifying or extending Job, Candidate, Application, Criterion, CriterionMatch, ExperienceEntry, EducationEntry, or any sub-document type; designing a new screen or route that introduces persistence; adding fields to existing entity types; planning database migrations or the eventual Supabase / MongoDB swap; questions like "where should X live?", "should this be embedded or its own table?", "what does the schema look like?", "how do we model Y?". Activate **before** any change to `repositories/*.repository.ts`, `schemas/*.schema.ts`, `lib/prompts/*.v1.ts` (when the change affects type shapes), or new API routes that introduce new persistence shapes. Activate during product/design discussions about new screens *before* code is written. The skill embeds the project's NoSQL-friendly access-pattern rules and the MIGRATION BOUNDARY discipline — apply both *before* proposing any schema.
 ---
 
 # Yuvabe ATS — Data Modeling
@@ -27,7 +27,8 @@ This skill activates **proactively** on:
 | New API route or page that persists | "POST /api/notes", "/applications/[id]/feedback" |
 | Migration / DB swap discussions | "moving to Supabase", "what's the MongoDB schema for this?", "how do we make this NoSQL-friendly?" |
 | Schema-shaped questions | "should this be embedded?", "where should this live?", "what's the relationship between A and B?" |
-| Editing any `lib/*-store.ts` file | direct code-edit trigger — surface the rules before changes go in |
+| Editing any `repositories/*.repository.ts` or `schemas/*.schema.ts` | direct code-edit trigger — surface the rules before changes go in |
+| Editing `lib/*-store.ts` during refactor | also triggers — old files being migrated |
 
 If a feature has a UI screen but no clear data shape yet, **activate during the screen-planning conversation**, not just when the data layer is being written.
 
