@@ -56,14 +56,14 @@ export function StatusActions({
       >
         <ToggleGroupItem
           value="reviewing"
-          className="caps-action justify-start gap-2"
+          className="caps-action justify-start gap-2 data-[state=on]:bg-[#B8893A]/10 data-[state=on]:text-[#B8893A]"
         >
           <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
           Review
         </ToggleGroupItem>
         <ToggleGroupItem
           value="shortlisted"
-          className="caps-action justify-start gap-2 data-[state=on]:bg-[#2F5E7A]/10 data-[state=on]:text-[#2F5E7A]"
+          className="caps-action justify-start gap-2 data-[state=on]:bg-[#3F6B3F]/10 data-[state=on]:text-[#3F6B3F]"
         >
           <Check className="h-3.5 w-3.5" strokeWidth={1.75} />
           Shortlist
