@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listJobs } from "@/lib/jobs-store";
+import { getJobByCode } from "@/lib/jobs-store";
 import {
   getApplicationById,
   type CriterionMatch,
@@ -40,7 +40,7 @@ function bandTextClass(score: number): string {
     : "text-primary";
 }
 
-const IMPORTANCE_LABEL = { must: "Preferred", strong: "Strong", nice: "Nice" } as const;
+const IMPORTANCE_LABEL = { must: "Must", strong: "Preferred", nice: "Nice" } as const;
 const IMPORTANCE_COLOR = {
   must: "text-primary",
   strong: "text-foreground",
@@ -123,8 +123,7 @@ export default async function ApplicationDetailPage({
   const candidate = await getCandidateById(application.candidateId);
   if (!candidate) notFound();
 
-  const jobs = await listJobs();
-  const job = jobs.find((j) => j.id === application.jobId);
+  const job = await getJobByCode(application.jobCode);
   if (!job) notFound();
 
   const initialNotes = await listNotes(id).catch(() => []);
