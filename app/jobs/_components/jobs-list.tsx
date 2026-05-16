@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import { ChevronRight, Plus } from "lucide-react";
 import { useJobs } from "@/hooks/use-jobs";
+import { useQueryClient } from "@tanstack/react-query";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 import { JobActionsMenu } from "./job-actions-menu";
 import type { JobsListResult } from "@/services/jobs.service";
@@ -58,11 +59,31 @@ export function JobsList({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const isFirstRender = useRef(true);
+  // Guard: only refresh once per unique newCode to prevent loops.
+  const refreshedForRef = useRef<string | null>(null);
 
   const tab = (searchParams.get("tab") === "archived" ? "archived" : "active") as "active" | "archived";
   const search = searchParams.get("search") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
+  // Read newCode from the live URL — useSearchParams() always reflects the
+  // current URL even when Next.js serves a cached RSC payload.
+  const newCodeFromUrl = searchParams.get("new") ?? undefined;
+  const effectiveNewCode = newCodeFromUrl ?? newCode;
+
+  // When landing on /jobs?new=<code> after creation, Next.js may serve a
+  // cached RSC payload (router cache keyed by segment, not search params).
+  // router.refresh() forces a fresh server fetch → fresh initialData.
+  // removeQueries() clears the stale React Query cache so initialData is used
+  // immediately rather than waiting for a background refetch.
+  useEffect(() => {
+    if (newCodeFromUrl && refreshedForRef.current !== newCodeFromUrl) {
+      refreshedForRef.current = newCodeFromUrl;
+      queryClient.removeQueries({ queryKey: ["jobs", "list"] });
+      router.refresh();
+    }
+  }, [newCodeFromUrl, queryClient, router]);
 
   const [prevSearch, setPrevSearch] = useState(search);
   const [searchInput, setSearchInput] = useState(search);
@@ -191,7 +212,7 @@ export function JobsList({
           <ul className="max-w-4xl">
             {jobs.map((job, idx) => {
               const counts = importanceCounts(job.criteria);
-              const isNew = job.code === newCode;
+              const isNew = job.code === effectiveNewCode;
               const isArchived = job.status === "archived";
               const appCount = appsByJobCode.get(job.code) ?? 0;
               return (

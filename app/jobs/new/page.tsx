@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -44,8 +45,8 @@ const CATEGORY_ORDER: Criterion["category"][] = [
 ];
 
 const IMPORTANCE_LABEL: Record<Importance, string> = {
-  must: "Preferred",
-  strong: "Strong",
+  must: "Must",
+  strong: "Preferred",
   nice: "Nice",
 };
 
@@ -132,6 +133,7 @@ function NavTab({
 export default function NewJobPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   /** Local editable copy of result.criteria. The recruiter can change importance per row. */
@@ -236,7 +238,7 @@ export default function NewJobPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Save failed (${res.status})`);
-      // Navigate to the jobs list with the new code highlighted.
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
       router.push(`/jobs?new=${data.job.code}`);
     } catch (err) {
       setSaveState("error");

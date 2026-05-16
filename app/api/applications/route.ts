@@ -6,7 +6,16 @@ import { createCandidate } from "@/lib/candidates-store";
 import { createApplication, type CriterionMatch } from "@/lib/applications-store";
 import { parseResume, scoreResume } from "@/lib/llm";
 import { IMPORTANCE_WEIGHT } from "@/lib/prompts/extractCriteria.v1";
+import { supabase } from "@/lib/supabase";
 import type { Job } from "@/lib/jobs-store";
+
+// Allow any external origin to submit applications.
+// Tighten to specific origins once the apply-page domain is known.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
 
 /**
  * Deterministic 0-100 match score, computed in code (not asked of the LLM)
@@ -35,7 +44,13 @@ const FormSchema = z.object({
   email: z.string().email("Invalid email."),
 });
 
-// Runs after response is flushed — does the heavy LLM work and updates the records.
+// Handles CORS preflight from external origins.
+export function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
+// Runs after response is flushed — uploads the resume file and does the heavy
+// LLM work, then writes results back to the existing candidate/application rows.
 async function processInBackground(
   resumeFile: File,
   candidateId: string,
@@ -43,6 +58,34 @@ async function processInBackground(
   job: Job,
 ) {
   try {
+    // Upload resume file first so the download link is ready alongside scoring.
+    const fileBuffer = Buffer.from(await resumeFile.arrayBuffer());
+    const ext = resumeFile.name.split(".").pop()?.toLowerCase() ?? "bin";
+    const storagePath = `${job.code}/${candidateId}.${ext}`;
+
+    const { error: storageError } = await supabase.storage
+      .from("resumes")
+      .upload(storagePath, fileBuffer, {
+        contentType: resumeFile.type || "application/octet-stream",
+        upsert: false,
+      });
+
+    if (!storageError) {
+      const safeName = resumeFile.name.replace(/\.[^.]+$/, "").replace(/[^\w\s-]/g, "").trim();
+      const resumeUrl = supabase.storage
+        .from("resumes")
+        .getPublicUrl(storagePath, { download: `${safeName} Resume.${ext}` })
+        .data.publicUrl;
+
+      await supabase
+        .from("applications")
+        .update({ resume_url: resumeUrl })
+        .eq("id", applicationId);
+    } else {
+      console.error("[applications/bg] storage upload failed:", storageError.message);
+    }
+
+    // Parse + score the resume.
     let parsedFile;
     try {
       parsedFile = await extractTextFromFile(resumeFile);
@@ -69,7 +112,6 @@ async function processInBackground(
 
     const criteriaByLabel = new Map(job.criteria.map((c) => [c.label, c]));
     const matchBreakdown: CriterionMatch[] = scoring.matchBreakdown.map((row: CriterionMatch) => {
-      // Strip the [MUST] / [STRONG] / [NICE] prefix the LLM echoes back from the prompt format
       const cleanLabel = row.criterionLabel.replace(/^\[(MUST|STRONG|NICE)\]\s*/i, "").trim();
       const parent = criteriaByLabel.get(cleanLabel);
       return parent
@@ -77,8 +119,6 @@ async function processInBackground(
         : { ...row, criterionLabel: cleanLabel };
     });
     const matchScore = computeMatchScore(matchBreakdown);
-
-    const { supabase } = await import("@/lib/supabase");
 
     await supabase.from("candidates").update({
       phone:                profile.phone,
@@ -113,7 +153,7 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json(
       { error: "Expected multipart form data." },
-      { status: 400 }
+      { status: 400, headers: CORS_HEADERS }
     );
   }
 
@@ -125,59 +165,45 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid form." },
-      { status: 400 }
+      { status: 400, headers: CORS_HEADERS }
     );
   }
   const { jobCode, name, email } = parsed.data;
 
   const resume = formData.get("resume");
   if (!resume || !(resume instanceof File)) {
-    return NextResponse.json({ error: "No resume uploaded." }, { status: 400 });
-  }
-
-  const job = await getJobByCode(jobCode);
-  if (!job) {
     return NextResponse.json(
-      { error: `Job ${jobCode} not found.` },
-      { status: 404 }
+      { error: "No resume uploaded." },
+      { status: 400, headers: CORS_HEADERS }
     );
   }
 
-  // Read the file buffer now — arrayBuffer() can only be consumed once.
-  // The buffer is passed to the background task so it can reconstruct the File.
+  // Read buffer now — arrayBuffer() can only be consumed once.
   const fileBuffer = Buffer.from(await resume.arrayBuffer());
+  const resumeForBg = new File([fileBuffer], resume.name, { type: resume.type });
 
-  const { supabase } = await import("@/lib/supabase");
+  // Fire both DB calls in parallel — they don't depend on each other.
+  const [job, candidate] = await Promise.all([
+    getJobByCode(jobCode),
+    createCandidate({
+      name,
+      email,
+      phone: "",
+      location: "",
+      summary: "",
+      yearsOfExperience: 0,
+      skills: [],
+      experience: [],
+      education: [],
+    }),
+  ]);
 
-  // Upload raw resume to storage immediately so the download link is available
-  // from the moment the application record exists.
-  const ext = resume.name.split(".").pop()?.toLowerCase() ?? "bin";
-  const candidate = await createCandidate({
-    name,
-    email,
-    phone: "",
-    location: "",
-    summary: "",
-    yearsOfExperience: 0,
-    skills: [],
-    experience: [],
-    education: [],
-  });
-
-  const storagePath = `${jobCode}/${candidate.id}.${ext}`;
-  const { error: storageError } = await supabase.storage
-    .from("resumes")
-    .upload(storagePath, fileBuffer, {
-      contentType: resume.type || "application/octet-stream",
-      upsert: false,
-    });
-
-  const safeName = name.replace(/[^\w\s-]/g, "").trim();
-  const resumeUrl = storageError
-    ? undefined
-    : supabase.storage.from("resumes").getPublicUrl(storagePath, {
-        download: `${safeName} Resume.${ext}`,
-      }).data.publicUrl;
+  if (!job) {
+    return NextResponse.json(
+      { error: `Job ${jobCode} not found.` },
+      { status: 404, headers: CORS_HEADERS }
+    );
+  }
 
   const application = await createApplication({
     jobId: job.id,
@@ -191,18 +217,17 @@ export async function POST(req: Request) {
     matchSummary: "",
     matchBreakdown: [],
     coverLetter: "",
-    resumeUrl,
+    resumeUrl: undefined,
     status: "new",
   });
 
-  // Schedule background processing — runs after response is sent.
-  const resumeForBg = new File([fileBuffer], resume.name, { type: resume.type });
+  // Schedule background processing — upload + LLM scoring run after response is sent.
   processInBackground(resumeForBg, candidate.id, application.id, job).catch(
     (err) => console.error("[applications/bg]", err)
   );
 
   return NextResponse.json(
     { applicationId: application.id },
-    { status: 201 }
+    { status: 201, headers: CORS_HEADERS }
   );
 }
