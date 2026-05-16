@@ -45,8 +45,8 @@ const CATEGORY_ORDER: Criterion["category"][] = [
 ];
 
 const IMPORTANCE_LABEL: Record<Importance, string> = {
-  must: "Preferred",
-  strong: "Strong",
+  must: "Must",
+  strong: "Preferred",
   nice: "Nice",
 };
 
