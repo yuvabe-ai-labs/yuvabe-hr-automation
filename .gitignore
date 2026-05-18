@@ -50,8 +50,15 @@ next-env.d.ts
 .claude/settings.local.json
 .claude/worktrees/
 
-# Playwright
-/tests/
-playwright.config.ts
+# Playwright — generated artifacts only (source files are committed)
+/playwright-report/
+/test-results/
+/tests/.auth/
 .claude/skills/playwright-skill/
 .claude/skills/yuvabe-playwright/
+
+# Local-only docs and migration helpers
+/docs/test-automation-sprint.md
+/docs/test-sprint-overview.md
+/docs/test-plan.md
+/supabase/combined_test_migration.sql
