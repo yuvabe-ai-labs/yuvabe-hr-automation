@@ -62,3 +62,5 @@ next-env.d.ts
 /docs/test-sprint-overview.md
 /docs/test-plan.md
 /supabase/combined_test_migration.sql
+
+playground/
