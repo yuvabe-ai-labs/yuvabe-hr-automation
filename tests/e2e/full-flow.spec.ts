@@ -51,7 +51,7 @@ const MOCK_JOB_SAVE_RESPONSE = {
 test.describe("Full pipeline", () => {
   test("auth gate: /jobs redirects unauthenticated user to /login", async ({ page }) => {
     await page.goto("/jobs");
-    await expect(page).toHaveURL(/\/dashboard/); // intentional fail for demo
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test("wrong credentials show an error message", async ({ page }) => {
