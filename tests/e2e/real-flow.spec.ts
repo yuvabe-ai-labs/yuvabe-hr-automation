@@ -45,7 +45,7 @@ test.describe("Real flow — live OpenAI + test Supabase", () => {
 
     // Step 6: Redirected to /jobs with new job code in URL
     await expect(page).toHaveURL(/\/jobs\?new=/, { timeout: 15_000 });
-    await expect(jobsPage.newJobButton).not.toBeVisible();
+    await expect(jobsPage.newJobButton).toBeVisible();
 
     // Log the new job code for reference
     const url = page.url();

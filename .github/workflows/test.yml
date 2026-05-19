@@ -89,11 +89,13 @@ jobs:
                   const results = test?.results ?? [];
                   const ms = results.reduce((sum, r) => sum + (r.duration ?? 0), 0);
                   totalMs += ms;
-                  if (status === 'passed') passed++;
-                  else if (status === 'failed' || status === 'timedOut') failed++;
+                  if (status === 'expected') passed++;
+                  else if (status === 'unexpected') failed++;
+                  else if (status === 'flaky') { passed++; }
                   else skipped++;
-                  const icon = status === 'passed' ? '✅' : status === 'failed' || status === 'timedOut' ? '❌' : '⏭️';
-                  rows.push(`| ${spec.title} | ${icon} ${status} | ${(ms / 1000).toFixed(1)}s |`);
+                  const icon = status === 'expected' ? '✅' : status === 'unexpected' ? '❌' : status === 'flaky' ? '⚠️' : '⏭️';
+                  const label = status === 'expected' ? 'passed' : status === 'unexpected' ? 'failed' : status;
+                  rows.push(`| ${spec.title} | ${icon} ${label} | ${(ms / 1000).toFixed(1)}s |`);
                 }
               }
             }
