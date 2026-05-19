@@ -27,7 +27,11 @@ export type Job = {
   workCulture: string[];
   createdAt: string;
   archivedAt?: string;
-  status: "active" | "archived";
+  status: "draft" | "active" | "archived";
+  publishedAt?: string;
+  closedAt?: string;
+  isPaidListing: boolean;
+  hiringManagerId?: string;
 };
 
 export type JobRow = Tables<"jobs">;

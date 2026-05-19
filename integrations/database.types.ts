@@ -16,55 +16,73 @@ export type Database = {
     Tables: {
       applications: {
         Row: {
-          candidate_email: string | null
-          candidate_id: string | null
-          candidate_location: string | null
-          candidate_name: string | null
-          candidate_years_of_experience: number | null
-          cover_letter: string | null
           id: string
-          job_code: string | null
           job_id: string | null
-          match_breakdown: Json | null
+          job_code: string | null
+          candidate_id: string | null
+          candidate_name: string | null
+          candidate_email: string | null
+          candidate_location: string | null
+          candidate_years_of_experience: number | null
+          resume_url: string | null
+          cover_letter: string | null
           match_score: number | null
           match_summary: string | null
-          received_at: string | null
-          resume_url: string | null
+          match_breakdown: Json | null
+          must_score: number | null
+          preferred_score: number | null
+          nice_score: number | null
+          scored_at: string | null
           status: string | null
+          rejection_reason: string | null
+          assigned_interviewer_id: string | null
+          received_at: string | null
         }
         Insert: {
-          candidate_email?: string | null
-          candidate_id?: string | null
-          candidate_location?: string | null
-          candidate_name?: string | null
-          candidate_years_of_experience?: number | null
-          cover_letter?: string | null
           id: string
-          job_code?: string | null
           job_id?: string | null
-          match_breakdown?: Json | null
+          job_code?: string | null
+          candidate_id?: string | null
+          candidate_name?: string | null
+          candidate_email?: string | null
+          candidate_location?: string | null
+          candidate_years_of_experience?: number | null
+          resume_url?: string | null
+          cover_letter?: string | null
           match_score?: number | null
           match_summary?: string | null
-          received_at?: string | null
-          resume_url?: string | null
+          match_breakdown?: Json | null
+          must_score?: number | null
+          preferred_score?: number | null
+          nice_score?: number | null
+          scored_at?: string | null
           status?: string | null
+          rejection_reason?: string | null
+          assigned_interviewer_id?: string | null
+          received_at?: string | null
         }
         Update: {
-          candidate_email?: string | null
-          candidate_id?: string | null
-          candidate_location?: string | null
-          candidate_name?: string | null
-          candidate_years_of_experience?: number | null
-          cover_letter?: string | null
           id?: string
-          job_code?: string | null
           job_id?: string | null
-          match_breakdown?: Json | null
+          job_code?: string | null
+          candidate_id?: string | null
+          candidate_name?: string | null
+          candidate_email?: string | null
+          candidate_location?: string | null
+          candidate_years_of_experience?: number | null
+          resume_url?: string | null
+          cover_letter?: string | null
           match_score?: number | null
           match_summary?: string | null
-          received_at?: string | null
-          resume_url?: string | null
+          match_breakdown?: Json | null
+          must_score?: number | null
+          preferred_score?: number | null
+          nice_score?: number | null
+          scored_at?: string | null
           status?: string | null
+          rejection_reason?: string | null
+          assigned_interviewer_id?: string | null
+          received_at?: string | null
         }
         Relationships: [
           {
@@ -81,134 +99,310 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "applications_assigned_interviewer_id_fkey"
+            columns: ["assigned_interviewer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      candidates: {
+      application_notes: {
         Row: {
-          created_at: string | null
-          education: Json | null
-          email: string | null
-          experience: Json | null
           id: string
-          links: string | null
-          location: string | null
-          name: string | null
-          phone: string | null
-          resume_text: string | null
-          skills: Json | null
-          summary: string | null
-          years_of_experience: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          education?: Json | null
-          email?: string | null
-          experience?: Json | null
-          id: string
-          links?: string | null
-          location?: string | null
-          name?: string | null
-          phone?: string | null
-          resume_text?: string | null
-          skills?: Json | null
-          summary?: string | null
-          years_of_experience?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          education?: Json | null
-          email?: string | null
-          experience?: Json | null
-          id?: string
-          links?: string | null
-          location?: string | null
-          name?: string | null
-          phone?: string | null
-          resume_text?: string | null
-          skills?: Json | null
-          summary?: string | null
-          years_of_experience?: number | null
-        }
-        Relationships: []
-      }
-      google_tokens: {
-        Row: {
-          access_token: string
-          expiry_date: number
-          id: string
-          refresh_token: string
+          application_id: string
+          author_email: string
+          body: string
+          created_at: string
           updated_at: string
         }
         Insert: {
-          access_token: string
-          expiry_date: number
           id?: string
-          refresh_token: string
+          application_id: string
+          author_email: string
+          body: string
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          access_token?: string
-          expiry_date?: number
           id?: string
-          refresh_token?: string
+          application_id?: string
+          author_email?: string
+          body?: string
+          created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      candidates: {
+        Row: {
+          id: string
+          name: string | null
+          email: string | null
+          phone: string | null
+          location: string | null
+          summary: string | null
+          years_of_experience: number | null
+          skills: Json | null
+          experience: Json | null
+          education: Json | null
+          links: string | null
+          resume_text: string | null
+          is_blacklisted: boolean
+          blacklist_reason: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id: string
+          name?: string | null
+          email?: string | null
+          phone?: string | null
+          location?: string | null
+          summary?: string | null
+          years_of_experience?: number | null
+          skills?: Json | null
+          experience?: Json | null
+          education?: Json | null
+          links?: string | null
+          resume_text?: string | null
+          is_blacklisted?: boolean
+          blacklist_reason?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          email?: string | null
+          phone?: string | null
+          location?: string | null
+          summary?: string | null
+          years_of_experience?: number | null
+          skills?: Json | null
+          experience?: Json | null
+          education?: Json | null
+          links?: string | null
+          resume_text?: string | null
+          is_blacklisted?: boolean
+          blacklist_reason?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          id: string
+          code: string | null
+          title: string | null
+          description: string | null
+          criteria: Json | null
+          status: string
+          department: string | null
+          location: string | null
+          compensation: string | null
+          type: string | null
+          level: string | null
+          summary: string | null
+          responsibilities: Json | null
+          requirements: Json | null
+          nicetohave: Json | null
+          portfoliorequirement: string | null
+          benefits_remote: Json | null
+          benefits_inperson: Json | null
+          workculture: Json | null
+          is_paid_listing: boolean
+          hiring_manager_id: string | null
+          published_at: string | null
+          closed_at: string | null
+          archived_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          code?: string | null
+          title?: string | null
+          description?: string | null
+          criteria?: Json | null
+          status?: string
+          department?: string | null
+          location?: string | null
+          compensation?: string | null
+          type?: string | null
+          level?: string | null
+          summary?: string | null
+          responsibilities?: Json | null
+          requirements?: Json | null
+          nicetohave?: Json | null
+          portfoliorequirement?: string | null
+          benefits_remote?: Json | null
+          benefits_inperson?: Json | null
+          workculture?: Json | null
+          is_paid_listing?: boolean
+          hiring_manager_id?: string | null
+          published_at?: string | null
+          closed_at?: string | null
+          archived_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          code?: string | null
+          title?: string | null
+          description?: string | null
+          criteria?: Json | null
+          status?: string
+          department?: string | null
+          location?: string | null
+          compensation?: string | null
+          type?: string | null
+          level?: string | null
+          summary?: string | null
+          responsibilities?: Json | null
+          requirements?: Json | null
+          nicetohave?: Json | null
+          portfoliorequirement?: string | null
+          benefits_remote?: Json | null
+          benefits_inperson?: Json | null
+          workculture?: Json | null
+          is_paid_listing?: boolean
+          hiring_manager_id?: string | null
+          published_at?: string | null
+          closed_at?: string | null
+          archived_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_hiring_manager_id_fkey"
+            columns: ["hiring_manager_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_criteria_history: {
+        Row: {
+          id: string
+          job_id: string
+          changed_by: string
+          changed_at: string
+          change_note: string
+          criteria_before: Json
+          criteria_after: Json
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          changed_by: string
+          changed_at?: string
+          change_note?: string
+          criteria_before: Json
+          criteria_after: Json
+        }
+        Update: {
+          id?: string
+          job_id?: string
+          changed_by?: string
+          changed_at?: string
+          change_note?: string
+          criteria_before?: Json
+          criteria_after?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_criteria_history_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          id: string
+          email: string
+          name: string
+          role: string
+          password_hash: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          name?: string
+          role?: string
+          password_hash?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string
+          role?: string
+          password_hash?: string
+          created_at?: string
         }
         Relationships: []
       }
       interviews: {
         Row: {
+          id: string
           application_id: string
-          candidate_email: string
           candidate_id: string
           candidate_name: string
-          created_at: string
+          candidate_email: string
+          job_id: string
+          job_code: string
+          job_title: string
+          scheduled_at: string
           duration_minutes: number
+          timezone: string
+          status: string
+          notes: string | null
           google_event_id: string
           google_meet_link: string
-          id: string
-          job_code: string
-          job_id: string
-          job_title: string
-          notes: string | null
-          scheduled_at: string
-          status: string
-          timezone: string
+          created_at: string
         }
         Insert: {
+          id: string
           application_id: string
-          candidate_email: string
           candidate_id: string
           candidate_name: string
-          created_at?: string
+          candidate_email: string
+          job_id: string
+          job_code: string
+          job_title: string
+          scheduled_at: string
           duration_minutes?: number
+          timezone?: string
+          status?: string
+          notes?: string | null
           google_event_id: string
           google_meet_link: string
-          id: string
-          job_code: string
-          job_id: string
-          job_title: string
-          notes?: string | null
-          scheduled_at: string
-          status?: string
-          timezone?: string
+          created_at?: string
         }
         Update: {
+          id?: string
           application_id?: string
-          candidate_email?: string
           candidate_id?: string
           candidate_name?: string
-          created_at?: string
+          candidate_email?: string
+          job_id?: string
+          job_code?: string
+          job_title?: string
+          scheduled_at?: string
           duration_minutes?: number
+          timezone?: string
+          status?: string
+          notes?: string | null
           google_event_id?: string
           google_meet_link?: string
-          id?: string
-          job_code?: string
-          job_id?: string
-          job_title?: string
-          notes?: string | null
-          scheduled_at?: string
-          status?: string
-          timezone?: string
+          created_at?: string
         }
         Relationships: [
           {
@@ -226,81 +420,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      jobs: {
-        Row: {
-          archived_at: string | null
-          benefits_inperson: Json | null
-          benefits_remote: Json | null
-          code: string | null
-          compensation: string | null
-          created_at: string | null
-          criteria: Json | null
-          department: string | null
-          description: string | null
-          id: string
-          level: string | null
-          location: string | null
-          nicetohave: Json | null
-          portfoliorequirement: string | null
-          requirements: Json | null
-          responsibilities: Json | null
-          status: string
-          summary: string | null
-          title: string | null
-          type: string | null
-          updated_at: string | null
-          workculture: Json | null
-        }
-        Insert: {
-          archived_at?: string | null
-          benefits_inperson?: Json | null
-          benefits_remote?: Json | null
-          code?: string | null
-          compensation?: string | null
-          created_at?: string | null
-          criteria?: Json | null
-          department?: string | null
-          description?: string | null
-          id: string
-          level?: string | null
-          location?: string | null
-          nicetohave?: Json | null
-          portfoliorequirement?: string | null
-          requirements?: Json | null
-          responsibilities?: Json | null
-          status?: string
-          summary?: string | null
-          title?: string | null
-          type?: string | null
-          updated_at?: string | null
-          workculture?: Json | null
-        }
-        Update: {
-          archived_at?: string | null
-          benefits_inperson?: Json | null
-          benefits_remote?: Json | null
-          code?: string | null
-          compensation?: string | null
-          created_at?: string | null
-          criteria?: Json | null
-          department?: string | null
-          description?: string | null
-          id?: string
-          level?: string | null
-          location?: string | null
-          nicetohave?: Json | null
-          portfoliorequirement?: string | null
-          requirements?: Json | null
-          responsibilities?: Json | null
-          status?: string
-          summary?: string | null
-          title?: string | null
-          type?: string | null
-          updated_at?: string | null
-          workculture?: Json | null
-        }
-        Relationships: []
       }
     }
     Views: {

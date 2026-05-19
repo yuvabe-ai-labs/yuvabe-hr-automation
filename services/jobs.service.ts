@@ -23,7 +23,11 @@ function mapRowToJob(row: JobRow): Job {
     workCulture: (row.workculture as string[]) || [],
     createdAt: row.created_at || new Date().toISOString(),
     archivedAt: row.archived_at || undefined,
-    status: (row.status === "archived" ? "archived" : "active") as "active" | "archived",
+    status: (row.status as "draft" | "active" | "archived") || "active",
+    publishedAt: row.published_at || undefined,
+    closedAt: row.closed_at || undefined,
+    isPaidListing: row.is_paid_listing ?? false,
+    hiringManagerId: row.hiring_manager_id || undefined,
   };
 }
 

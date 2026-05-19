@@ -1,47 +1,48 @@
 /**
  * POST /api/auth/login
  *
- * Body: { user: string, pass: string }
+ * Body: { email: string, pass: string }
  *
- * Validates against AUTH_USER + AUTH_PASS env vars. On success, signs a
- * session cookie with AUTH_SECRET and returns 200. On failure, returns 401.
- *
- * The form on /login posts here as JSON. Cookie is HTTP-only (not readable
- * by client-side JS) and SameSite=Lax (sent on top-level navigations but not
- * cross-site requests — fine for our redirect-after-login flow).
+ * Verifies credentials via Supabase Auth, then looks up the role from the
+ * users table. On success, signs an HMAC session cookie encoding userId + role.
  */
 
 import { NextResponse } from "next/server";
 import { signSession, SESSION_COOKIE, SESSION_TTL_SECONDS } from "@/lib/auth";
+import { usersService } from "@/services/users.service";
 
 export async function POST(req: Request) {
-  const expectedUser = process.env.AUTH_USER;
-  const expectedPass = process.env.AUTH_PASS;
   const secret = process.env.AUTH_SECRET;
-
-  if (!expectedUser || !expectedPass || !secret) {
+  if (!secret) {
     return NextResponse.json(
-      { error: "Auth not configured. See .env.example." },
+      { error: "Auth not configured. See .env.local." },
       { status: 500 }
     );
   }
 
-  let body: { user?: string; pass?: string };
+  let body: { email?: string; pass?: string };
   try {
-    body = (await req.json()) as { user?: string; pass?: string };
+    body = (await req.json()) as { email?: string; pass?: string };
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  if (body.user !== expectedUser || body.pass !== expectedPass) {
+  const { email, pass } = body;
+  if (!email || !pass) {
     return NextResponse.json(
-      { error: "Wrong credentials." },
-      { status: 401 }
+      { error: "Email and password are required." },
+      { status: 400 }
     );
   }
 
-  const token = await signSession(secret);
-  const res = NextResponse.json({ ok: true });
+  const user = await usersService.verifyCredentials(email, pass);
+
+  if (!user) {
+    return NextResponse.json({ error: "Wrong credentials." }, { status: 401 });
+  }
+
+  const token = await signSession(secret, user.id, user.role);
+  const res = NextResponse.json({ ok: true, role: user.role });
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

@@ -30,7 +30,7 @@ export function JobActionsMenu({
 }: {
   jobCode: string;
   jobTitle: string;
-  status: "active" | "archived";
+  status: "draft" | "active" | "archived";
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);

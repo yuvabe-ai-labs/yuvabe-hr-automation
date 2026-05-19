@@ -45,7 +45,7 @@ function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") || "/jobs";
 
-  const [user, setUser] = useState("");
+  const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +58,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user, pass }),
+        body: JSON.stringify({ email, pass }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -90,17 +90,17 @@ function LoginForm() {
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label
-              htmlFor="user"
+              htmlFor="email"
               className="eyebrow text-muted-foreground"
             >
-              Username
+              Email
             </Label>
             <Input
-              id="user"
-              type="text"
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
-              autoComplete="username"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               autoFocus
               required
               className="h-10"

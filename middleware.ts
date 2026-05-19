@@ -1,32 +1,34 @@
 /**
- * Auth gate.
+ * Auth + RBAC gate.
  *
- * Public routes (no auth required):
- *   /login                      — the login page itself
- *   /api/auth/*                 — login + logout endpoints
- *   /apply (page + the POST endpoint /api/applications) — applicants must
- *                                  be able to submit without an account
- *   _next, favicon, static      — Next.js internals
+ * Public routes (no auth):
+ *   /login, /apply, /api/auth/*, /api/applications (applicant POST)
  *
- * Everything else requires a valid session cookie. Unauthenticated requests
- * to a gated route get redirected to /login?next=<original-path> so the
- * user lands back at where they were trying to go.
+ * Role rules (after auth passes):
+ *   admin   — full access everywhere
+ *   manager — cannot access /jobs/new, /settings/*
+ *             viewer of all public mutation API routes is allowed;
+ *             resource-level scoping (own jobs only) is enforced in services
+ *   viewer  — read-only: all POST/PATCH/PUT/DELETE API calls → 403
+ *             except auth routes (already public)
  *
- * Runs in Edge runtime — uses only WebCrypto (via lib/auth.ts).
+ * Forwards x-user-id and x-user-role headers so API route handlers can read
+ * the current user without re-verifying the cookie.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 
-/** Exact pathname matches that bypass the gate. */
 const PUBLIC_EXACT = new Set<string>([
   "/login",
   "/apply",
-  "/api/applications", // applicant submission — POST only at runtime
+  "/api/applications",
 ]);
 
-/** Pathname prefixes (with trailing slash semantics) that bypass the gate. */
 const PUBLIC_PREFIXES = ["/api/auth/"];
+
+/** Admin-only page prefixes — non-admins are redirected to /jobs. */
+const ADMIN_ONLY_PREFIXES = ["/jobs/new", "/settings/"];
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
@@ -36,42 +38,58 @@ function isPublic(pathname: string): boolean {
   return false;
 }
 
+const MUTATION_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (isPublic(pathname)) {
-    return NextResponse.next();
-  }
+  if (isPublic(pathname)) return NextResponse.next();
 
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
-    // Misconfigured deploy — fail closed with a clear signal rather than
-    // silently letting traffic through.
-    return new NextResponse(
-      "Auth not configured (AUTH_SECRET missing).",
-      { status: 500 }
-    );
+    return new NextResponse("Auth not configured (AUTH_SECRET missing).", {
+      status: 500,
+    });
   }
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
-  const valid = await verifySession(token, secret);
-  if (valid) {
-    return NextResponse.next();
+  const session = await verifySession(token, secret);
+
+  if (!session) {
+    const loginUrl = new URL("/login", req.url);
+    if (pathname !== "/") {
+      loginUrl.searchParams.set("next", pathname + req.nextUrl.search);
+    }
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Redirect to login, preserving where the user wanted to go.
-  const loginUrl = new URL("/login", req.url);
-  if (pathname !== "/") {
-    loginUrl.searchParams.set("next", pathname + req.nextUrl.search);
+  const { userId, role } = session;
+
+  // Admin-only pages
+  if (
+    role !== "admin" &&
+    ADMIN_ONLY_PREFIXES.some((p) => pathname.startsWith(p))
+  ) {
+    return NextResponse.redirect(new URL("/jobs", req.url));
   }
-  return NextResponse.redirect(loginUrl);
+
+  // Viewer cannot mutate — block all non-GET API calls
+  if (
+    role === "viewer" &&
+    pathname.startsWith("/api/") &&
+    MUTATION_METHODS.has(req.method)
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Forward user context to route handlers via request headers
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-user-id", userId);
+  requestHeaders.set("x-user-role", role);
+
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
-/**
- * Matcher excludes Next.js internals and common static assets so middleware
- * doesn't run on every chunk request. The auth check still applies to
- * every page and API route except those listed in PUBLIC_EXACT/PREFIXES.
- */
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?)$).*)",
