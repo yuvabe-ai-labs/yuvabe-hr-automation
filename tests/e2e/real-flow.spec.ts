@@ -14,7 +14,9 @@ import { JobNewPage } from "../pages/job-new-page";
 const JD_FILE = path.join(__dirname, "../fixtures/senior-product-designer.txt");
 
 test.describe("Real flow — live OpenAI + test Supabase", () => {
-  test("upload JD → LLM extracts criteria → save job to test DB", async ({ page }) => {
+  test("upload JD → LLM extracts criteria → save job to test DB", async ({
+    page,
+  }) => {
     // Step 1: Navigate to new job form (session already logged in via globalSetup)
     const jobNewPage = new JobNewPage(page);
     await jobNewPage.goto();
@@ -30,7 +32,9 @@ test.describe("Real flow — live OpenAI + test Supabase", () => {
 
     // Step 3: Click Extract — real OpenAI call, allow up to 30s
     await jobNewPage.extractButton.click();
-    await expect(jobNewPage.jobTitleHeading).toContainText(/designer/i, { timeout: 30_000 });
+    await expect(jobNewPage.jobTitleHeading).toContainText(/designer/i, {
+      timeout: 30_000,
+    });
 
     // Step 4: Criteria are extracted and displayed
     await expect(jobNewPage.saveButton).toBeEnabled({ timeout: 5_000 });
