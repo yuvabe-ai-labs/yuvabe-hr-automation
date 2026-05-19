@@ -84,9 +84,10 @@ jobs:
               for (const suite of suites ?? []) {
                 collectSpecs(suite.suites);
                 for (const spec of suite.specs ?? []) {
-                  const result = spec.tests?.[0]?.results?.[0];
-                  const status = result?.status ?? 'unknown';
-                  const ms = result?.duration ?? 0;
+                  const test = spec.tests?.[0];
+                  const status = test?.status ?? 'unknown';
+                  const results = test?.results ?? [];
+                  const ms = results.reduce((sum, r) => sum + (r.duration ?? 0), 0);
                   totalMs += ms;
                   if (status === 'passed') passed++;
                   else if (status === 'failed' || status === 'timedOut') failed++;
