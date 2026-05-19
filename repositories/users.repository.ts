@@ -86,28 +86,6 @@ export const usersRepository = {
     return (data ?? []).map((r) => rowToUser(r as UserRow));
   },
 
-  async create(user: {
-    email: string;
-    name: string;
-    role: UserRole;
-    passwordHash: string;
-  }): Promise<User> {
-    const supabase = getSupabasePeopleClient();
-    const { data, error } = await supabase
-      .from("users")
-      .insert({
-        id: crypto.randomUUID(),
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        password_hash: user.passwordHash,
-      })
-      .select()
-      .single();
-    if (error) throw new Error(`Failed to create user: ${error.message}`);
-    return rowToUser(data as UserRow);
-  },
-
   async update(
     id: string,
     updates: Partial<{ name: string; role: UserRole }>
@@ -121,15 +99,6 @@ export const usersRepository = {
       .single();
     if (error) throw new Error(`Failed to update user: ${error.message}`);
     return rowToUser(data as UserRow);
-  },
-
-  async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
-    const supabase = getSupabasePeopleClient();
-    const { error } = await supabase
-      .from("users")
-      .update({ password_hash: passwordHash })
-      .eq("id", id);
-    if (error) throw new Error(`Failed to update password: ${error.message}`);
   },
 
   async deactivate(id: string): Promise<void> {

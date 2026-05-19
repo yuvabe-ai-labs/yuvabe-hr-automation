@@ -1,5 +1,4 @@
 import { usersRepository } from "@/repositories/users.repository";
-import { hashPassword } from "@/lib/auth";
 import type { User, UserRole } from "@/types/users";
 
 export const usersService = {
@@ -23,21 +22,6 @@ export const usersService = {
 
   async findById(id: string): Promise<User | null> {
     return usersRepository.findById(id);
-  },
-
-  async setPassword(userId: string, password: string): Promise<void> {
-    const hash = await hashPassword(password);
-    await usersRepository.updatePasswordHash(userId, hash);
-  },
-
-  async create(data: {
-    email: string;
-    name: string;
-    role: UserRole;
-    password: string;
-  }): Promise<User> {
-    const passwordHash = await hashPassword(data.password);
-    return usersRepository.create({ ...data, passwordHash });
   },
 
   async update(
