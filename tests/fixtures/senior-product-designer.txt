@@ -1,0 +1,28 @@
+Senior Product Designer — Yuvabe
+
+We are looking for a Senior Product Designer to lead the design of our recruiter-facing ATS product.
+You will own end-to-end design: from user research and wireframes through to polished, production-ready UI.
+
+Responsibilities:
+- Lead end-to-end product design from discovery to delivery
+- Conduct user research and translate insights into design decisions
+- Create wireframes, prototypes, and high-fidelity UI in Figma
+- Collaborate closely with engineers to ensure design quality in production
+- Maintain and evolve the design system
+- Present design decisions to stakeholders and leadership
+
+Requirements:
+- 5+ years of product design experience
+- Strong proficiency in Figma
+- Experience designing complex data-heavy dashboards
+- Portfolio demonstrating end-to-end product work
+- Excellent communication and stakeholder management skills
+- Experience working in agile / sprint-based teams
+
+Nice to have:
+- Experience building or maintaining a design system
+- Familiarity with accessibility standards (WCAG AA)
+- Background working closely with engineering teams
+- Knowledge of front-end basics (HTML, CSS)
+
+We offer remote-first work, flexible hours, competitive compensation, and a collaborative team culture.
