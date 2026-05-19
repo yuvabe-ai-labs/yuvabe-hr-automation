@@ -6,6 +6,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  pull-requests: write
+
 jobs:
   e2e:
     name: Playwright E2E
@@ -62,6 +65,7 @@ jobs:
 
       - name: Post test results on PR
         if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
