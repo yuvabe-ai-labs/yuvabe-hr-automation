@@ -1,12 +1,8 @@
 import Link from "next/link";
 import NavTabClient from "../jobs/_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
-
-/* —————————————————————————— atoms —————————————————————————— */
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <span className="eyebrow text-muted-foreground">{children}</span>;
-}
+import { Eyebrow } from "@/components/shared/eyebrow";
+import { PageFooter } from "@/app/_components/page-footer";
 
 /* —————————————————————————— page —————————————————————————— */
 
@@ -80,14 +76,7 @@ export default function ShortlistPage() {
         </div>
       </main>
 
-      {/* —————— Footer —————— */}
-      <footer className="border-t border-border px-4 sm:px-6 md:px-10 py-3 flex-shrink-0 flex items-center justify-between gap-3 eyebrow text-muted-foreground">
-        <span className="truncate">Yuvabe ATS &nbsp; · &nbsp; v0.1</span>
-        <span className="italic font-serif normal-case tracking-normal text-muted-foreground/80 hidden md:inline">
-          Hiring is a human act.
-        </span>
-        <span>2026</span>
-      </footer>
+      <PageFooter />
     </div>
   );
 }

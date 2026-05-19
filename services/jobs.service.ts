@@ -1,5 +1,5 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
-import type { Job, JobRow } from "@/types/jobs";
+import type { Job, JobRow } from "@/types/jobs.types";
 
 function mapRowToJob(row: JobRow): Job {
   return {
@@ -29,6 +29,7 @@ function mapRowToJob(row: JobRow): Job {
 
 export type JobsListResult = { jobs: Job[]; total: number };
 
+// Fetch a single job by its public code
 export async function getJobById(code: string): Promise<Job | undefined> {
   try {
     const client = getSupabasePeopleClient();
@@ -45,6 +46,7 @@ export async function getJobById(code: string): Promise<Job | undefined> {
   }
 }
 
+// Fetch paginated list of jobs filtered by status and optional search
 export async function listJobs(options?: {
   status?: "active" | "archived";
   search?: string;
@@ -77,6 +79,22 @@ export async function listJobs(options?: {
   }
 }
 
+// Fetch all jobs without status filter or pagination — used for cross-page lookups
+export async function listAllJobs(): Promise<Job[]> {
+  try {
+    const client = getSupabasePeopleClient();
+    const { data, error } = await client
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data as JobRow[]).map(mapRowToJob);
+  } catch (err) {
+    throw err instanceof Error ? err : new Error("listAllJobs failed");
+  }
+}
+
+// Count applications for a given job code
 export async function countJobsByCode(code: string): Promise<number> {
   try {
     const client = getSupabasePeopleClient();
@@ -92,6 +110,7 @@ export async function countJobsByCode(code: string): Promise<number> {
   }
 }
 
+// Archive or unarchive a job by its code
 export async function updateJobStatus(
   code: string,
   status: "active" | "archived"

@@ -63,6 +63,12 @@ type CandidateRow = {
   resume_text: string;
 };
 
+type RawExpEntry = {
+  company?: string; title?: string; description?: string;
+  startDate?: string; start_date?: string;
+  endDate?: string; end_date?: string;
+};
+
 function rowToCandidate(row: CandidateRow): Candidate {
   const candidate: Candidate = {
     id: row.id,
@@ -73,7 +79,13 @@ function rowToCandidate(row: CandidateRow): Candidate {
     summary: row.summary,
     yearsOfExperience: row.years_of_experience,
     skills: row.skills ?? [],
-    experience: row.experience ?? [],
+    experience: ((row.experience ?? []) as unknown as RawExpEntry[]).map((e) => ({
+      company: e.company ?? "",
+      title: e.title ?? "",
+      startDate: e.startDate ?? e.start_date ?? "",
+      endDate: e.endDate ?? e.end_date ?? "",
+      description: e.description ?? "",
+    })),
     education: row.education ?? [],
     resumeText: row.resume_text,
   };

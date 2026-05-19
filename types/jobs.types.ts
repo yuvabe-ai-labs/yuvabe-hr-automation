@@ -2,6 +2,7 @@ import type { Tables } from "@/integrations/database.types";
 
 export type Criterion = {
   id: string;
+  category?: "skill" | "experience" | "education" | "domain" | "other";
   label: string;
   importance: "must" | "strong" | "nice";
 };

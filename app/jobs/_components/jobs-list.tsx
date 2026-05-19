@@ -5,58 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import { ChevronRight, Plus } from "lucide-react";
 import { useJobs } from "@/hooks/use-jobs";
+import { useApplications } from "@/hooks/use-applications";
 import { useQueryClient } from "@tanstack/react-query";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 import { JobActionsMenu } from "./job-actions-menu";
-import type { JobsListResult } from "@/services/jobs.service";
-import type { Job } from "@/types/jobs";
-import type { Application } from "@/types/applications";
+import { relativeTime } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const seconds = Math.floor((now - then) / 1000);
 
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const date = new Date(iso);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function importanceCounts(criteria: Job["criteria"]) {
-  let must = 0,
-    strong = 0,
-    nice = 0;
-  for (const c of criteria) {
-    if (c.importance === "must") must++;
-    else if (c.importance === "strong") strong++;
-    else nice++;
-  }
-  return { must, strong, nice };
-}
-
-export function JobsList({
-  initialData,
-  initialApplications,
-  newCode,
-  initialSearch = "",
-  initialPage = 1,
-  initialTab = "active",
-}: {
-  initialData?: JobsListResult;
-  initialApplications: Application[];
-  newCode?: string;
-  initialSearch?: string;
-  initialPage?: number;
-  initialTab?: "active" | "archived";
-}) {
+export function JobsList({ newCode }: { newCode?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -113,12 +71,8 @@ export function JobsList({
     return () => clearTimeout(timer);
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isInitialParams =
-    search === initialSearch && page === initialPage && tab === initialTab;
-  const { data } = useJobs(
-    { search, page, pageSize: PAGE_SIZE, status: tab },
-    isInitialParams ? initialData : undefined
-  );
+  const { data, isLoading, isFetching } = useJobs({ search, page, pageSize: PAGE_SIZE, status: tab });
+  const { data: applications } = useApplications();
 
   const jobs = data?.jobs ?? [];
   const total = data?.total ?? 0;
@@ -146,12 +100,13 @@ export function JobsList({
   }
 
   const appsByJobCode = new Map<string, number>();
-  for (const a of initialApplications) {
+  for (const a of applications ?? []) {
     appsByJobCode.set(a.jobCode, (appsByJobCode.get(a.jobCode) ?? 0) + 1);
   }
 
   const isFiltered = !!search;
-  const isEmpty = jobs.length === 0;
+  const showSkeleton = isLoading || (isFetching && jobs.length === 0);
+  const isEmpty = !showSkeleton && jobs.length === 0;
 
   return (
     <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
@@ -206,12 +161,34 @@ export function JobsList({
         )
       )}
 
+      {/* Skeleton rows while loading or switching tabs with empty stale cache */}
+      {showSkeleton && (
+        <ul className="max-w-4xl">
+          {["w-2/3", "w-1/2", "w-3/5", "w-1/2", "w-2/5"].map((titleW, i) => (
+            <li key={i} className={`border-b border-border/60 ${i === 0 ? "border-t border-border/60" : ""}`}>
+              <div className="py-5 md:py-6 px-4 grid grid-cols-[1fr_auto] items-center gap-3">
+                <div className="min-w-0">
+                  <div className={`h-7 md:h-8 ${titleW} bg-muted rounded-sm animate-pulse mb-3`} />
+                  <div className="flex items-center gap-3">
+                    <div className="h-3 w-16 bg-muted/70 rounded-sm animate-pulse" />
+                    <span className="text-border">·</span>
+                    <div className="h-3 w-20 bg-muted/70 rounded-sm animate-pulse" />
+                    <span className="text-border hidden sm:inline">·</span>
+                    <div className="h-3 w-24 bg-muted/70 rounded-sm animate-pulse hidden sm:inline-block" />
+                  </div>
+                </div>
+                <div className="h-4 w-4 bg-muted/70 rounded-sm animate-pulse" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* List */}
-      {jobs.length > 0 && (
+      {!showSkeleton && jobs.length > 0 && (
         <>
           <ul className="max-w-4xl">
             {jobs.map((job, idx) => {
-              const counts = importanceCounts(job.criteria);
               const isNew = job.code === effectiveNewCode;
               const isArchived = job.status === "archived";
               const appCount = appsByJobCode.get(job.code) ?? 0;

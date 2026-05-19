@@ -3,78 +3,24 @@
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Eye, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
+import { ArrowUpRight, Eye, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useApplicationsByJobCode } from "@/hooks/use-applications";
-import type { ApplicationsQueryParams, ApplicationsPageResult } from "@/hooks/use-applications";
-import { getCandidatesByIds } from "@/services/candidates.service";
+import type { ApplicationsQueryParams } from "@/hooks/use-applications";
+import { useJobById } from "@/hooks/use-jobs";
+import { useGetCandidatesByIds } from "@/hooks/use-candidates";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
 import { downloadExcel } from "@/lib/export-excel";
-import type { Application, ApplicationStatus } from "@/types/applications";
-import type { FilterStatus } from "@/services/applications.service";
+import { relativeTime } from "@/lib/utils";
+import { STATUS_LABEL, STATUS_COLOR, FILTER_LABEL, ALL_FILTER_TABS } from "@/lib/constants";
+import type { ExtendedFilter } from "@/lib/constants";
+import { ScoreChip } from "@/components/shared/score-chip";
+import { StatusFilterChip } from "@/components/shared/status-filter-chip";
+import type { Application, ApplicationStatus } from "@/types/applications.types";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 
 const DEFAULT_PAGE_SIZE = 15;
 
-type ExtendedFilter = FilterStatus | "all" | "new";
-
-const ALL_TABS: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "rejected"];
-
 type SortOrder = "asc" | "desc";
-
-const FILTER_LABEL: Record<ExtendedFilter, string> = {
-  all:         "All",
-  new:         "New",
-  reviewing:   "Review",
-  shortlisted: "Shortlist",
-  rejected:    "Reject",
-};
-
-// Used for individual row display
-const STATUS_LABEL: Record<ApplicationStatus, string> = {
-  new: "New",
-  reviewing: "Reviewing",
-  shortlisted: "Shortlisted",
-  rejected: "Rejected",
-  offered: "Offered",
-};
-
-const STATUS_COLOR: Record<ApplicationStatus, string> = {
-  new: "text-foreground/70",
-  reviewing: "text-foreground",
-  shortlisted: "text-[#2F5E7A]",
-  rejected: "text-muted-foreground line-through",
-  offered: "text-[#3F6B3F]",
-};
-
-function relativeTime(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const m = Math.floor(seconds / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function ScoreChip({ score }: { score: number }) {
-  const band = score >= 75 ? "high" : score >= 50 ? "mid" : "low";
-  const colorClass =
-    band === "high"
-      ? "text-[#3F6B3F] border-[#3F6B3F]/40 bg-[#3F6B3F]/[0.06]"
-      : band === "mid"
-      ? "text-[#B8893A] border-[#B8893A]/45 bg-[#B8893A]/[0.06]"
-      : "text-primary border-primary/40 bg-primary/[0.06]";
-  return (
-    <div
-      className={`inline-flex items-baseline justify-center min-w-[44px] md:min-w-[58px] px-2 md:px-2.5 py-1.5 border rounded-sm font-mono text-body-lg md:text-h3 tabular leading-none ${colorClass}`}
-      aria-label={`Match score ${score}`}
-    >
-      {String(score).padStart(2, "0")}
-    </div>
-  );
-}
 
 function buildHref(
   jobCode: string,
@@ -97,23 +43,8 @@ function buildHref(
   return `/jobs/${jobCode}${qs ? `?${qs}` : ""}`;
 }
 
-const VALID_STATUSES: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "rejected"];
 
-export function JobApplicantsList({
-  jobCode,
-  jobTitle,
-  jobCreatedAt,
-  initialData,
-  initialParams,
-  initialFilter,
-}: {
-  jobCode: string;
-  jobTitle: string;
-  jobCreatedAt: string;
-  initialData: ApplicationsPageResult;
-  initialParams: ApplicationsQueryParams;
-  initialFilter: ExtendedFilter;
-}) {
+export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFirstRender = useRef(true);
@@ -121,7 +52,7 @@ export function JobApplicantsList({
   // URL-derived state
   const rawStatus = searchParams.get("status");
   const filter: ExtendedFilter =
-    rawStatus && VALID_STATUSES.includes(rawStatus as ExtendedFilter)
+    rawStatus && ALL_FILTER_TABS.includes(rawStatus as ExtendedFilter)
       ? (rawStatus as ExtendedFilter)
       : "all";
   const sortOrder: SortOrder = searchParams.get("sort") === "asc" ? "asc" : "desc";
@@ -165,6 +96,14 @@ export function JobApplicantsList({
   const [exportingFormat, setExportingFormat] = useState<"csv" | "excel" | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
+  // Fetch job details for title and posted date
+  const { data: job } = useJobById(jobCode);
+  const jobTitle = job?.title ?? "";
+  const jobCreatedAt = job?.createdAt ?? "";
+
+  // Imperative fetch for candidate enrichment (used during export only)
+  const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
+
   const currentParams: ApplicationsQueryParams = {
     status: filter === "all" ? undefined : (filter as ApplicationStatus),
     search,
@@ -174,23 +113,12 @@ export function JobApplicantsList({
     pageSize,
   };
 
-  const isInitialParams =
-    filter === initialFilter &&
-    search === (initialParams.search ?? "") &&
-    sortOrder === (initialParams.sort ?? "desc") &&
-    minScore === (initialParams.minScore ?? 0) &&
-    page === (initialParams.page ?? 1) &&
-    pageSize === (initialParams.pageSize ?? DEFAULT_PAGE_SIZE);
-
-  const { data, isPending } = useApplicationsByJobCode(
-    jobCode,
-    currentParams,
-    isInitialParams ? initialData : undefined
-  );
+  // Fetch paginated + filtered applications for this job
+  const { data, isPending } = useApplicationsByJobCode(jobCode, currentParams);
 
   const applications = useMemo(() => data?.applications ?? [], [data]);
   const total = data?.total ?? 0;
-  const statusCounts = data?.statusCounts ?? initialData.statusCounts;
+  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 };
   const totalPages = Math.ceil(total / pageSize);
   const totalAll = Object.values(statusCounts).reduce((s, n) => s + n, 0);
 
@@ -255,7 +183,7 @@ export function JobApplicantsList({
     const jobTitles = new Map([[jobCode, jobTitle]]);
 
     const [enrichments, ...notesResults] = await Promise.all([
-      getCandidatesByIds(candidateIds),
+      fetchCandidates(candidateIds),
       ...toExport.map((a) =>
         fetch(`/api/applications/${a.id}/notes`)
           .then((r) => r.json())
@@ -272,7 +200,7 @@ export function JobApplicantsList({
     );
 
     return { selectedApplications: toExport, enrichments, jobTitles, notesByAppId };
-  }, [applications, selectedIds, jobCode, jobTitle]);
+  }, [applications, selectedIds, jobCode, jobTitle, fetchCandidates]);
 
   const handleExportCsv = useCallback(async () => {
     setExportingFormat("csv");
@@ -302,7 +230,7 @@ export function JobApplicantsList({
     <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
 
       {/* Static top: breadcrumb + title row + metadata */}
-      <div className="flex-shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 border-b border-border bg-background">
+      <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 border-b border-border bg-background">
         <div className="max-w-5xl">
           {/* Breadcrumb */}
           <nav className="mb-4 eyebrow flex items-center gap-2.5">
@@ -316,7 +244,7 @@ export function JobApplicantsList({
           {/* Title + search + controls */}
           <div className="flex items-center gap-3 md:gap-5">
             {/* i. Job Title */}
-            <div className="flex items-baseline gap-2 md:gap-3 flex-shrink-0">
+            <div className="flex items-baseline gap-2 md:gap-3 shrink-0">
               <span className="font-serif italic text-display md:text-display-xl leading-none text-primary tabular">i.</span>
               <h1 className="font-serif italic text-h2 md:text-h1 leading-tight md:leading-none text-foreground tracking-tight max-w-[28ch] truncate">
                 {jobTitle}
@@ -344,7 +272,7 @@ export function JobApplicantsList({
             </div>
 
             {/* Filter button + popover */}
-            <div className="relative flex-shrink-0 mt-2">
+            <div className="relative shrink-0 mt-2">
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className={`p-1.5 border rounded-sm transition-colors ${
@@ -403,11 +331,11 @@ export function JobApplicantsList({
             {/* Selection count + export — only when items are selected */}
             {selectedIds.size > 0 && (
               <>
-                <span className="caps-meta text-muted-foreground tabular whitespace-nowrap flex-shrink-0 mt-2">
+                <span className="caps-meta text-muted-foreground tabular whitespace-nowrap shrink-0 mt-2">
                   {selectedIds.size} selected
                 </span>
 
-                <div className="relative flex-shrink-0 mt-2">
+                <div className="relative shrink-0 mt-2">
                   <button
                     onClick={() => !exportingFormat && setIsExportMenuOpen(!isExportMenuOpen)}
                     className="p-1.5 border border-border rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -430,7 +358,7 @@ export function JobApplicantsList({
                           disabled={!!exportingFormat}
                           className="w-full px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
-                          {exportingFormat === "csv" && <Loader2 className="h-3 w-3 animate-spin text-primary flex-shrink-0" />}
+                          {exportingFormat === "csv" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
                           {exportingFormat === "csv" ? "Exporting…" : "Export CSV"}
                         </button>
                         <div className="border-t border-border" />
@@ -439,7 +367,7 @@ export function JobApplicantsList({
                           disabled={!!exportingFormat}
                           className="w-full px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
                         >
-                          {exportingFormat === "excel" && <Loader2 className="h-3 w-3 animate-spin text-primary flex-shrink-0" />}
+                          {exportingFormat === "excel" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
                           {exportingFormat === "excel" ? "Exporting…" : "Export as Excel"}
                         </button>
                       </div>
@@ -450,7 +378,7 @@ export function JobApplicantsList({
                 <button
                   onClick={() => { setSelectedIds(new Set()); setIsExportMenuOpen(false); }}
                   aria-label="Clear selection"
-                  className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors mt-2"
+                  className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors mt-2"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -485,7 +413,7 @@ export function JobApplicantsList({
       {/* Status filter chips */}
       {totalAll > 0 && (
         <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-3 pb-1 flex items-center gap-1 flex-wrap">
-          {ALL_TABS.map((s) => (
+          {ALL_FILTER_TABS.map((s) => (
             <StatusFilterChip
               key={s}
               href={buildHref(jobCode, { status: s }, current)}
@@ -500,7 +428,32 @@ export function JobApplicantsList({
 
       {/* Scrolling list */}
       <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-4 md:pt-6 pb-8">
-        {!isPending && applications.length === 0 ? (
+        {isPending ? (
+          <ul className="max-w-5xl">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <li key={i} className={`border-b border-border/60 ${i === 0 ? "border-t border-border/60" : ""}`}>
+                <div className="py-5 px-4 flex items-center justify-between gap-3 md:gap-6">
+                  <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1">
+                    <div className="h-8 md:h-9 min-w-11 md:min-w-14.5 bg-muted/80 rounded-sm animate-pulse" />
+                    <div className="min-w-0 flex-1">
+                      <div className={`h-6 ${i % 2 === 0 ? "w-1/2" : "w-2/5"} bg-muted rounded-sm animate-pulse mb-2`} />
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-24 bg-muted/70 rounded-sm animate-pulse" />
+                        <span className="text-border hidden sm:inline">·</span>
+                        <div className="h-3 w-32 bg-muted/70 rounded-sm animate-pulse hidden sm:inline-block" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 md:gap-5 shrink-0">
+                    <div className="h-3 w-16 bg-muted/70 rounded-sm animate-pulse" />
+                    <div className="h-3 w-12 bg-muted/70 rounded-sm animate-pulse hidden md:inline-block" />
+                    <div className="h-4 w-4 bg-muted/70 rounded-sm animate-pulse" />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : applications.length === 0 ? (
           <EmptyState
             code={jobCode}
             filter={filter}
@@ -607,7 +560,7 @@ function ApplicationRow({ application }: { application: Application }) {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-3 md:gap-5 flex-shrink-0">
+      <div className="flex items-center gap-3 md:gap-5 shrink-0">
         <span className={`caps-meta ${STATUS_COLOR[application.status]}`}>
           {STATUS_LABEL[application.status]}
         </span>
@@ -615,48 +568,11 @@ function ApplicationRow({ application }: { application: Application }) {
           {relativeTime(application.receivedAt)}
         </span>
         <ArrowUpRight
-          className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px group-hover:-translate-y-px transition-all flex-shrink-0"
+          className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px group-hover:-translate-y-px transition-all shrink-0"
           strokeWidth={1.75}
         />
       </div>
     </div>
-  );
-}
-
-function StatusFilterChip({
-  href,
-  label,
-  count,
-  tone,
-  active,
-}: {
-  href: string;
-  label: string;
-  count: number;
-  tone: "neutral" | "shortlist" | "reject";
-  active: boolean;
-}) {
-  const toneClass =
-    tone === "shortlist"
-      ? "text-[#2F5E7A]"
-      : tone === "reject"
-      ? "text-primary"
-      : "text-muted-foreground";
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      className={`
-        caps-meta tabular
-        flex items-center gap-1.5 px-3 py-2.5 md:py-1 rounded-sm
-        transition-all duration-150
-        ${toneClass}
-        ${active ? "bg-secondary opacity-100" : "opacity-65 hover:opacity-100 hover:bg-secondary/40"}
-      `}
-    >
-      <span>{String(count).padStart(2, "0")}</span>
-      <span>{label}</span>
-    </Link>
   );
 }
 

@@ -5,73 +5,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ArrowUpRight, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useApplicationsAll } from "@/hooks/use-applications";
-import { getCandidatesByIds } from "@/services/candidates.service";
+import { useAllJobs } from "@/hooks/use-jobs";
+import { useGetCandidatesByIds } from "@/hooks/use-candidates";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
 import { downloadExcel } from "@/lib/export-excel";
-import type { Application, ApplicationStatus } from "@/types/applications";
-import type { Job } from "@/types/jobs";
-import type { FilterStatus, AllApplicationsPageResult } from "@/services/applications.service";
+import { relativeTime } from "@/lib/utils";
+import { STATUS_LABEL, STATUS_COLOR, FILTER_LABEL, ALL_FILTER_TABS } from "@/lib/constants";
+import type { ExtendedFilter } from "@/lib/constants";
+import { ScoreChip } from "@/components/shared/score-chip";
+import { StatusFilterChip } from "@/components/shared/status-filter-chip";
+import type { Application } from "@/types/applications.types";
+import type { FilterStatus } from "@/services/applications.service";
 
 type TopN = 10 | 15 | 20;
-type ExtendedFilter = FilterStatus | "all" | "new";
 
 const PAGE_SIZE = 10;
-const ALL_TABS: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "rejected"];
-const ALL_EXTENDED: ExtendedFilter[] = ALL_TABS;
 
-const FILTER_LABEL: Record<ExtendedFilter, string> = {
-  all: "All",
-  new: "New",
-  reviewing: "Review",
-  shortlisted: "Shortlist",
-  rejected: "Reject",
-};
-
-const STATUS_LABEL: Record<ApplicationStatus, string> = {
-  new: "New",
-  reviewing: "Reviewing",
-  shortlisted: "Shortlisted",
-  rejected: "Rejected",
-  offered: "Offered",
-};
-
-const STATUS_COLOR: Record<ApplicationStatus, string> = {
-  new: "text-foreground/70",
-  reviewing: "text-foreground",
-  shortlisted: "text-[#2F5E7A]",
-  rejected: "text-muted-foreground line-through",
-  offered: "text-[#3F6B3F]",
-};
-
-function relativeTime(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const m = Math.floor(seconds / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function ScoreChip({ score }: { score: number }) {
-  const band = score >= 75 ? "high" : score >= 50 ? "mid" : "low";
-  const colorClass =
-    band === "high"
-      ? "text-[#3F6B3F] border-[#3F6B3F]/40 bg-[#3F6B3F]/[0.06]"
-      : band === "mid"
-      ? "text-[#B8893A] border-[#B8893A]/45 bg-[#B8893A]/[0.06]"
-      : "text-primary border-primary/40 bg-primary/[0.06]";
-  return (
-    <div
-      className={`inline-flex items-baseline justify-center min-w-11 md:min-w-14.5 px-2 md:px-2.5 py-1.5 border rounded-sm font-mono text-body-lg md:text-h3 tabular leading-none ${colorClass}`}
-      aria-label={`Match score ${score}`}
-    >
-      {String(score).padStart(2, "0")}
-    </div>
-  );
-}
 
 function buildHref(
   overrides: {
@@ -105,30 +54,14 @@ function buildHref(
   return `/applications${qs ? `?${qs}` : ""}`;
 }
 
-export function ApplicationsList({
-  initialData,
-  initialJobs,
-  initialFilter,
-  initialTopN,
-  initialMinScore,
-  initialSearch,
-  initialPage,
-}: {
-  initialData: AllApplicationsPageResult;
-  initialJobs: Job[];
-  initialFilter: ExtendedFilter;
-  initialTopN: TopN | null;
-  initialMinScore: number;
-  initialSearch: string;
-  initialPage: number;
-}) {
+export function ApplicationsList() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFirstRender = useRef(true);
 
   // Derive current params from URL
   const filter = (
-    ALL_EXTENDED.includes(searchParams.get("status") as ExtendedFilter)
+    ALL_FILTER_TABS.includes(searchParams.get("status") as ExtendedFilter)
       ? searchParams.get("status")
       : "all"
   ) as ExtendedFilter;
@@ -172,26 +105,25 @@ export function ApplicationsList({
     return () => clearTimeout(timer);
   }, [localSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isInitialParams =
-    filter === initialFilter &&
-    page === initialPage &&
-    search === initialSearch &&
-    minScore === initialMinScore &&
-    topN === initialTopN;
-
   const apiStatus = filter === "all" ? undefined : (filter as FilterStatus | "new");
 
-  const { data } = useApplicationsAll(
-    { status: apiStatus, search, minScore, page, pageSize: topN ?? PAGE_SIZE },
-    isInitialParams ? initialData : undefined
+  // Fetch paginated + filtered applications across all jobs
+  const { data, isLoading, isFetching } = useApplicationsAll(
+    { status: apiStatus, search, minScore, page, pageSize: topN ?? PAGE_SIZE }
   );
+
+  // Fetch jobs for row title lookup and export (all statuses — archived jobs have applications too)
+  const { data: jobs = [] } = useAllJobs();
+
+  // Imperative fetch for candidate enrichment (used during export only)
+  const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
 
   const applications = useMemo(() => data?.applications ?? [], [data]);
   const total        = data?.total        ?? 0;
   const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 };
   const totalPages   = topN ? 1 : Math.ceil(total / PAGE_SIZE);
 
-  const allCount = statusCounts.new + statusCounts.reviewing + statusCounts.shortlisted + statusCounts.rejected;
+  const allCount = data?.allTotal ?? (statusCounts.new + statusCounts.reviewing + statusCounts.shortlisted + statusCounts.rejected);
   const groupedCounts: Record<ExtendedFilter, number> = {
     all:         allCount,
     new:         statusCounts.new,
@@ -200,9 +132,10 @@ export function ApplicationsList({
     rejected:    statusCounts.rejected,
   };
 
-  const jobsByCode = new Map<string, Job>(initialJobs.map((j) => [j.code, j]));
+  const jobsByCode = new Map(jobs.map((j) => [j.code, j]));
   const hasActiveFilters = !!search || minScore > 0 || !!topN;
   const hasData = allCount > 0;
+  const showSkeleton = isLoading || (isFetching && applications.length === 0);
 
   // Sync select-all checkbox indeterminate state
   useEffect(() => {
@@ -245,10 +178,10 @@ export function ApplicationsList({
     const selectedApplications =
       selectedIds.size > 0 ? applications.filter((a) => selectedIds.has(a.id)) : applications;
     const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
-    const jobTitles = new Map(initialJobs.map((j) => [j.code, j.title]));
+    const jobTitles = new Map(jobs.map((j) => [j.code, j.title]));
 
     const [enrichments, ...notesResults] = await Promise.all([
-      getCandidatesByIds(candidateIds),
+      fetchCandidates(candidateIds),
       ...selectedApplications.map((a) =>
         fetch(`/api/applications/${a.id}/notes`)
           .then((r) => r.json())
@@ -265,7 +198,7 @@ export function ApplicationsList({
     );
 
     return { selectedApplications, enrichments, jobTitles, notesByAppId };
-  }, [applications, initialJobs, selectedIds]);
+  }, [applications, jobs, selectedIds, fetchCandidates]);
 
   const handleExportCsv = useCallback(async () => {
     setExportingFormat("csv");
@@ -445,7 +378,7 @@ export function ApplicationsList({
       {/* Status filter tabs */}
       {hasData && (
         <div className="flex-shrink-0 flex items-center gap-1 flex-wrap px-4 sm:px-6 md:px-10 py-3">
-          {ALL_TABS.map((s) => (
+          {ALL_FILTER_TABS.map((s) => (
             <StatusFilterChip
               key={s}
               href={buildHref(
@@ -463,7 +396,32 @@ export function ApplicationsList({
 
       {/* Scrolling list */}
       <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-4 md:pt-6 pb-12">
-        {applications.length === 0 ? (
+        {showSkeleton ? (
+          <ul className="max-w-5xl">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <li key={i} className={`border-b border-border/60 ${i === 0 ? "border-t border-border/60" : ""}`}>
+                <div className="py-5 px-4 flex items-center justify-between gap-3 md:gap-6">
+                  <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1">
+                    <div className="h-7 md:h-8 min-w-11 md:min-w-13 bg-muted/80 rounded-sm animate-pulse" />
+                    <div className="min-w-0 flex-1">
+                      <div className={`h-5 ${i % 3 === 0 ? "w-1/2" : i % 3 === 1 ? "w-2/5" : "w-3/5"} bg-muted rounded-sm animate-pulse mb-2`} />
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-28 bg-muted/70 rounded-sm animate-pulse" />
+                        <span className="text-border hidden sm:inline">·</span>
+                        <div className="h-3 w-24 bg-muted/70 rounded-sm animate-pulse hidden sm:inline-block" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 md:gap-5 shrink-0">
+                    <div className="h-3 w-16 bg-muted/70 rounded-sm animate-pulse" />
+                    <div className="h-3 w-12 bg-muted/70 rounded-sm animate-pulse hidden md:inline-block" />
+                    <div className="h-4 w-4 bg-muted/70 rounded-sm animate-pulse" />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : applications.length === 0 ? (
           <EmptyState filter={filter} hasAny={allCount > 0} />
         ) : (
           <ul className="max-w-5xl">
@@ -584,43 +542,6 @@ function ApplicationRow({
         />
       </div>
     </div>
-  );
-}
-
-function StatusFilterChip({
-  href,
-  label,
-  count,
-  tone,
-  active,
-}: {
-  href: string;
-  label: string;
-  count: number;
-  tone: "neutral" | "shortlist" | "reject";
-  active: boolean;
-}) {
-  const toneClass =
-    tone === "shortlist"
-      ? "text-[#2F5E7A]"
-      : tone === "reject"
-      ? "text-primary"
-      : "text-muted-foreground";
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      className={`
-        caps-meta tabular
-        flex items-center gap-1.5 px-3 py-2.5 md:py-1 rounded-sm
-        transition-all duration-150
-        ${toneClass}
-        ${active ? "bg-secondary opacity-100" : "opacity-65 hover:opacity-100 hover:bg-secondary/40"}
-      `}
-    >
-      <span>{String(count).padStart(2, "0")}</span>
-      <span>{label}</span>
-    </Link>
   );
 }
 
