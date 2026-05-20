@@ -1,4 +1,6 @@
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabasePeopleClient } from "@/integrations/supabase-people";
+const supabase = getSupabasePeopleClient() as unknown as SupabaseClient;
 
 export type ApplicationNote = {
   id: string;

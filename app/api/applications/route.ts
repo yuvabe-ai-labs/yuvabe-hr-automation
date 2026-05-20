@@ -6,8 +6,11 @@ import { createCandidate } from "@/lib/candidates-store";
 import { createApplication, type CriterionMatch } from "@/lib/applications-store";
 import { parseResume, scoreResume } from "@/lib/llm";
 import { IMPORTANCE_WEIGHT } from "@/lib/prompts/extractCriteria.v1";
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabasePeopleClient } from "@/integrations/supabase-people";
 import type { Job } from "@/lib/jobs-store";
+
+const supabase = getSupabasePeopleClient() as unknown as SupabaseClient;
 
 // Allow any external origin to submit applications.
 // Tighten to specific origins once the apply-page domain is known.
