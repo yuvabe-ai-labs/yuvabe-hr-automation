@@ -1,5 +1,5 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
-import type { Application, ApplicationRow, ApplicationStatus } from "@/types/applications.types";
+import type { Application, ApplicationRow, ApplicationStatus } from "@/types/applications";
 
 function mapRowToApplication(row: ApplicationRow): Application {
   return {

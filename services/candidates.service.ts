@@ -1,5 +1,5 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
-import type { Candidate, CandidateRow, CandidateLinks, ExperienceEntry, EducationEntry } from "@/types/candidates.types";
+import type { Candidate, CandidateRow, CandidateLinks, ExperienceEntry, EducationEntry } from "@/types/candidates";
 
 type RawExpEntry = {
   company?: string; title?: string; description?: string;

@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listNotes, createNote, updateNote, deleteNote } from "@/services/notes.service";
-import type { ApplicationNote } from "@/types/notes.types";
+import type { ApplicationNote } from "@/types/notes";
 
 export type { ApplicationNote };
 

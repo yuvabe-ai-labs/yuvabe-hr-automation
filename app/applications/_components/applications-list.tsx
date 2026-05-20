@@ -14,7 +14,7 @@ import { STATUS_LABEL, STATUS_COLOR, FILTER_LABEL, ALL_FILTER_TABS } from "@/lib
 import type { ExtendedFilter } from "@/lib/constants";
 import { ScoreChip } from "@/components/shared/score-chip";
 import { StatusFilterChip } from "@/components/shared/status-filter-chip";
-import type { Application } from "@/types/applications.types";
+import type { Application } from "@/types/applications";
 import type { FilterStatus } from "@/services/applications.service";
 
 type TopN = 10 | 15 | 20;

@@ -1,4 +1,4 @@
-import type { Application } from "@/types/applications.types";
+import type { Application } from "@/types/applications";
 import type { CandidateEnrichment } from "@/services/candidates.service";
 
 const HEADERS = [

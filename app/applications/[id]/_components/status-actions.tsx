@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Eye, Check, X } from "lucide-react";
 import { useUpdateApplicationStatus } from "@/hooks/use-applications";
-import type { ApplicationStatus } from "@/types/applications.types";
+import type { ApplicationStatus } from "@/types/applications";
 
 type ToggleStatus = "reviewing" | "shortlisted" | "rejected";
 

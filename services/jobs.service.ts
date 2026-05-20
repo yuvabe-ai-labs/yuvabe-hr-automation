@@ -1,5 +1,5 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
-import type { Job, JobRow } from "@/types/jobs.types";
+import type { Job, JobRow } from "@/types/jobs";
 
 function mapRowToJob(row: JobRow): Job {
   return {

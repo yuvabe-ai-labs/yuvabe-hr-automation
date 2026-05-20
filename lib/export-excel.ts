@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { Application } from "@/types/applications.types";
+import type { Application } from "@/types/applications";
 import type { CandidateEnrichment } from "@/services/candidates.service";
 
 export function downloadExcel(

@@ -14,7 +14,7 @@ import type {
   AllApplicationsQueryParams,
   AllApplicationsPageResult,
 } from "@/services/applications.service";
-import type { ApplicationStatus } from "@/types/applications.types";
+import type { ApplicationStatus } from "@/types/applications";
 
 export type { ApplicationsQueryParams, ApplicationsPageResult, AllApplicationsQueryParams, AllApplicationsPageResult };
 

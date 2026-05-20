@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from "@/types/applications.types";
+import type { ApplicationStatus } from "@/types/applications";
 import type { FilterStatus } from "@/services/applications.service";
 
 export type ExtendedFilter = FilterStatus | "all" | "new";

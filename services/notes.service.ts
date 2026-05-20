@@ -1,5 +1,5 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
-import type { ApplicationNote, NoteRow } from "@/types/notes.types";
+import type { ApplicationNote, NoteRow } from "@/types/notes";
 
 export type { ApplicationNote };
 

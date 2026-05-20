@@ -15,7 +15,7 @@ import { STATUS_LABEL, STATUS_COLOR, FILTER_LABEL, ALL_FILTER_TABS } from "@/lib
 import type { ExtendedFilter } from "@/lib/constants";
 import { ScoreChip } from "@/components/shared/score-chip";
 import { StatusFilterChip } from "@/components/shared/status-filter-chip";
-import type { Application, ApplicationStatus } from "@/types/applications.types";
+import type { Application, ApplicationStatus } from "@/types/applications";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 
 const DEFAULT_PAGE_SIZE = 15;

@@ -12,7 +12,7 @@ import { useJobById } from "@/hooks/use-jobs";
 import { relativeTime, formatDuration } from "@/lib/utils";
 import { IMPORTANCE_LABEL, IMPORTANCE_COLOR } from "@/lib/constants";
 import { Eyebrow } from "@/components/shared/eyebrow";
-import type { CriterionMatch } from "@/types/applications.types";
+import type { CriterionMatch } from "@/types/applications";
 
 function ScoreBand(score: number): "high" | "mid" | "low" {
   return score >= 75 ? "high" : score >= 50 ? "mid" : "low";
