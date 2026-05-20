@@ -24,6 +24,10 @@ function mapRowToJob(row: JobRow): Job {
     createdAt: row.created_at || new Date().toISOString(),
     archivedAt: row.archived_at || undefined,
     status: (row.status === "archived" ? "archived" : row.status === "draft" ? "draft" : "active") as "active" | "archived" | "draft",
+    publishedAt: row.published_at || undefined,
+    closedAt: row.closed_at || undefined,
+    isPaidListing: row.is_paid_listing ?? false,
+    hiringManagerId: row.hiring_manager_id || undefined,
   };
 }
 

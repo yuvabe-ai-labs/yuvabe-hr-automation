@@ -29,6 +29,10 @@ export type Job = {
   createdAt: string;
   archivedAt?: string;
   status: "active" | "archived" | "draft";
+  publishedAt?: string;
+  closedAt?: string;
+  isPaidListing: boolean;
+  hiringManagerId?: string;
 };
 
 export type JobRow = Tables<"jobs">;
