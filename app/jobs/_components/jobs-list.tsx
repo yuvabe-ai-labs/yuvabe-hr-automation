@@ -22,7 +22,8 @@ export function JobsList({ newCode }: { newCode?: string }) {
   // Guard: only refresh once per unique newCode to prevent loops.
   const refreshedForRef = useRef<string | null>(null);
 
-  const tab = (searchParams.get("tab") === "archived" ? "archived" : "active") as "active" | "archived";
+  const rawTab = searchParams.get("tab");
+  const tab = (rawTab === "archived" ? "archived" : rawTab === "draft" ? "draft" : "active") as "active" | "archived" | "draft";
   const search = searchParams.get("search") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
   // Read newCode from the live URL — useSearchParams() always reflects the
@@ -88,7 +89,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
-  function buildTabHref(targetTab: "active" | "archived") {
+  function buildTabHref(targetTab: "active" | "draft" | "archived") {
     const params = new URLSearchParams(searchParams.toString());
     if (targetTab === "active") {
       params.delete("tab");
@@ -111,9 +112,9 @@ export function JobsList({ newCode }: { newCode?: string }) {
   return (
     <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
       <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-8">
-      {/* Active / Archived tabs */}
+      {/* Active / Draft / Archived tabs */}
       <div className="max-w-4xl flex items-center gap-6 border-b border-border mb-6">
-        {(["active", "archived"] as const).map((t) => (
+        {(["active", "draft", "archived"] as const).map((t) => (
           <Link
             key={t}
             href={buildTabHref(t)}
@@ -123,7 +124,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
                 : "text-foreground/55 border-transparent hover:text-foreground"
             }`}
           >
-            {t === "active" ? "Active" : "Archived"}
+            {t === "active" ? "Active" : t === "draft" ? "Draft" : "Archived"}
           </Link>
         ))}
       </div>
@@ -156,6 +157,8 @@ export function JobsList({ newCode }: { newCode?: string }) {
           <FilterEmptyState onClear={() => setSearchInput("")} />
         ) : tab === "archived" ? (
           <ArchivedEmptyState />
+        ) : tab === "draft" ? (
+          <DraftEmptyState />
         ) : (
           <EmptyState />
         )
@@ -191,6 +194,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
             {jobs.map((job, idx) => {
               const isNew = job.code === effectiveNewCode;
               const isArchived = job.status === "archived";
+              const isDraft = job.status === "draft";
               const appCount = appsByJobCode.get(job.code) ?? 0;
               return (
                 <li
@@ -204,9 +208,9 @@ export function JobsList({ newCode }: { newCode?: string }) {
                 >
                   <div className="py-5 md:py-6 -mx-4 pl-4 pr-6 md:pr-8 rounded-sm grid grid-cols-[1fr_auto_auto] items-center gap-2 md:gap-3">
                     <Link
-                      href={`/jobs/${job.code}`}
+                      href={isDraft ? `/jobs/${job.code}/view` : `/jobs/${job.code}`}
                       className="min-w-0 after:absolute after:inset-0 after:content-[''] after:rounded-sm focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-primary focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
-                      aria-label={`View applicants for ${job.title}`}
+                      aria-label={isDraft ? `View draft ${job.title}` : `View applicants for ${job.title}`}
                     >
                       <div className="flex items-baseline gap-3 mb-2">
                         <h3 className={`font-serif italic text-h2 md:text-h1 leading-tight tracking-tight truncate ${isArchived ? "text-foreground/60" : ""}`}>
@@ -220,6 +224,11 @@ export function JobsList({ newCode }: { newCode?: string }) {
                         {isArchived && (
                           <span className="eyebrow text-muted-foreground shrink-0 hidden sm:inline">
                             archived
+                          </span>
+                        )}
+                        {isDraft && (
+                          <span className="eyebrow text-muted-foreground shrink-0 hidden sm:inline">
+                            draft
                           </span>
                         )}
                       </div>
@@ -251,6 +260,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
                       jobCode={job.code}
                       jobTitle={job.title}
                       status={job.status}
+                      job={isDraft ? job : undefined}
                     />
 
                     <ChevronRight
@@ -331,6 +341,19 @@ function ArchivedEmptyState() {
       </p>
       <p className="mt-4 max-w-sm text-body-lg text-muted-foreground leading-relaxed">
         Jobs you archive will appear here. You can restore them at any time.
+      </p>
+    </div>
+  );
+}
+
+function DraftEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-24">
+      <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
+        No draft jobs.
+      </p>
+      <p className="mt-4 max-w-sm text-body-lg text-muted-foreground leading-relaxed">
+        Jobs saved as drafts appear here. Publish when you&apos;re ready to open applications.
       </p>
     </div>
   );

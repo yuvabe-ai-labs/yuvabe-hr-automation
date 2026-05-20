@@ -1,5 +1,5 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
-import type { Job, JobRow } from "@/types/jobs";
+import type { Job, JobRow, Criterion } from "@/types/jobs";
 
 function mapRowToJob(row: JobRow): Job {
   return {
@@ -7,7 +7,7 @@ function mapRowToJob(row: JobRow): Job {
     code: row.code || "",
     title: row.title || "",
     description: row.description || "",
-    criteria: (row.criteria as any[]) || [],
+    criteria: (row.criteria as Criterion[]) || [],
     department: row.department || undefined,
     location: row.location || undefined,
     compensation: row.compensation || undefined,
@@ -23,7 +23,7 @@ function mapRowToJob(row: JobRow): Job {
     workCulture: (row.workculture as string[]) || [],
     createdAt: row.created_at || new Date().toISOString(),
     archivedAt: row.archived_at || undefined,
-    status: (row.status as "draft" | "active" | "archived") || "active",
+    status: (row.status === "archived" ? "archived" : row.status === "draft" ? "draft" : "active") as "active" | "archived" | "draft",
     publishedAt: row.published_at || undefined,
     closedAt: row.closed_at || undefined,
     isPaidListing: row.is_paid_listing ?? false,
@@ -52,7 +52,7 @@ export async function getJobById(code: string): Promise<Job | undefined> {
 
 // Fetch paginated list of jobs filtered by status and optional search
 export async function listJobs(options?: {
-  status?: "active" | "archived";
+  status?: "active" | "archived" | "draft";
   search?: string;
   page?: number;
   pageSize?: number;

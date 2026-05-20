@@ -28,7 +28,7 @@ export type Job = {
   workCulture: string[];
   createdAt: string;
   archivedAt?: string;
-  status: "draft" | "active" | "archived";
+  status: "active" | "archived" | "draft";
   publishedAt?: string;
   closedAt?: string;
   isPaidListing: boolean;

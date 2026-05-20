@@ -7,7 +7,7 @@ export function useJobs(params?: {
   search?: string;
   page?: number;
   pageSize?: number;
-  status?: "active" | "archived";
+  status?: "active" | "archived" | "draft";
 }) {
   return useQuery({
     queryKey: ["jobs", "list", params],

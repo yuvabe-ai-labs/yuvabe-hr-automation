@@ -50,7 +50,7 @@ export type Job = {
    * applications referencing it keep rendering. Reversible.
    */
   archivedAt?: string;
-  status: "active" | "archived";
+  status: "active" | "archived" | "draft";
 };
 
 /** Row shape as returned by Supabase (snake_case columns). */
@@ -92,7 +92,7 @@ function rowToJob(row: JobRow): Job {
     benefitsInPerson: row.benefits_inperson ?? [],
     workCulture: row.workculture ?? [],
     createdAt: row.created_at,
-    status: (row.status === "archived" ? "archived" : "active") as "active" | "archived",
+    status: (row.status === "archived" ? "archived" : row.status === "draft" ? "draft" : "active") as "active" | "archived" | "draft",
   };
   if (row.department) job.department = row.department;
   if (row.location) job.location = row.location;
@@ -106,7 +106,7 @@ function rowToJob(row: JobRow): Job {
 }
 
 /** List all jobs, newest first. Filters by status (default: 'active'). */
-export async function listJobs(opts?: { status?: "active" | "archived" }): Promise<Job[]> {
+export async function listJobs(opts?: { status?: "active" | "archived" | "draft" }): Promise<Job[]> {
   const filterStatus = opts?.status ?? "active";
   const { data, error } = await supabase
     .from("jobs")
@@ -179,6 +179,7 @@ export type CreateJobInput = {
   benefitsRemote?: string[];
   benefitsInPerson?: string[];
   workCulture?: string[];
+  status?: "active" | "draft";
 };
 
 /**
@@ -217,7 +218,7 @@ export async function createJob(input: CreateJobInput): Promise<Job> {
       benefits_remote: input.benefitsRemote ?? [],
       benefits_inperson: input.benefitsInPerson ?? [],
       workculture: input.workCulture ?? [],
-      status: "active",
+      status: input.status ?? "active",
       // created_at defaults to now() in Postgres; archived_at defaults to null
     };
 
