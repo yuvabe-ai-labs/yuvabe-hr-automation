@@ -64,3 +64,6 @@ next-env.d.ts
 /supabase/combined_test_migration.sql
 
 playground/
+
+# Generated test report (run pnpm test:report to produce)
+/test-report.md

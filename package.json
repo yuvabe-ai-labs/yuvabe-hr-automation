@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "test:report": "playwright test && tsx --env-file=.env.local scripts/generate-report.ts",
     "test:all": "pnpm test && pnpm test:e2e",
     "typecheck": "tsc --noEmit"
   },
