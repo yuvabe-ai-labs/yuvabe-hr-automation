@@ -100,7 +100,6 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   const { data: job } = useJobById(jobCode);
   const jobTitle = job?.title ?? "";
   const jobCreatedAt = job?.createdAt ?? "";
-
   // Imperative fetch for candidate enrichment (used during export only)
   const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
 
@@ -409,6 +408,7 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
           </div>
         </div>
       </div>
+
 
       {/* Status filter chips */}
       {totalAll > 0 && (

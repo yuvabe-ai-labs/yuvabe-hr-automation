@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { useJobById } from "@/hooks/use-jobs";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useJobById, useUpdateJobStatus } from "@/hooks/use-jobs";
+import { Button } from "@/components/ui/button";
+import { JdPreviewDialog, jobToPreviewData } from "@/app/jobs/_components/jd-preview-dialog";
 import NavTabClient from "../../../_components/nav-tab";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 import { SignOutButton } from "@/app/_components/sign-out-button";
@@ -135,8 +139,12 @@ function JobViewSkeleton() {
   );
 }
 
+
 export function JobViewContent({ code }: { code: string }) {
+  const router = useRouter();
   const { data: job, isLoading } = useJobById(code);
+  const [publishPreviewOpen, setPublishPreviewOpen] = useState(false);
+  const { mutate: publishJob, isPending: isPublishing } = useUpdateJobStatus();
 
   if (isLoading) return <JobViewSkeleton />;
   if (!job) notFound();
@@ -201,20 +209,33 @@ export function JobViewContent({ code }: { code: string }) {
               </div>
 
               <p className="mt-6 caps-meta text-muted-foreground">
-                Read-only · Posted{" "}
+                {job.status === "draft" ? "Draft" : "Read-only"} · Posted{" "}
                 <span className="tabular">
                   {new Date(job.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                 </span>
               </p>
+
             </div>
           </section>
 
           <section className="md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-10">
             <div className="max-w-3xl">
-              <div className="flex items-center gap-2 flex-wrap">
-                <JobIdBadge code={job.code} />
-                <span className="text-muted-foreground/50">·</span>
-                <Eyebrow>Extracted criteria</Eyebrow>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <JobIdBadge code={job.code} />
+                  <span className="text-muted-foreground/50">·</span>
+                  <Eyebrow>Extracted criteria</Eyebrow>
+                </div>
+                {job.status === "draft" && (
+                  <Button
+                    size="sm"
+                    onClick={() => setPublishPreviewOpen(true)}
+                    className="rounded-sm caps-action gap-2 shrink-0"
+                  >
+                    Publish
+                    <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
+                  </Button>
+                )}
               </div>
 
               <h2 className="mt-3 font-serif italic text-display md:text-display-lg leading-[1.05] tracking-tight">
@@ -264,6 +285,19 @@ export function JobViewContent({ code }: { code: string }) {
         <span className="truncate">Yuvabe ATS &nbsp; · &nbsp; v0.1</span>
         <span className="italic font-serif normal-case tracking-normal text-muted-foreground/80 hidden md:inline">Read-only view</span>
       </footer>
+
+      <JdPreviewDialog
+        open={publishPreviewOpen}
+        onOpenChange={setPublishPreviewOpen}
+        data={jobToPreviewData(job)}
+        onPublish={() =>
+          publishJob(
+            { code: job.code, status: "active" },
+            { onSuccess: () => router.push(`/jobs/${job.code}`) }
+          )
+        }
+        isPublishing={isPublishing}
+      />
     </div>
   );
 }
