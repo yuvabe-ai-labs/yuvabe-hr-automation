@@ -55,9 +55,11 @@ export type AllApplicationsQueryParams = {
 export type AllApplicationsPageResult = {
   applications: Application[];
   total: number;
+  allTotal: number; // unfiltered count — used for the "ALL" tab chip
   statusCounts: Record<FilterStatus | "new", number>;
 };
 
+// Fetch a single application by ID
 export async function getApplicationById(id: string): Promise<Application | undefined> {
   try {
     const client = getSupabasePeopleClient();
@@ -74,6 +76,7 @@ export async function getApplicationById(id: string): Promise<Application | unde
   }
 }
 
+// Fetch all applications across all jobs, newest first (no pagination)
 export async function listApplications(): Promise<Application[]> {
   try {
     const client = getSupabasePeopleClient();
@@ -89,6 +92,7 @@ export async function listApplications(): Promise<Application[]> {
   }
 }
 
+// Fetch paginated + filtered applications for a specific job with per-status counts
 export async function listApplicationsByJobCode(
   jobCode: string,
   options?: ApplicationsQueryParams
@@ -97,7 +101,7 @@ export async function listApplicationsByJobCode(
     const { status, search, sort = "desc", minScore = 0, page = 1, pageSize = 15 } = options ?? {};
     const client = getSupabasePeopleClient();
 
-    // Status breakdown — lightweight, no pagination, used for chip counts
+    // Status breakdown — lightweight count query for chip totals
     const { data: statusRows } = await client
       .from("applications")
       .select("status")
@@ -147,12 +151,14 @@ export async function listApplicationsByJobCode(
   }
 }
 
+// Fetch paginated + filtered applications across all jobs with per-status counts
 export async function listApplicationsAll(
   options?: AllApplicationsQueryParams
 ): Promise<AllApplicationsPageResult> {
   const { status, search, minScore = 0, page = 1, pageSize = 10 } = options ?? {};
   const client = getSupabasePeopleClient();
 
+  // Status breakdown — lightweight count query for chip totals
   const { data: statusRows } = await client.from("applications").select("status");
 
   const rawCounts: Record<ApplicationStatus, number> = {
@@ -194,10 +200,12 @@ export async function listApplicationsAll(
   return {
     applications: (data as ApplicationRow[]).map(mapRowToApplication),
     total: count ?? 0,
+    allTotal: statusRows?.length ?? 0,
     statusCounts,
   };
 }
 
+// Count total applications for a given job code
 export async function countApplicationsByJobCode(jobCode: string): Promise<number> {
   try {
     const client = getSupabasePeopleClient();
@@ -213,6 +221,7 @@ export async function countApplicationsByJobCode(jobCode: string): Promise<numbe
   }
 }
 
+// Update the status field of an application
 export async function updateApplicationStatus(
   id: string,
   status: ApplicationStatus

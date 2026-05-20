@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +24,10 @@ import type {
   ExtractCriteriaResult,
   Importance,
 } from "@/lib/prompts/extractCriteria.v1";
+import { IMPORTANCE_LABEL, IMPORTANCE_COLOR } from "@/lib/constants";
+import { Eyebrow } from "@/components/shared/eyebrow";
+import NavTab from "@/app/jobs/_components/nav-tab";
+import { PageFooter } from "@/app/_components/page-footer";
 
 const ACCEPTED = ".pdf,.docx,.txt,.md";
 
@@ -44,20 +47,9 @@ const CATEGORY_ORDER: Criterion["category"][] = [
   "other",
 ];
 
-const IMPORTANCE_LABEL: Record<Importance, string> = {
-  must: "Must",
-  strong: "Preferred",
-  nice: "Nice",
-};
-
 /** Three opacity tiers within the warm ink palette — no new accent colors.
  *  "nice" climbs to foreground on hover so the muted state still gets a
  *  visible intensity bump when the trigger is being interacted with. */
-const IMPORTANCE_COLOR: Record<Importance, string> = {
-  must: "text-primary",
-  strong: "text-foreground",
-  nice: "text-muted-foreground hover:text-foreground",
-};
 
 type Result = ExtractCriteriaResult & {
   jd_text: string;
@@ -71,10 +63,6 @@ function formatSize(bytes: number) {
 }
 
 /* —————————————————————————— small typographic atoms —————————————————————————— */
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <span className="eyebrow text-muted-foreground">{children}</span>;
-}
 
 function ColumnMarker({
   numeral,
@@ -98,35 +86,6 @@ function ColumnMarker({
 function HairRule() {
   return <div className="h-px bg-border w-full" />;
 }
-
-function NavTab({
-  href,
-  label,
-  prefix,
-}: {
-  href: string;
-  label: string;
-  prefix?: string;
-}) {
-  const pathname = usePathname();
-  const active = prefix ? pathname.startsWith(prefix) : pathname === href;
-  return (
-    <Link
-      href={href}
-      className={`
-        caps-meta py-3 -mb-px border-b-2 transition-colors
-        ${
-          active
-            ? "text-foreground border-primary"
-            : "text-foreground/55 border-transparent hover:text-foreground"
-        }
-      `}
-    >
-      {label}
-    </Link>
-  );
-}
-
 
 /* —————————————————————————— page —————————————————————————— */
 
@@ -746,16 +705,7 @@ export default function NewJobPage() {
         </section>
       </main>
 
-      {/* —————— Bottom rule —————— */}
-      <footer className="border-t border-border px-4 sm:px-6 md:px-10 py-3 flex-shrink-0 flex items-center justify-between gap-3 eyebrow text-muted-foreground">
-        <span className="truncate">
-          Yuvabe ATS &nbsp; · &nbsp; v0.1
-        </span>
-        <span className="italic font-serif normal-case tracking-normal text-muted-foreground/80 hidden md:inline">
-          Hiring is a human act.
-        </span>
-        <span>2026</span>
-      </footer>
+      <PageFooter />
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

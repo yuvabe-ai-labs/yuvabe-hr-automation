@@ -11,11 +11,14 @@
  */
 
 import { customAlphabet } from "nanoid";
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabasePeopleClient } from "@/integrations/supabase-people";
 import {
   generateCriterionId,
   type Criterion,
 } from "@/lib/prompts/extractCriteria.v1";
+
+const supabase = getSupabasePeopleClient() as unknown as SupabaseClient;
 
 /** Unambiguous alphabet — no 0/O, 1/I/L confusion. ~10^9 unique 6-char codes. */
 const codeAlphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";

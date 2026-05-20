@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -16,46 +16,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SlidersHorizontal, MoreHorizontal } from "lucide-react";
-import type { ApplicationNote } from "@/lib/notes-store";
-
-/* —— helpers —— */
-
-function relativeTime(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const m = Math.floor(seconds / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+import { useNotes, useCreateNote, useUpdateNote, useDeleteNote } from "@/hooks/use-notes";
+import { relativeTime } from "@/lib/utils";
 
 /* —— main component —— */
 
 export function NotesThread({
   applicationId,
-  initialNotes,
   currentUser,
   open,
   onOpenChange,
 }: {
   applicationId: string;
-  initialNotes: ApplicationNote[];
   currentUser: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [notes, setNotes] = useState(initialNotes);
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [isAdding, setIsAdding] = useState(false);
   const [addBody, setAddBody] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
+  const { data: notes = [] } = useNotes(applicationId);
+  const createMutation = useCreateNote(applicationId);
+  const updateMutation = useUpdateNote(applicationId);
+  const deleteMutation = useDeleteNote(applicationId);
+
+  const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
   const displayed = sort === "newest" ? notes : [...notes].reverse();
 
   /* — add — */
@@ -63,26 +52,20 @@ export function NotesThread({
     const body = addBody.trim();
     if (!body) return;
     setError(null);
-    startTransition(async () => {
-      const res = await fetch(`/api/applications/${applicationId}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Couldn't add note");
-        return;
+    createMutation.mutate(
+      { authorEmail: currentUser, body },
+      {
+        onSuccess: () => {
+          setAddBody("");
+          setIsAdding(false);
+        },
+        onError: (err) => setError(err instanceof Error ? err.message : "Couldn't add note"),
       }
-      const { note } = await res.json();
-      setNotes((prev) => [note, ...prev]);
-      setAddBody("");
-      setIsAdding(false);
-    });
+    );
   }
 
   /* — edit — */
-  function startEdit(note: ApplicationNote) {
+  function startEdit(note: { id: string; body: string }) {
     setEditingId(note.id);
     setEditBody(note.body);
     setError(null);
@@ -97,42 +80,20 @@ export function NotesThread({
     const body = editBody.trim();
     if (!body) return;
     setError(null);
-    startTransition(async () => {
-      const res = await fetch(`/api/applications/${applicationId}/notes/${noteId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Couldn't save changes");
-        return;
+    updateMutation.mutate(
+      { noteId, body },
+      {
+        onSuccess: () => setEditingId(null),
+        onError: (err) => setError(err instanceof Error ? err.message : "Couldn't save changes"),
       }
-      const { note } = await res.json();
-      setNotes((prev) => prev.map((n) => (n.id === noteId ? note : n)));
-      setEditingId(null);
-    });
+    );
   }
 
-  /* — delete (optimistic) — */
+  /* — delete — */
   function handleDelete(noteId: string) {
-    const snapshot = notes.find((n) => n.id === noteId);
-    if (!snapshot) return;
     setError(null);
-    setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    startTransition(async () => {
-      const res = await fetch(`/api/applications/${applicationId}/notes/${noteId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        setNotes((prev) =>
-          [...prev, snapshot].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )
-        );
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Couldn't delete note");
-      }
+    deleteMutation.mutate(noteId, {
+      onError: (err) => setError(err instanceof Error ? err.message : "Couldn't delete note"),
     });
   }
 

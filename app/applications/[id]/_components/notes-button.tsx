@@ -3,15 +3,12 @@
 import { useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { NotesThread } from "./notes-thread";
-import type { ApplicationNote } from "@/lib/notes-store";
 
 export function NotesButton({
   applicationId,
-  initialNotes,
   currentUser,
 }: {
   applicationId: string;
-  initialNotes: ApplicationNote[];
   currentUser: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -27,7 +24,6 @@ export function NotesButton({
       </button>
       <NotesThread
         applicationId={applicationId}
-        initialNotes={initialNotes}
         currentUser={currentUser}
         open={open}
         onOpenChange={setOpen}
