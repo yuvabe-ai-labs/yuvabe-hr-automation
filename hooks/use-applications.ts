@@ -7,6 +7,7 @@ import {
   listApplicationsByJobCode,
   listApplicationsAll,
   updateApplicationStatus,
+  updateApplicationStatusWithReason,
 } from "@/services/applications.service";
 import type {
   ApplicationsPageResult,
@@ -57,6 +58,28 @@ export function useUpdateApplicationStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: ApplicationStatus }) =>
       updateApplicationStatus(id, status),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["applications", "detail", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["applications", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications", "all"] });
+    },
+  });
+}
+
+// Update status with an optional rejection reason (post-interview: hired / rejected)
+export function useUpdateApplicationStatusWithReason() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      status,
+      rejectionReason,
+    }: {
+      id: string;
+      status: ApplicationStatus;
+      rejectionReason?: string;
+    }) => updateApplicationStatusWithReason(id, status, rejectionReason),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["applications", "detail", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["applications", "list"] });

@@ -20,6 +20,7 @@ export function PageHeader() {
       </div>
       <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
         <NavTab href="/jobs" label="Jobs" prefix="/jobs" />
+        <NavTab href="/interviews" label="Interviews" prefix="/interviews" />
         <SignOutButton className="ml-auto" />
       </nav>
     </header>
