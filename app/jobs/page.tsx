@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { JobsList } from "./_components/jobs-list";
 import { SearchInput } from "./_components/search-input";
+import { JobsFilterButton } from "./_components/jobs-filter-button";
 import { PageHeader } from "@/app/_components/page-header";
 import { PageFooter } from "@/app/_components/page-footer";
 import { ColumnMarker } from "@/components/shared/column-marker";
@@ -25,8 +26,9 @@ export default async function JobsPage({
             <div className="flex items-end justify-between gap-6">
               <div className="flex items-end gap-6">
                 <ColumnMarker numeral="i" title="Jobs" />
-                <div className="mb-1">
+                <div className="mb-1 flex items-center gap-2">
                   <SearchInput initialSearch={initialSearch} />
+                  <JobsFilterButton />
                 </div>
               </div>
               <div className="flex items-center gap-2.5">

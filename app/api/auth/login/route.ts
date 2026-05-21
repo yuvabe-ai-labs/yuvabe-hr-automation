@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const user = await usersService.verifyCredentials(email, pass);
 
   if (!user) {
-    return NextResponse.json({ error: "Wrong credentials." }, { status: 401 });
+    return NextResponse.json({ error: "Invalid Email or Password." }, { status: 401 });
   }
 
   const token = await signSession(secret, user.id, user.role);

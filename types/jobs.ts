@@ -16,7 +16,7 @@ export type Job = {
   department?: string;
   location?: string;
   compensation?: string;
-  type?: string;
+  type?: "full-time" | "part-time" | "contract" | "internship";
   level?: string;
   summary?: string;
   responsibilities: string[];

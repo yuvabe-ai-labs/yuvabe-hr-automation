@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 import { JobActionsMenu } from "./job-actions-menu";
 import { relativeTime } from "@/lib/utils";
+import type { Job } from "@/types/jobs";
 
 const PAGE_SIZE = 10;
 
@@ -26,6 +27,15 @@ export function JobsList({ newCode }: { newCode?: string }) {
   const tab = (rawTab === "archived" ? "archived" : rawTab === "draft" ? "draft" : "active") as "active" | "archived" | "draft";
   const search = searchParams.get("search") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
+
+  const JOB_TYPES = ["full-time", "part-time", "contract", "internship"] as const;
+  const rawType = searchParams.get("type");
+  const jobType = (JOB_TYPES as readonly string[]).includes(rawType ?? "")
+    ? (rawType as Job["type"])
+    : undefined;
+  const dateFrom = searchParams.get("dateFrom") ?? undefined;
+  const dateTo = searchParams.get("dateTo") ?? undefined;
+  const sort = searchParams.get("sort") === "oldest" ? "oldest" as const : "newest" as const;
   // Read newCode from the live URL — useSearchParams() always reflects the
   // current URL even when Next.js serves a cached RSC payload.
   const newCodeFromUrl = searchParams.get("new") ?? undefined;
@@ -72,7 +82,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
     return () => clearTimeout(timer);
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data, isLoading, isFetching } = useJobs({ search, page, pageSize: PAGE_SIZE, status: tab });
+  const { data, isLoading, isFetching } = useJobs({ search, page, pageSize: PAGE_SIZE, status: tab, type: jobType, dateFrom, dateTo, sort });
   const { data: applications } = useApplications();
 
   const jobs = data?.jobs ?? [];
@@ -251,7 +261,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
                         </span>
                         <span className="text-border hidden lg:inline">·</span>
                         <span className="caps-meta text-muted-foreground hidden lg:inline">
-                          {relativeTime(job.createdAt)}
+                          {relativeTime(job.publishedAt ?? job.createdAt)}
                         </span>
                       </div>
                     </Link>

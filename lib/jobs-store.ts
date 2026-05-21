@@ -50,6 +50,7 @@ export type Job = {
    * applications referencing it keep rendering. Reversible.
    */
   archivedAt?: string;
+  publishedAt?: string;
   status: "active" | "archived" | "draft";
 };
 
@@ -75,6 +76,7 @@ type JobRow = {
   workculture: string[] | null;
   created_at: string;
   archived_at: string | null;
+  published_at: string | null;
   status: string;
 };
 
@@ -102,6 +104,7 @@ function rowToJob(row: JobRow): Job {
   if (row.summary) job.summary = row.summary;
   if (row.portfoliorequirement) job.portfolioRequirement = row.portfoliorequirement;
   if (row.archived_at) job.archivedAt = row.archived_at;
+  if (row.published_at) job.publishedAt = row.published_at;
   return job;
 }
 
@@ -219,6 +222,7 @@ export async function createJob(input: CreateJobInput): Promise<Job> {
       benefits_inperson: input.benefitsInPerson ?? [],
       workculture: input.workCulture ?? [],
       status: input.status ?? "active",
+      published_at: (input.status ?? "active") === "active" ? new Date().toISOString() : null,
       // created_at defaults to now() in Postgres; archived_at defaults to null
     };
 
