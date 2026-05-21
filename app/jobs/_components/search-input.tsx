@@ -2,8 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { X } from "lucide-react";
 
 export function SearchInput({ initialSearch = "" }: { initialSearch?: string }) {
   const router = useRouter();
@@ -38,17 +37,23 @@ export function SearchInput({ initialSearch = "" }: { initialSearch?: string }) 
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="relative w-64 md:w-96">
-      <Search
-        className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
-        strokeWidth={1.75}
-      />
-      <Input
+    <div className="relative min-w-0 max-w-sm">
+      <input
+        type="text"
+        placeholder="Search jobs…"
         value={searchInput}
         onChange={(e) => setSearchInput(e.target.value)}
-        placeholder="Search jobs…"
-        className="pl-9 rounded-sm border-border bg-background text-body placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary h-9"
+        className="w-full px-3 py-1.5 pr-8 border border-border rounded-sm bg-background text-foreground text-body-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary"
       />
+      {searchInput && (
+        <button
+          onClick={() => setSearchInput("")}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Clear search"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }

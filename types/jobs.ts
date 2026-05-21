@@ -16,7 +16,7 @@ export type Job = {
   department?: string;
   location?: string;
   compensation?: string;
-  type?: string;
+  type?: "full-time" | "part-time" | "contract" | "internship";
   level?: string;
   summary?: string;
   responsibilities: string[];
@@ -28,7 +28,7 @@ export type Job = {
   workCulture: string[];
   createdAt: string;
   archivedAt?: string;
-  status: "draft" | "active" | "archived";
+  status: "active" | "archived" | "draft";
   publishedAt?: string;
   closedAt?: string;
   isPaidListing: boolean;

@@ -24,13 +24,38 @@ type SortOrder = "asc" | "desc";
 
 function buildHref(
   jobCode: string,
-  overrides: { status?: ExtendedFilter; search?: string | null; minScore?: number },
-  current: { filter: ExtendedFilter; searchQuery: string; minScore: number; sortOrder: SortOrder; pageSize: number }
+  overrides: {
+    status?: ExtendedFilter;
+    search?: string | null;
+    minScore?: number;
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    minYearsExp?: number | null;
+    maxYearsExp?: number | null;
+    dateSort?: "newest" | "oldest" | null;
+  },
+  current: {
+    filter: ExtendedFilter;
+    searchQuery: string;
+    minScore: number;
+    sortOrder: SortOrder;
+    pageSize: number;
+    dateFrom?: string;
+    dateTo?: string;
+    minYearsExp?: number;
+    maxYearsExp?: number;
+    dateSort?: "newest" | "oldest";
+  }
 ): string {
   const params = new URLSearchParams();
-  const status = "status" in overrides ? overrides.status : current.filter;
-  const search = "search" in overrides ? overrides.search : current.searchQuery;
-  const minScore = "minScore" in overrides ? overrides.minScore : current.minScore;
+  const status      = "status"      in overrides ? overrides.status      : current.filter;
+  const search      = "search"      in overrides ? overrides.search      : current.searchQuery;
+  const minScore    = "minScore"    in overrides ? overrides.minScore    : current.minScore;
+  const dateFrom    = "dateFrom"    in overrides ? overrides.dateFrom    : current.dateFrom;
+  const dateTo      = "dateTo"      in overrides ? overrides.dateTo      : current.dateTo;
+  const minYearsExp = "minYearsExp" in overrides ? overrides.minYearsExp : current.minYearsExp;
+  const maxYearsExp = "maxYearsExp" in overrides ? overrides.maxYearsExp : current.maxYearsExp;
+  const dateSort    = "dateSort"    in overrides ? overrides.dateSort    : current.dateSort;
 
   // Omit "all" from URL — it's the default
   if (status && status !== "all") params.set("status", status);
@@ -38,6 +63,11 @@ function buildHref(
   if (minScore !== undefined && minScore > 0) params.set("minScore", String(minScore));
   if (current.sortOrder !== "desc") params.set("sort", current.sortOrder);
   if (current.pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(current.pageSize));
+  if (dateFrom)    params.set("dateFrom", dateFrom);
+  if (dateTo)      params.set("dateTo", dateTo);
+  if (minYearsExp) params.set("minYearsExp", String(minYearsExp));
+  if (maxYearsExp) params.set("maxYearsExp", String(maxYearsExp));
+  if (dateSort)    params.set("dateSort", dateSort);
 
   const qs = params.toString();
   return `/jobs/${jobCode}${qs ? `?${qs}` : ""}`;
@@ -60,6 +90,13 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const pageSizeParam = searchParams.get("pageSize");
   const pageSize = pageSizeParam ? Math.max(10, Math.min(100, parseInt(pageSizeParam, 10))) : DEFAULT_PAGE_SIZE;
+  const dateFrom    = searchParams.get("dateFrom") ?? undefined;
+  const dateTo      = searchParams.get("dateTo") ?? undefined;
+  const minYearsExp = searchParams.get("minYearsExp") ? Math.max(0, parseInt(searchParams.get("minYearsExp")!, 10)) : undefined;
+  const maxYearsExp = searchParams.get("maxYearsExp") ? Math.max(0, parseInt(searchParams.get("maxYearsExp")!, 10)) : undefined;
+  const dateSort    = searchParams.get("dateSort") === "oldest" ? "oldest" as const
+                    : searchParams.get("dateSort") === "newest" ? "newest" as const
+                    : undefined;
 
   // Search input with derived-state sync for back/forward nav
   const search = searchParams.get("search") ?? "";
@@ -92,6 +129,11 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [tempMinScore, setTempMinScore] = useState(minScore);
+  const [tempDateFrom, setTempDateFrom] = useState(dateFrom ?? "");
+  const [tempDateTo, setTempDateTo] = useState(dateTo ?? "");
+  const [tempMinYearsExp, setTempMinYearsExp] = useState<number | "">(minYearsExp ?? "");
+  const [tempMaxYearsExp, setTempMaxYearsExp] = useState<number | "">(maxYearsExp ?? "");
+  const [tempDateSort, setTempDateSort] = useState<"newest" | "oldest" | undefined>(dateSort);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"csv" | "excel" | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -100,7 +142,6 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   const { data: job } = useJobById(jobCode);
   const jobTitle = job?.title ?? "";
   const jobCreatedAt = job?.createdAt ?? "";
-
   // Imperative fetch for candidate enrichment (used during export only)
   const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
 
@@ -111,6 +152,11 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
     minScore,
     page,
     pageSize,
+    dateFrom,
+    dateTo,
+    minYearsExp,
+    maxYearsExp,
+    dateSort,
   };
 
   // Fetch paginated + filtered applications for this job
@@ -223,8 +269,8 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
     }
   }, [getExportData, jobCode]);
 
-  const current = { filter, searchQuery: search, minScore, sortOrder, pageSize };
-  const hasActiveFilter = minScore > 0;
+  const current = { filter, searchQuery: search, minScore, sortOrder, pageSize, dateFrom, dateTo, minYearsExp, maxYearsExp, dateSort };
+  const hasActiveFilter = minScore > 0 || !!dateFrom || !!dateTo || !!minYearsExp || !!maxYearsExp || !!dateSort;
 
   return (
     <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
@@ -272,60 +318,169 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
             </div>
 
             {/* Filter button + popover */}
-            <div className="relative shrink-0 mt-2">
-              <button
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`p-1.5 border rounded-sm transition-colors ${
-                  hasActiveFilter
-                    ? "text-primary border-primary"
-                    : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
-                aria-label="Open filters"
-              >
-                <Filter className="h-4 w-4" strokeWidth={2} />
-              </button>
+            <div className="flex items-center gap-2 shrink-0 mt-2">
+              {hasActiveFilter && (
+                <Link
+                  href={buildHref(jobCode, { minScore: 0, dateFrom: null, dateTo: null, minYearsExp: null, maxYearsExp: null, dateSort: null }, current)}
+                  onClick={() => { setTempMinScore(0); setTempDateFrom(""); setTempDateTo(""); setTempMinYearsExp(""); setTempMaxYearsExp(""); setTempDateSort(undefined); }}
+                  className="caps-action text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear filters
+                </Link>
+              )}
+              <div className="relative">
+                <button
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className={`p-1.5 border rounded-sm transition-colors ${
+                    hasActiveFilter
+                      ? "text-primary border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
+                  aria-label="Open filters"
+                >
+                  <Filter className="h-4 w-4" strokeWidth={2} />
+                </button>
 
-              {isFilterOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
-                          Min Score: {tempMinScore}
-                        </label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={tempMinScore}
-                          onChange={(e) => setTempMinScore(parseInt(e.target.value))}
-                          className="w-full h-1.5 bg-secondary rounded-sm appearance-none cursor-pointer accent-primary"
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={tempMinScore}
-                          onChange={(e) =>
-                            setTempMinScore(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))
-                          }
-                          className="w-full mt-1 px-2 py-1 border border-border rounded-sm text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div className="pt-1">
-                        <Link
-                          href={buildHref(jobCode, { minScore: tempMinScore }, current)}
-                          onClick={() => setIsFilterOpen(false)}
-                          className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm text-xs font-medium transition-colors hover:bg-primary/90 text-center"
-                        >
-                          Apply
-                        </Link>
+                {isFilterOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
+                    <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
+                      <div className="space-y-3">
+
+                        {/* Date Sort */}
+                        <div>
+                          <p className="caps-meta text-muted-foreground mb-2">Sort By Date</p>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => setTempDateSort(undefined)}
+                              className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                                tempDateSort === undefined
+                                  ? "border-primary text-primary"
+                                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                              }`}
+                            >
+                              Score
+                            </button>
+                            {(["newest", "oldest"] as const).map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => setTempDateSort(s)}
+                                className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                                  tempDateSort === s
+                                    ? "border-primary text-primary"
+                                    : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                                }`}
+                              >
+                                {s === "newest" ? "Newest" : "Oldest"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Min Score */}
+                        <div>
+                          <label className="block caps-meta text-muted-foreground mb-1.5">
+                            Min Score: {tempMinScore}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={tempMinScore}
+                            onChange={(e) => setTempMinScore(parseInt(e.target.value))}
+                            className="w-full h-1.5 bg-secondary rounded-sm appearance-none cursor-pointer accent-primary"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={tempMinScore}
+                            onChange={(e) =>
+                              setTempMinScore(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))
+                            }
+                            className="w-full mt-1 px-2 py-1 border border-border rounded-sm text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+
+                        {/* Date Applied */}
+                        <div>
+                          <p className="caps-meta text-muted-foreground mb-2">Date Applied</p>
+                          <div className="space-y-2">
+                            <div>
+                              <label className="caps-meta text-muted-foreground/70 block mb-1">From</label>
+                              <input
+                                type="date"
+                                value={tempDateFrom}
+                                onChange={(e) => setTempDateFrom(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                              />
+                            </div>
+                            <div>
+                              <label className="caps-meta text-muted-foreground/70 block mb-1">To</label>
+                              <input
+                                type="date"
+                                value={tempDateTo}
+                                onChange={(e) => setTempDateTo(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Years of Experience */}
+                        <div>
+                          <p className="caps-meta text-muted-foreground mb-2">Experience</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {([
+                              { label: "Any",      min: "" as const, max: "" as const },
+                              { label: "0–2 yrs",  min: 0 as const,  max: 2 as const  },
+                              { label: "3–5 yrs",  min: 3 as const,  max: 5 as const  },
+                              { label: "6–10 yrs", min: 6 as const,  max: 10 as const },
+                              { label: "10+ yrs",  min: 10 as const, max: "" as const },
+                            ] as const).map((range) => {
+                              const active = tempMinYearsExp === range.min && tempMaxYearsExp === range.max;
+                              return (
+                                <button
+                                  key={range.label}
+                                  onClick={() => { setTempMinYearsExp(range.min); setTempMaxYearsExp(range.max); }}
+                                  className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                                    active
+                                      ? "border-primary text-primary"
+                                      : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                                  }`}
+                                >
+                                  {range.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="pt-1">
+                          <Link
+                            href={buildHref(
+                              jobCode,
+                              {
+                                minScore: tempMinScore,
+                                dateFrom: tempDateFrom || null,
+                                dateTo: tempDateTo || null,
+                                minYearsExp: tempMinYearsExp === "" ? null : (tempMinYearsExp as number),
+                                maxYearsExp: tempMaxYearsExp === "" ? null : (tempMaxYearsExp as number),
+                                dateSort: tempDateSort ?? null,
+                              },
+                              current
+                            )}
+                            onClick={() => setIsFilterOpen(false)}
+                            className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm caps-action transition-colors hover:bg-primary/90 text-center"
+                          >
+                            Apply
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Selection count + export — only when items are selected */}
@@ -409,6 +564,7 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
           </div>
         </div>
       </div>
+
 
       {/* Status filter chips */}
       {totalAll > 0 && (

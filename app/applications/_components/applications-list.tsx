@@ -29,26 +29,46 @@ function buildHref(
     search?: string | null;
     minScore?: number;
     page?: number;
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    minYearsExp?: number | null;
+    maxYearsExp?: number | null;
+    sort?: "newest" | "oldest";
   },
   current: {
     filter: ExtendedFilter;
     topN: TopN | null;
     searchQuery: string;
     minScore: number;
+    dateFrom?: string;
+    dateTo?: string;
+    minYearsExp?: number;
+    maxYearsExp?: number;
+    sort: "newest" | "oldest";
   }
 ): string {
   const params = new URLSearchParams();
-  const status   = "status"   in overrides ? overrides.status   : current.filter;
-  const top      = "top"      in overrides ? overrides.top      : current.topN;
-  const search   = "search"   in overrides ? overrides.search   : current.searchQuery;
-  const minScore = "minScore" in overrides ? overrides.minScore : current.minScore;
-  const page     = "page"     in overrides ? overrides.page     : undefined;
+  const status      = "status"      in overrides ? overrides.status      : current.filter;
+  const top         = "top"         in overrides ? overrides.top         : current.topN;
+  const search      = "search"      in overrides ? overrides.search      : current.searchQuery;
+  const minScore    = "minScore"    in overrides ? overrides.minScore    : current.minScore;
+  const page        = "page"        in overrides ? overrides.page        : undefined;
+  const dateFrom    = "dateFrom"    in overrides ? overrides.dateFrom    : current.dateFrom;
+  const dateTo      = "dateTo"      in overrides ? overrides.dateTo      : current.dateTo;
+  const minYearsExp = "minYearsExp" in overrides ? overrides.minYearsExp : current.minYearsExp;
+  const maxYearsExp = "maxYearsExp" in overrides ? overrides.maxYearsExp : current.maxYearsExp;
+  const sort        = "sort"        in overrides ? overrides.sort        : current.sort;
 
   if (status && status !== "all") params.set("status", status);
   if (top) params.set("top", String(top));
   if (search) params.set("search", encodeURIComponent(search));
   if (minScore !== 0) params.set("minScore", String(minScore));
   if (page && page > 1) params.set("page", String(page));
+  if (dateFrom)    params.set("dateFrom", dateFrom);
+  if (dateTo)      params.set("dateTo", dateTo);
+  if (minYearsExp) params.set("minYearsExp", String(minYearsExp));
+  if (maxYearsExp) params.set("maxYearsExp", String(maxYearsExp));
+  if (sort === "oldest") params.set("sort", "oldest");
 
   const qs = params.toString();
   return `/applications${qs ? `?${qs}` : ""}`;
@@ -72,12 +92,22 @@ export function ApplicationsList() {
     ? Math.max(0, Math.min(100, parseInt(searchParams.get("minScore")!, 10)))
     : 0;
   const search = searchParams.get("search") ? decodeURIComponent(searchParams.get("search")!) : "";
+  const dateFrom    = searchParams.get("dateFrom") ?? undefined;
+  const dateTo      = searchParams.get("dateTo") ?? undefined;
+  const minYearsExp = searchParams.get("minYearsExp") ? Math.max(0, parseInt(searchParams.get("minYearsExp")!, 10)) : undefined;
+  const maxYearsExp = searchParams.get("maxYearsExp") ? Math.max(0, parseInt(searchParams.get("maxYearsExp")!, 10)) : undefined;
+  const sort        = searchParams.get("sort") === "oldest" ? "oldest" as const : "newest" as const;
 
   const [localSearch, setLocalSearch] = useState(search);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [tempMinScore, setTempMinScore] = useState(minScore);
   const [tempTopN, setTempTopN] = useState(topN);
+  const [tempDateFrom, setTempDateFrom] = useState(dateFrom ?? "");
+  const [tempDateTo, setTempDateTo] = useState(dateTo ?? "");
+  const [tempMinYearsExp, setTempMinYearsExp] = useState<number | "">(minYearsExp ?? "");
+  const [tempMaxYearsExp, setTempMaxYearsExp] = useState<number | "">(maxYearsExp ?? "");
+  const [tempSort, setTempSort] = useState<"newest" | "oldest">(sort);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"csv" | "excel" | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -109,7 +139,7 @@ export function ApplicationsList() {
 
   // Fetch paginated + filtered applications across all jobs
   const { data, isLoading, isFetching } = useApplicationsAll(
-    { status: apiStatus, search, minScore, page, pageSize: topN ?? PAGE_SIZE }
+    { status: apiStatus, search, minScore, page, pageSize: topN ?? PAGE_SIZE, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
   );
 
   // Fetch jobs for row title lookup and export (all statuses — archived jobs have applications too)
@@ -133,7 +163,7 @@ export function ApplicationsList() {
   };
 
   const jobsByCode = new Map(jobs.map((j) => [j.code, j]));
-  const hasActiveFilters = !!search || minScore > 0 || !!topN;
+  const hasActiveFilters = !!search || minScore > 0 || !!topN || !!dateFrom || !!dateTo || !!minYearsExp || !!maxYearsExp || sort === "oldest";
   const hasData = allCount > 0;
   const showSkeleton = isLoading || (isFetching && applications.length === 0);
 
@@ -256,7 +286,20 @@ export function ApplicationsList() {
         )}
 
         {hasData && (
-          <div className="relative flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {hasActiveFilters && (
+              <Link
+                href={buildHref(
+                  { minScore: 0, dateFrom: null, dateTo: null, minYearsExp: null, maxYearsExp: null, sort: "newest" },
+                  { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
+                )}
+                onClick={() => { setTempMinScore(0); setTempDateFrom(""); setTempDateTo(""); setTempMinYearsExp(""); setTempMaxYearsExp(""); setTempSort("newest"); }}
+                className="caps-action text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Clear filters
+              </Link>
+            )}
+            <div className="relative">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={`p-1.5 border rounded-sm transition-colors ${
@@ -275,8 +318,29 @@ export function ApplicationsList() {
                 <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
                   <div className="space-y-3">
 
+                    {/* Sort */}
                     <div>
-                      <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
+                      <p className="caps-meta text-muted-foreground mb-2">Sort By</p>
+                      <div className="flex gap-1.5">
+                        {(["newest", "oldest"] as const).map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setTempSort(s)}
+                            className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                              tempSort === s
+                                ? "border-primary text-primary"
+                                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                            }`}
+                          >
+                            {s === "newest" ? "Newest" : "Oldest"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Min Score */}
+                    <div>
+                      <label className="block caps-meta text-muted-foreground mb-1.5">
                         Min Score: {tempMinScore}
                       </label>
                       <input
@@ -299,14 +363,76 @@ export function ApplicationsList() {
                       />
                     </div>
 
+                    {/* Date Applied */}
+                    <div>
+                      <p className="caps-meta text-muted-foreground mb-2">Date Applied</p>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="caps-meta text-muted-foreground/70 block mb-1">From</label>
+                          <input
+                            type="date"
+                            value={tempDateFrom}
+                            onChange={(e) => setTempDateFrom(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="caps-meta text-muted-foreground/70 block mb-1">To</label>
+                          <input
+                            type="date"
+                            value={tempDateTo}
+                            onChange={(e) => setTempDateTo(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Years of Experience */}
+                    <div>
+                      <p className="caps-meta text-muted-foreground mb-2">Experience</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {([
+                          { label: "Any",      min: "" as const, max: "" as const },
+                          { label: "0–2 yrs",  min: 0 as const,  max: 2 as const  },
+                          { label: "3–5 yrs",  min: 3 as const,  max: 5 as const  },
+                          { label: "6–10 yrs", min: 6 as const,  max: 10 as const },
+                          { label: "10+ yrs",  min: 10 as const, max: "" as const },
+                        ] as const).map((range) => {
+                          const active = tempMinYearsExp === range.min && tempMaxYearsExp === range.max;
+                          return (
+                            <button
+                              key={range.label}
+                              onClick={() => { setTempMinYearsExp(range.min); setTempMaxYearsExp(range.max); }}
+                              className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                                active
+                                  ? "border-primary text-primary"
+                                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                              }`}
+                            >
+                              {range.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     <div className="pt-1">
                       <Link
                         href={buildHref(
-                          { top: tempTopN, minScore: tempMinScore },
-                          { filter, topN, searchQuery: localSearch, minScore }
+                          {
+                            top: tempTopN,
+                            minScore: tempMinScore,
+                            dateFrom: tempDateFrom || null,
+                            dateTo: tempDateTo || null,
+                            minYearsExp: tempMinYearsExp === "" ? null : (tempMinYearsExp as number),
+                            maxYearsExp: tempMaxYearsExp === "" ? null : (tempMaxYearsExp as number),
+                            sort: tempSort,
+                          },
+                          { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
                         )}
                         onClick={() => setIsFilterOpen(false)}
-                        className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm text-xs font-medium transition-colors hover:bg-primary/90 text-center"
+                        className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm caps-action transition-colors hover:bg-primary/90 text-center"
                       >
                         Apply
                       </Link>
@@ -315,6 +441,7 @@ export function ApplicationsList() {
                 </div>
               </>
             )}
+            </div>
           </div>
         )}
 
@@ -383,7 +510,7 @@ export function ApplicationsList() {
               key={s}
               href={buildHref(
                 { status: s, page: 1 },
-                { filter, topN, searchQuery: localSearch, minScore }
+                { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
               )}
               label={FILTER_LABEL[s]}
               count={groupedCounts[s]}

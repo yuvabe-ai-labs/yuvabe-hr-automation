@@ -22,18 +22,23 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MoreHorizontal } from "lucide-react";
 import { useUpdateJobStatus } from "@/hooks/use-jobs";
+import { JdPreviewDialog, jobToPreviewData } from "@/app/jobs/_components/jd-preview-dialog";
+import type { Job } from "@/types/jobs";
 
 export function JobActionsMenu({
   jobCode,
   jobTitle,
   status,
+  job,
 }: {
   jobCode: string;
   jobTitle: string;
-  status: "draft" | "active" | "archived";
+  status: "active" | "archived" | "draft";
+  job?: Job;
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [publishPreviewOpen, setPublishPreviewOpen] = useState(false);
   const { mutate: updateStatus, isPending } = useUpdateJobStatus();
 
   const handleArchiveSelect = () => {
@@ -43,6 +48,15 @@ export function JobActionsMenu({
       return;
     }
     setConfirmOpen(true);
+  };
+
+  const handlePublish = () => {
+    setDropdownOpen(false);
+    if (job) {
+      setPublishPreviewOpen(true);
+    } else {
+      updateStatus({ code: jobCode, status: "active" });
+    }
   };
 
   const handleConfirmArchive = () => {
@@ -69,19 +83,31 @@ export function JobActionsMenu({
           </DropdownMenuItem>
           <DropdownMenuItem disabled>Duplicate</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              handleArchiveSelect();
-            }}
-            className={
-              status === "archived"
-                ? "text-foreground focus:text-foreground"
-                : "text-primary focus:text-primary"
-            }
-          >
-            {status === "archived" ? "Unarchive" : "Archive"}
-          </DropdownMenuItem>
+          {status === "draft" ? (
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                handlePublish();
+              }}
+              className="text-foreground focus:text-foreground"
+            >
+              Publish
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                handleArchiveSelect();
+              }}
+              className={
+                status === "archived"
+                  ? "text-foreground focus:text-foreground"
+                  : "text-primary focus:text-primary"
+              }
+            >
+              {status === "archived" ? "Unarchive" : "Archive"}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -107,6 +133,19 @@ export function JobActionsMenu({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {job && (
+        <JdPreviewDialog
+          open={publishPreviewOpen}
+          onOpenChange={setPublishPreviewOpen}
+          data={jobToPreviewData(job)}
+          onPublish={() => {
+            setPublishPreviewOpen(false);
+            updateStatus({ code: jobCode, status: "active" });
+          }}
+          isPublishing={isPending}
+        />
+      )}
     </>
   );
 }
