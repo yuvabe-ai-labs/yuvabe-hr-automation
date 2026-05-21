@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      application_notes: {
-        Row: {
-          id: string
-          application_id: string
-          author_email: string
-          body: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id: string
-          application_id: string
-          author_email: string
-          body: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          application_id?: string
-          author_email?: string
-          body?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       applications: {
         Row: {
           id: string
