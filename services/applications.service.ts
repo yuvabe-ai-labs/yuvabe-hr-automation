@@ -42,6 +42,11 @@ export type ApplicationsQueryParams = {
   minScore?: number;
   page?: number;
   pageSize?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  minYearsExp?: number;
+  maxYearsExp?: number;
+  dateSort?: "newest" | "oldest";
 };
 
 export type AllApplicationsQueryParams = {
@@ -50,6 +55,11 @@ export type AllApplicationsQueryParams = {
   minScore?: number;
   page?: number;
   pageSize?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  minYearsExp?: number;
+  maxYearsExp?: number;
+  sort?: "newest" | "oldest";
 };
 
 export type AllApplicationsPageResult = {
@@ -98,7 +108,7 @@ export async function listApplicationsByJobCode(
   options?: ApplicationsQueryParams
 ): Promise<ApplicationsPageResult> {
   try {
-    const { status, search, sort = "desc", minScore = 0, page = 1, pageSize = 15 } = options ?? {};
+    const { status, search, sort = "desc", minScore = 0, page = 1, pageSize = 15, dateFrom, dateTo, minYearsExp, maxYearsExp, dateSort } = options ?? {};
     const client = getSupabasePeopleClient();
 
     // Status breakdown — lightweight count query for chip totals
@@ -121,19 +131,28 @@ export async function listApplicationsByJobCode(
       rejected:    rawCounts.rejected,
     };
 
-    // Paginated main query
+    // Paginated main query — date sort replaces score sort when selected
     let query = client
       .from("applications")
       .select("*", { count: "exact" })
-      .eq("job_code", jobCode)
-      .order("match_score", { ascending: sort === "asc" });
+      .eq("job_code", jobCode);
+
+    if (dateSort) {
+      query = query.order("received_at", { ascending: dateSort === "oldest" });
+    } else {
+      query = query.order("match_score", { ascending: sort === "asc" });
+    }
 
     if (status) {
       const group = STATUS_GROUP[status as FilterStatus] ?? [status];
       query = query.in("status", group);
     }
-    if (search) query = query.ilike("candidate_name", `%${search}%`);
+    if (search)      query = query.ilike("candidate_name", `%${search}%`);
     if (minScore > 0) query = query.gte("match_score", minScore);
+    if (dateFrom)    query = query.gte("received_at", dateFrom);
+    if (dateTo)      query = query.lte("received_at", dateTo);
+    if (minYearsExp) query = query.gte("candidate_years_of_experience", minYearsExp);
+    if (maxYearsExp) query = query.lte("candidate_years_of_experience", maxYearsExp);
 
     const offset = (page - 1) * pageSize;
     query = query.range(offset, offset + pageSize - 1);
@@ -155,7 +174,7 @@ export async function listApplicationsByJobCode(
 export async function listApplicationsAll(
   options?: AllApplicationsQueryParams
 ): Promise<AllApplicationsPageResult> {
-  const { status, search, minScore = 0, page = 1, pageSize = 10 } = options ?? {};
+  const { status, search, minScore = 0, page = 1, pageSize = 10, dateFrom, dateTo, minYearsExp, maxYearsExp, sort = "newest" } = options ?? {};
   const client = getSupabasePeopleClient();
 
   // Status breakdown — lightweight count query for chip totals
@@ -178,7 +197,7 @@ export async function listApplicationsAll(
   let query = client
     .from("applications")
     .select("*", { count: "exact" })
-    .order("received_at", { ascending: false });
+    .order("received_at", { ascending: sort === "oldest" });
 
   if (status) {
     if (status === "new") {
@@ -188,8 +207,12 @@ export async function listApplicationsAll(
       query = query.in("status", group);
     }
   }
-  if (search) query = query.ilike("candidate_name", `%${search}%`);
+  if (search)      query = query.ilike("candidate_name", `%${search}%`);
   if (minScore > 0) query = query.gte("match_score", minScore);
+  if (dateFrom)    query = query.gte("received_at", dateFrom);
+  if (dateTo)      query = query.lte("received_at", dateTo);
+  if (minYearsExp) query = query.gte("candidate_years_of_experience", minYearsExp);
+  if (maxYearsExp) query = query.lte("candidate_years_of_experience", maxYearsExp);
 
   const offset = (page - 1) * pageSize;
   query = query.range(offset, offset + pageSize - 1);

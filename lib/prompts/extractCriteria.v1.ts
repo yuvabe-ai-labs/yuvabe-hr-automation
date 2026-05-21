@@ -73,11 +73,11 @@ Other rules:
 
 Additionally, extract structured job metadata (best-effort — omit if not present):
 - department: Org function (Engineering, Design, Marketing, Sales, Product, Operations, etc.)
-- level: Seniority level — one of "Entry Level", "Experienced". Infer from years_required or JD:
-  - If years_required < 2 or "junior/entry" language: "Entry Level"
-  - If years_required >= 2 or "senior/experienced" language: "Experienced"
+- level: Seniority level — one of "entry-level", "experienced". Infer from years_required or JD:
+  - If years_required < 2 or "junior/entry" language: "entry-level"
+  - If years_required >= 2 or "senior/experienced" language: "experienced"
   - Null if cannot determine
-- job_type: Employment type — one of "Full Time", "Part Time", "Contract", "Internship". Null if not found.
+- job_type: Employment type — one of "full-time", "part-time", "contract", "internship". Null if not found.
 - location: Job location — one of "Auroville, India", "Remote", "Flexible". Null if not found.
 - compensation: Salary range, equity, or compensation details if mentioned (e.g. "₹50L-70L", "$100k-130k", "Competitive")
 - summary: 2-3 sentence plain-language role overview
@@ -132,13 +132,13 @@ export const EXTRACT_CRITERIA_SCHEMA = {
     },
     level: {
       type: "string",
-      enum: ["Entry Level", "Experienced"],
+      enum: ["entry-level", "experienced"],
       description: "Seniority level. Infer from years_required or JD language. Null if cannot determine.",
       nullable: true,
     },
     job_type: {
       type: "string",
-      enum: ["Full Time", "Part Time", "Contract", "Internship"],
+      enum: ["full-time", "part-time", "contract", "internship"],
       description: "Employment type. Null if not found.",
       nullable: true,
     },

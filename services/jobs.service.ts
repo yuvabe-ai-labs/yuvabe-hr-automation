@@ -11,7 +11,7 @@ function mapRowToJob(row: JobRow): Job {
     department: row.department || undefined,
     location: row.location || undefined,
     compensation: row.compensation || undefined,
-    type: row.type || undefined,
+    type: (row.type as Job["type"]) || undefined,
     level: row.level || undefined,
     summary: row.summary || undefined,
     responsibilities: (row.responsibilities as string[]) || [],
@@ -50,25 +50,32 @@ export async function getJobById(code: string): Promise<Job | undefined> {
   }
 }
 
-// Fetch paginated list of jobs filtered by status and optional search
+// Fetch paginated list of jobs filtered by status and optional search/filters
 export async function listJobs(options?: {
   status?: "active" | "archived" | "draft";
   search?: string;
   page?: number;
   pageSize?: number;
+  type?: "full-time" | "part-time" | "contract" | "internship";
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: "newest" | "oldest";
 }): Promise<JobsListResult> {
   try {
-    const { status = "active", search, page = 1, pageSize = 10 } = options ?? {};
+    const { status = "active", search, page = 1, pageSize = 10, type, dateFrom, dateTo, sort = "newest" } = options ?? {};
+    // Drafts have no published_at — use created_at for ordering and date filtering instead
+    const dateField = status === "draft" ? "created_at" : "published_at";
     const client = getSupabasePeopleClient();
     let query = client
       .from("jobs")
       .select("*", { count: "exact" })
       .eq("status", status)
-      .order("created_at", { ascending: false });
+      .order(dateField, { ascending: sort === "oldest", nullsFirst: false });
 
-    if (search) {
-      query = query.ilike("title", `%${search}%`);
-    }
+    if (search)   query = query.ilike("title", `%${search}%`);
+    if (type)     query = query.eq("type", type);
+    if (dateFrom) query = query.gte(dateField, dateFrom);
+    if (dateTo)   query = query.lte(dateField, dateTo);
 
     const offset = (page - 1) * pageSize;
     query = query.range(offset, offset + pageSize - 1);
@@ -126,6 +133,7 @@ export async function updateJobStatus(
       .update({
         status,
         archived_at: status === "archived" ? new Date().toISOString() : null,
+        ...(status === "active" ? { published_at: new Date().toISOString() } : {}),
       })
       .eq("code", code)
       .select()
