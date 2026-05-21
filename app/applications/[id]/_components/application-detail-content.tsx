@@ -5,6 +5,7 @@ import { ArrowLeft, ExternalLink, FileText, TriangleAlert } from "lucide-react";
 import NavTabClient from "@/app/jobs/_components/nav-tab";
 import { StatusActions } from "./status-actions";
 import { NotesButton } from "./notes-button";
+import { InterviewsSection } from "./interviews-section";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { useApplicationById } from "@/hooks/use-applications";
 import { useCandidateById } from "@/hooks/use-candidates";
@@ -326,11 +327,6 @@ export function ApplicationDetailContent({
             </div>
           </div>
 
-          {/* Notes */}
-          <div className="mt-3 pt-6 border-border">
-            <NotesButton applicationId={application.id} currentUser={currentUser} />
-          </div>
-
           {/* Score */}
           <div className="mt-6 pt-6 border-t border-border">
             <Eyebrow>Match score</Eyebrow>
@@ -357,6 +353,20 @@ export function ApplicationDetailContent({
                 currentStatus={application.status}
               />
             </div>
+            {application.status === "rejected" && application.rejectionReason && (
+              <div className="mt-4 border-l-2 border-primary/40 pl-3 py-1.5 bg-primary/[0.03] rounded-sm">
+                <span className="text-primary/70"><Eyebrow>Rejection reason</Eyebrow></span>
+                <p className="mt-1.5 font-serif italic text-body-sm text-foreground/80 leading-relaxed">
+                  {application.rejectionReason}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Notes + Interviews */}
+          <div className="mt-6 pt-6 border-t border-border space-y-6">
+            <NotesButton applicationId={application.id} currentUser={currentUser} />
+            <InterviewsSection application={application} jobTitle={job?.title} />
           </div>
 
           {/* Quick stats */}

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_notes: {
+        Row: {
+          id: string
+          application_id: string
+          author_email: string
+          body: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          application_id: string
+          author_email: string
+          body: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          application_id?: string
+          author_email?: string
+          body?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           id: string
@@ -107,33 +134,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      application_notes: {
-        Row: {
-          id: string
-          application_id: string
-          author_email: string
-          body: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          application_id: string
-          author_email: string
-          body: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          application_id?: string
-          author_email?: string
-          body?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       candidates: {
         Row: {
@@ -359,17 +359,20 @@ export type Database = {
           job_id: string
           job_code: string
           job_title: string
+          title: string
           scheduled_at: string
           duration_minutes: number
           timezone: string
           status: string
           notes: string | null
-          google_event_id: string
-          google_meet_link: string
+          location: string | null
+          meeting_link: string | null
+          interviewer_id: string | null
+          interviewer_name: string | null
           created_at: string
         }
         Insert: {
-          id: string
+          id?: string
           application_id: string
           candidate_id: string
           candidate_name: string
@@ -377,13 +380,16 @@ export type Database = {
           job_id: string
           job_code: string
           job_title: string
+          title?: string
           scheduled_at: string
           duration_minutes?: number
           timezone?: string
           status?: string
           notes?: string | null
-          google_event_id: string
-          google_meet_link: string
+          location?: string | null
+          meeting_link?: string | null
+          interviewer_id?: string | null
+          interviewer_name?: string | null
           created_at?: string
         }
         Update: {
@@ -395,13 +401,16 @@ export type Database = {
           job_id?: string
           job_code?: string
           job_title?: string
+          title?: string
           scheduled_at?: string
           duration_minutes?: number
           timezone?: string
           status?: string
           notes?: string | null
-          google_event_id?: string
-          google_meet_link?: string
+          location?: string | null
+          meeting_link?: string | null
+          interviewer_id?: string | null
+          interviewer_name?: string | null
           created_at?: string
         }
         Relationships: [

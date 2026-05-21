@@ -17,16 +17,24 @@ export const STATUS_LABEL: Record<ApplicationStatus, string> = {
   new: "New",
   reviewing: "Reviewing",
   shortlisted: "Shortlisted",
-  rejected: "Rejected",
+  interview_scheduled: "Interview Scheduled",
+  interviewed: "Interviewed",
   offered: "Offered",
+  hired: "Hired",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
 };
 
 export const STATUS_COLOR: Record<ApplicationStatus, string> = {
   new: "text-foreground/70",
   reviewing: "text-foreground",
   shortlisted: "text-[#2F5E7A]",
-  rejected: "text-muted-foreground line-through",
+  interview_scheduled: "text-[#2F5E7A]",
+  interviewed: "text-[#2F5E7A]",
   offered: "text-[#3F6B3F]",
+  hired: "text-[#3F6B3F]",
+  rejected: "text-muted-foreground line-through",
+  withdrawn: "text-muted-foreground line-through",
 };
 
 export const IMPORTANCE_LABEL = {

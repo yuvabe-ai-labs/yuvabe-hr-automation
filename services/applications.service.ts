@@ -18,6 +18,8 @@ function mapRowToApplication(row: ApplicationRow): Application {
     resumeUrl: row.resume_url || undefined,
     receivedAt: row.received_at || new Date().toISOString(),
     status: (row.status as ApplicationStatus) || "new",
+    rejectionReason: row.rejection_reason ?? undefined,
+    assignedInterviewerId: row.assigned_interviewer_id ?? undefined,
   };
 }
 
@@ -118,7 +120,8 @@ export async function listApplicationsByJobCode(
       .eq("job_code", jobCode);
 
     const rawCounts: Record<ApplicationStatus, number> = {
-      new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0,
+      new: 0, reviewing: 0, shortlisted: 0, interview_scheduled: 0,
+      interviewed: 0, offered: 0, hired: 0, rejected: 0, withdrawn: 0,
     };
     for (const row of statusRows ?? []) {
       const s = row.status as ApplicationStatus;
@@ -181,7 +184,8 @@ export async function listApplicationsAll(
   const { data: statusRows } = await client.from("applications").select("status");
 
   const rawCounts: Record<ApplicationStatus, number> = {
-    new: 0, reviewing: 0, shortlisted: 0, rejected: 0, offered: 0,
+    new: 0, reviewing: 0, shortlisted: 0, interview_scheduled: 0,
+    interviewed: 0, offered: 0, hired: 0, rejected: 0, withdrawn: 0,
   };
   for (const row of statusRows ?? []) {
     const s = row.status as ApplicationStatus;
@@ -254,6 +258,28 @@ export async function updateApplicationStatus(
     const { data, error } = await client
       .from("applications")
       .update({ status })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error || !data) return undefined;
+    return mapRowToApplication(data as ApplicationRow);
+  } catch {
+    return undefined;
+  }
+}
+
+// Update status with an optional rejection reason (used for post-interview rejection)
+export async function updateApplicationStatusWithReason(
+  id: string,
+  status: ApplicationStatus,
+  rejectionReason?: string
+): Promise<Application | undefined> {
+  try {
+    const client = getSupabasePeopleClient();
+    const { data, error } = await client
+      .from("applications")
+      .update({ status, rejection_reason: rejectionReason ?? null })
       .eq("id", id)
       .select()
       .single();
