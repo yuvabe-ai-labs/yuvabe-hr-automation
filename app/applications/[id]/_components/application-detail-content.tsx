@@ -355,7 +355,7 @@ export function ApplicationDetailContent({
             </div>
             {application.status === "rejected" && application.rejectionReason && (
               <div className="mt-4 border-l-2 border-primary/40 pl-3 py-1.5 bg-primary/[0.03] rounded-sm">
-                <Eyebrow className="text-primary/70">Rejection reason</Eyebrow>
+                <span className="text-primary/70"><Eyebrow>Rejection reason</Eyebrow></span>
                 <p className="mt-1.5 font-serif italic text-body-sm text-foreground/80 leading-relaxed">
                   {application.rejectionReason}
                 </p>
