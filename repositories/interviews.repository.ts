@@ -155,6 +155,7 @@ export const interviewsRepository = {
     const { data, error } = await supabase
       .from("interviews")
       .select("*")
+      .in("status", ["scheduled", "rescheduled"])
       .gte("scheduled_at", now)
       .order("scheduled_at", { ascending: true })
     if (error) throw new Error(`Failed to fetch upcoming interviews: ${error.message}`)

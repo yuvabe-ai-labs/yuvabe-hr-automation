@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, FileText, TriangleAlert } from "lucide-react";
+import { ExternalLink, FileText, TriangleAlert } from "lucide-react";
+import { AppHeader } from "@/app/_components/app-header";
 import { useSession } from "@/app/providers";
-import NavTabClient from "@/app/jobs/_components/nav-tab";
 import { StatusActions } from "./status-actions";
 import { NotesButton } from "./notes-button";
 import { InterviewsSection } from "./interviews-section";
-import { SignOutButton } from "@/app/_components/sign-out-button";
 import { useApplicationById } from "@/hooks/use-applications";
 import { useCandidateById } from "@/hooks/use-candidates";
 import { useJobById } from "@/hooks/use-jobs";
@@ -59,22 +58,7 @@ function ApplicationDetailSkeleton() {
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
       {/* Header */}
-      <header className="shrink-0 border-b border-border bg-background z-10">
-        <div className="px-4 md:px-10 pt-4 pb-3 flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <Link href="/" className="font-serif italic text-h3 leading-none hover:opacity-70 transition-opacity">
-              Yuvabe
-            </Link>
-            <span className="text-muted-foreground">/</span>
-            <Eyebrow>ATS</Eyebrow>
-          </div>
-          <div className="h-3 w-28 bg-muted rounded-sm animate-pulse" />
-        </div>
-        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
-          <div className="h-3 w-10 bg-muted rounded-sm animate-pulse my-3.5" />
-          <div className="h-3 w-20 bg-muted/60 rounded-sm animate-pulse my-3.5 ml-auto" />
-        </nav>
-      </header>
+      <AppHeader topRight={<div className="h-3 w-28 bg-muted rounded-sm animate-pulse" />} />
 
       <main className="md:flex-1 grid grid-cols-1 md:grid-cols-[390px_1fr] xl:grid-cols-[390px_1fr_1fr] md:overflow-hidden">
         {/* LEFT — candidate profile */}
@@ -276,31 +260,13 @@ export function ApplicationDetailContent({
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
-      {/* —————— Sticky header —————— */}
-      <header className="shrink-0 border-b border-border bg-background z-10">
-        <div className="px-4 md:px-10 pt-4 pb-3 flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <Link href="/" className="font-serif italic text-h3 leading-none hover:opacity-70 transition-opacity">
-              Yuvabe
-            </Link>
-            <span className="text-muted-foreground">/</span>
-            <Eyebrow>ATS</Eyebrow>
-          </div>
-          <Link
-            href={`/jobs/${application.jobCode}`}
-            className="inline-flex items-center gap-1.5 caps-action text-muted-foreground hover:text-foreground transition-colors min-w-0 max-w-[40ch]"
-          >
-            <ArrowLeft className="h-3 w-3 shrink-0" />
-            <span className="truncate">{job?.title ?? ""}</span>
-          </Link>
-        </div>
-        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
-          <NavTabClient href="/jobs" label="Jobs" prefix="/jobs" />
-          {/* <NavTabClient href="/applications" label="Applicants" prefix="/applications" /> */}
-          {/* <NavTabClient href="/shortlist" label="Shortlist" prefix="/shortlist" /> */}
-          <SignOutButton className="ml-auto" />
-        </nav>
-      </header>
+      <AppHeader
+        backLink={{
+          href: `/jobs/${application.jobCode}`,
+          label: job?.title ?? "",
+          truncate: true,
+        }}
+      />
 
       <main className="md:flex-1 grid grid-cols-1 md:grid-cols-[390px_1fr] xl:grid-cols-[390px_1fr_1fr] md:overflow-hidden">
         {/* ———————— LEFT — candidate profile ———————— */}

@@ -48,10 +48,7 @@ export function InterviewsSection({ application, jobTitle, asColumn }: Props) {
       <>
         {/* Column header — fixed, not scrollable */}
         <div className="shrink-0 px-4 pt-5 pb-4 border-b border-border bg-background flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-2.5">
-            <span className="font-serif italic text-display leading-none text-primary tabular">iii.</span>
-            <span className="font-serif italic text-h2 leading-none text-foreground/85">Interviews</span>
-          </div>
+          <span className="font-serif italic text-h2 leading-none text-foreground/85">Interviews</span>
           {canSchedule && (
             <Button
               size="sm"
