@@ -2,6 +2,7 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,9 +33,14 @@ function LoginShell() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-12">
           <span className="eyebrow text-muted-foreground">ATS</span>
-          <h1 className="mt-3 font-serif italic text-display leading-none">
-            Yuvabe
-          </h1>
+          <Image
+            src="/assests/yuvabe.png"
+            alt="Yuvabe"
+            width={160}
+            height={48}
+            className="mt-3 mx-auto -translate-x-3"
+            priority
+          />
         </div>
       </div>
     </main>
@@ -79,9 +85,14 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-12">
           <span className="eyebrow text-muted-foreground">ATS</span>
-          <h1 className="mt-3 font-serif italic text-display leading-none">
-            Yuvabe
-          </h1>
+          <Image
+            src="/assests/yuvabe.png"
+            alt="Yuvabe"
+            width={160}
+            height={48}
+            className="mt-3 mx-auto -translate-x-3"
+            priority
+          />
           <p className="mt-4 font-serif italic text-body-lg text-foreground/70">
             Sign in to continue
           </p>
