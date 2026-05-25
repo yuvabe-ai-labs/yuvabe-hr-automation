@@ -4,7 +4,10 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/app/providers";
+import { useManagers } from "@/features/users/hooks/use-managers";
 import type { Job } from "@/types/jobs";
+import type { User } from "@/types/users";
 
 const JOB_TYPE_LABELS: Record<NonNullable<Job["type"]>, string> = {
   "full-time": "Full-time",
@@ -20,6 +23,10 @@ export function JobsFilterButton() {
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
 
+  const { role } = useSession();
+  const canFilterByManager = role !== "manager";
+  const { data: managers = [] } = useManagers();
+
   const rawTab = searchParams.get("tab");
   const isDraft = rawTab === "draft";
 
@@ -29,16 +36,17 @@ export function JobsFilterButton() {
     : undefined;
   const currentDateFrom = searchParams.get("dateFrom") ?? undefined;
   const currentDateTo = searchParams.get("dateTo") ?? undefined;
-
   const currentSort = searchParams.get("sort") === "oldest" ? "oldest" as const : "newest" as const;
+  const currentManagerId = searchParams.get("managerId") ?? undefined;
 
-  const hasActiveFilters = !!(currentType || currentDateFrom || currentDateTo || currentSort === "oldest");
+  const hasActiveFilters = !!(currentType || currentDateFrom || currentDateTo || currentSort === "oldest" || currentManagerId);
 
   function applyFilters(vals: {
     type?: string | null;
     dateFrom?: string | null;
     dateTo?: string | null;
     sort: "newest" | "oldest";
+    managerId?: string | null;
   }) {
     const params = new URLSearchParams(searchParams.toString());
     if (vals.type)          params.set("type", vals.type);
@@ -49,6 +57,8 @@ export function JobsFilterButton() {
     else                    params.delete("dateTo");
     if (vals.sort === "oldest") params.set("sort", "oldest");
     else                        params.delete("sort");
+    if (vals.managerId)     params.set("managerId", vals.managerId);
+    else                    params.delete("managerId");
     params.delete("page");
     router.replace(`?${params.toString()}`, { scroll: false });
     setOpen(false);
@@ -60,6 +70,7 @@ export function JobsFilterButton() {
     params.delete("dateFrom");
     params.delete("dateTo");
     params.delete("sort");
+    params.delete("managerId");
     params.delete("page");
     router.replace(`?${params.toString()}`, { scroll: false });
     setOpen(false);
@@ -67,14 +78,6 @@ export function JobsFilterButton() {
 
   return (
     <div className="flex items-center gap-2 shrink-0">
-      {hasActiveFilters && (
-        <button
-          onClick={clearFilters}
-          className="caps-action text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Clear filters
-        </button>
-      )}
       <div className="relative">
         <button
           onClick={() => setOpen(!open)}
@@ -96,13 +99,24 @@ export function JobsFilterButton() {
               currentDateFrom={currentDateFrom}
               currentDateTo={currentDateTo}
               currentSort={currentSort}
+              currentManagerId={currentManagerId}
               isDraft={isDraft}
+              canFilterByManager={canFilterByManager}
+              managers={managers}
               onApply={applyFilters}
               onClose={() => setOpen(false)}
             />
           </>
         )}
       </div>
+      {hasActiveFilters && (
+        <button
+          onClick={clearFilters}
+          className="caps-action text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Clear filters
+        </button>
+      )}
     </div>
   );
 }
@@ -112,7 +126,10 @@ function FilterPanel({
   currentDateFrom,
   currentDateTo,
   currentSort,
+  currentManagerId,
   isDraft,
+  canFilterByManager,
+  managers,
   onApply,
   onClose: _onClose,
 }: {
@@ -120,14 +137,18 @@ function FilterPanel({
   currentDateFrom?: string;
   currentDateTo?: string;
   currentSort: "newest" | "oldest";
+  currentManagerId?: string;
   isDraft: boolean;
-  onApply: (vals: { type?: string | null; dateFrom?: string | null; dateTo?: string | null; sort: "newest" | "oldest" }) => void;
+  canFilterByManager: boolean;
+  managers: User[];
+  onApply: (vals: { type?: string | null; dateFrom?: string | null; dateTo?: string | null; sort: "newest" | "oldest"; managerId?: string | null }) => void;
   onClose: () => void;
 }) {
   const [type, setType] = useState<Job["type"] | null>(currentType ?? null);
   const [dateFrom, setDateFrom] = useState(currentDateFrom ?? "");
   const [dateTo, setDateTo] = useState(currentDateTo ?? "");
   const [sort, setSort] = useState<"newest" | "oldest">(currentSort);
+  const [managerId, setManagerId] = useState<string>(currentManagerId ?? "");
 
   return (
     <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64 space-y-3">
@@ -150,6 +171,23 @@ function FilterPanel({
           ))}
         </div>
       </div>
+
+      {/* Manager */}
+      {canFilterByManager && managers.length > 0 && (
+        <div>
+          <p className="caps-meta text-muted-foreground mb-2">Manager</p>
+          <select
+            value={managerId}
+            onChange={(e) => setManagerId(e.target.value)}
+            className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+          >
+            <option value="">All managers</option>
+            {managers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Job Type */}
       <div>
@@ -210,7 +248,7 @@ function FilterPanel({
       <div className="pt-1">
         <Button
           size="sm"
-          onClick={() => onApply({ type: type ?? null, dateFrom: dateFrom || null, dateTo: dateTo || null, sort })}
+          onClick={() => onApply({ type: type ?? null, dateFrom: dateFrom || null, dateTo: dateTo || null, sort, managerId: managerId || null })}
           className="block w-full rounded-sm caps-action"
         >
           Apply
@@ -219,4 +257,3 @@ function FilterPanel({
     </div>
   );
 }
-

@@ -2,6 +2,8 @@ import Link from "next/link";
 import NavTab from "@/app/jobs/_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { Eyebrow } from "@/components/shared/eyebrow";
+import { UserBadge } from "@/app/_components/user-badge";
+import { StudioLink } from "@/app/_components/studio-link";
 
 export function PageHeader() {
   return (
@@ -17,11 +19,15 @@ export function PageHeader() {
           <span className="text-muted-foreground">/</span>
           <Eyebrow>ATS</Eyebrow>
         </div>
+        <UserBadge />
       </div>
       <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
         <NavTab href="/jobs" label="Jobs" prefix="/jobs" />
         <NavTab href="/interviews" label="Interviews" prefix="/interviews" />
-        <SignOutButton className="ml-auto" />
+        <div className="ml-auto flex items-center gap-5">
+          <StudioLink />
+          <SignOutButton />
+        </div>
       </nav>
     </header>
   );

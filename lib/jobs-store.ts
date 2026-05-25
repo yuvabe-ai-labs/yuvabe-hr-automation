@@ -183,6 +183,7 @@ export type CreateJobInput = {
   benefitsInPerson?: string[];
   workCulture?: string[];
   status?: "active" | "draft";
+  hiringManagerId?: string;
 };
 
 /**
@@ -223,6 +224,7 @@ export async function createJob(input: CreateJobInput): Promise<Job> {
       workculture: input.workCulture ?? [],
       status: input.status ?? "active",
       published_at: (input.status ?? "active") === "active" ? new Date().toISOString() : null,
+      hiring_manager_id: input.hiringManagerId ?? null,
       // created_at defaults to now() in Postgres; archived_at defaults to null
     };
 

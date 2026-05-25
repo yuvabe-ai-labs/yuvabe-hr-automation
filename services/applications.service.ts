@@ -1,5 +1,6 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
 import type { Application, ApplicationRow, ApplicationStatus } from "@/types/applications";
+import { interviewsRepository } from "@/repositories/interviews.repository";
 
 function mapRowToApplication(row: ApplicationRow): Application {
   return {
@@ -62,6 +63,7 @@ export type AllApplicationsQueryParams = {
   minYearsExp?: number;
   maxYearsExp?: number;
   sort?: "newest" | "oldest";
+  managerId?: string;
 };
 
 export type AllApplicationsPageResult = {
@@ -177,11 +179,32 @@ export async function listApplicationsByJobCode(
 export async function listApplicationsAll(
   options?: AllApplicationsQueryParams
 ): Promise<AllApplicationsPageResult> {
-  const { status, search, minScore = 0, page = 1, pageSize = 10, dateFrom, dateTo, minYearsExp, maxYearsExp, sort = "newest" } = options ?? {};
+  const { status, search, minScore = 0, page = 1, pageSize = 10, dateFrom, dateTo, minYearsExp, maxYearsExp, sort = "newest", managerId } = options ?? {};
   const client = getSupabasePeopleClient();
 
+  // When scoped to a manager, resolve their assigned job IDs first.
+  let assignedJobIds: string[] | undefined;
+  if (managerId) {
+    const { data: jobRows } = await client
+      .from("jobs")
+      .select("id")
+      .eq("hiring_manager_id", managerId);
+    assignedJobIds = (jobRows ?? []).map((r: { id: string }) => r.id);
+    // Manager has no assigned jobs — return empty result immediately.
+    if (assignedJobIds.length === 0) {
+      return {
+        applications: [],
+        total: 0,
+        allTotal: 0,
+        statusCounts: { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 },
+      };
+    }
+  }
+
   // Status breakdown — lightweight count query for chip totals
-  const { data: statusRows } = await client.from("applications").select("status");
+  let statusQuery = client.from("applications").select("status");
+  if (assignedJobIds) statusQuery = statusQuery.in("job_id", assignedJobIds);
+  const { data: statusRows } = await statusQuery;
 
   const rawCounts: Record<ApplicationStatus, number> = {
     new: 0, reviewing: 0, shortlisted: 0, interview_scheduled: 0,
@@ -203,6 +226,7 @@ export async function listApplicationsAll(
     .select("*", { count: "exact" })
     .order("received_at", { ascending: sort === "oldest" });
 
+  if (assignedJobIds) query = query.in("job_id", assignedJobIds);
   if (status) {
     if (status === "new") {
       query = query.eq("status", "new");
@@ -263,6 +287,14 @@ export async function updateApplicationStatus(
       .single();
 
     if (error || !data) return undefined;
+
+    if (status === "interviewed") {
+      const latest = await interviewsRepository.findLatestActiveByApplicationId(id)
+      if (latest) {
+        await interviewsRepository.updateStatus(latest.id, "completed")
+      }
+    }
+
     return mapRowToApplication(data as ApplicationRow);
   } catch {
     return undefined;

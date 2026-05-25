@@ -1,6 +1,6 @@
 import { interviewsRepository, type Interview, type CreateInterviewInput } from "@/repositories/interviews.repository"
 import { updateApplicationStatus } from "@/services/applications.service"
-import { sendInterviewInvite } from "@/lib/emails/interview-invite"
+import { sendInterviewInvite, sendInterviewCancellation, sendInterviewReschedule } from "@/lib/emails/interview-invite"
 
 export type { Interview }
 
@@ -27,6 +27,11 @@ export async function scheduleInterview(
   applicationId: string,
   input: ScheduleInterviewInput
 ): Promise<Interview> {
+  const active = await interviewsRepository.findLatestActiveByApplicationId(applicationId)
+  if (active) {
+    throw new Error("An active interview already exists. Cancel or complete it before scheduling a new one.")
+  }
+
   const repoInput: CreateInterviewInput = {
     applicationId,
     candidateId:      input.candidateId,
@@ -67,6 +72,73 @@ export async function scheduleInterview(
     notes:            input.notes,
   }).catch((err) => {
     console.error("Interview invite email failed:", err)
+  })
+
+  return interview
+}
+
+export async function cancelInterview(interviewId: string): Promise<void> {
+  const interview = await interviewsRepository.findById(interviewId)
+  if (!interview) throw new Error("Interview not found")
+
+  await interviewsRepository.updateStatus(interviewId, "cancelled")
+
+  sendInterviewCancellation({
+    candidateName:  interview.candidateName,
+    candidateEmail: interview.candidateEmail,
+    jobTitle:       interview.jobTitle,
+    title:          interview.title,
+  }).catch((err) => {
+    console.error("Interview cancellation email failed:", err)
+  })
+}
+
+export type RescheduleInterviewInput = {
+  title: string
+  scheduledAt: string
+  durationMinutes: number
+  timezone: string
+  notes?: string
+  location?: string
+  meetingLink?: string
+  interviewerId?: string
+  interviewerName?: string
+  hmEmail?: string
+}
+
+export async function rescheduleInterview(
+  interviewId: string,
+  input: RescheduleInterviewInput,
+): Promise<Interview> {
+  const interview = await interviewsRepository.update(interviewId, {
+    title:           input.title,
+    scheduledAt:     input.scheduledAt,
+    durationMinutes: input.durationMinutes,
+    timezone:        input.timezone,
+    notes:           input.notes ?? null,
+    location:        input.location ?? null,
+    meetingLink:     input.meetingLink ?? null,
+    interviewerId:   input.interviewerId ?? null,
+    interviewerName: input.interviewerName ?? null,
+  })
+
+  await interviewsRepository.updateStatus(interviewId, "rescheduled")
+
+  sendInterviewReschedule({
+    candidateName:   interview.candidateName,
+    candidateEmail:  interview.candidateEmail,
+    jobTitle:        interview.jobTitle,
+    title:           input.title,
+    scheduledAt:     input.scheduledAt,
+    durationMinutes: input.durationMinutes,
+    timezone:        input.timezone,
+    interviewerName: input.interviewerName,
+    hmEmail:         input.hmEmail,
+    location:        input.location,
+    meetingLink:     input.meetingLink,
+    notes:           input.notes,
+  }).catch((err) => {
+    console.error("Interview reschedule email failed:", err)
   })
 
   return interview

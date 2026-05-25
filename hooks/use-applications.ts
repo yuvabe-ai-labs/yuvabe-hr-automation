@@ -16,6 +16,8 @@ import type {
   AllApplicationsPageResult,
 } from "@/services/applications.service";
 import type { ApplicationStatus } from "@/types/applications";
+import { useSession } from "@/app/providers";
+import { interviewKeys } from "@/constants/query-keys";
 
 export type { ApplicationsQueryParams, ApplicationsPageResult, AllApplicationsQueryParams, AllApplicationsPageResult };
 
@@ -43,11 +45,15 @@ export function useApplicationsByJobCode(jobCode: string, params?: ApplicationsQ
   });
 }
 
-// Fetch paginated + filtered applications across all jobs
+// Fetch paginated + filtered applications across all jobs.
+// When the caller is a manager, automatically scopes to their assigned jobs.
 export function useApplicationsAll(params?: AllApplicationsQueryParams) {
+  const { role, userId } = useSession();
+  const managerId = role === "manager" ? userId : undefined;
+  const effectiveParams = managerId ? { ...params, managerId } : params;
   return useQuery({
-    queryKey: ["applications", "all", params],
-    queryFn: () => listApplicationsAll(params),
+    queryKey: ["applications", "all", effectiveParams],
+    queryFn: () => listApplicationsAll(effectiveParams),
   });
 }
 
@@ -62,6 +68,10 @@ export function useUpdateApplicationStatus() {
       queryClient.invalidateQueries({ queryKey: ["applications", "detail", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["applications", "list"] });
       queryClient.invalidateQueries({ queryKey: ["applications", "all"] });
+      if (variables.status === "interviewed") {
+        queryClient.invalidateQueries({ queryKey: interviewKeys.byApp(variables.id) });
+        queryClient.invalidateQueries({ queryKey: interviewKeys.upcoming() });
+      }
     },
   });
 }

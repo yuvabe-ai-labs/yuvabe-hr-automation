@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import { ChevronRight, Plus } from "lucide-react";
+import { useSession } from "@/app/providers";
 import { useJobs } from "@/hooks/use-jobs";
 import { useApplications } from "@/hooks/use-applications";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { role } = useSession();
   const isFirstRender = useRef(true);
   // Guard: only refresh once per unique newCode to prevent loops.
   const refreshedForRef = useRef<string | null>(null);
@@ -36,6 +38,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
   const dateFrom = searchParams.get("dateFrom") ?? undefined;
   const dateTo = searchParams.get("dateTo") ?? undefined;
   const sort = searchParams.get("sort") === "oldest" ? "oldest" as const : "newest" as const;
+  const managerId = searchParams.get("managerId") ?? undefined;
   // Read newCode from the live URL — useSearchParams() always reflects the
   // current URL even when Next.js serves a cached RSC payload.
   const newCodeFromUrl = searchParams.get("new") ?? undefined;
@@ -82,7 +85,7 @@ export function JobsList({ newCode }: { newCode?: string }) {
     return () => clearTimeout(timer);
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data, isLoading, isFetching } = useJobs({ search, page, pageSize: PAGE_SIZE, status: tab, type: jobType, dateFrom, dateTo, sort });
+  const { data, isLoading, isFetching } = useJobs({ search, page, pageSize: PAGE_SIZE, status: tab, type: jobType, dateFrom, dateTo, sort, managerId });
   const { data: applications } = useApplications();
 
   const jobs = data?.jobs ?? [];
@@ -124,7 +127,10 @@ export function JobsList({ newCode }: { newCode?: string }) {
       <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-8">
       {/* Active / Draft / Archived tabs */}
       <div className="max-w-4xl flex items-center gap-6 border-b border-border mb-6">
-        {(["active", "draft", "archived"] as const).map((t) => (
+        {(role !== "manager"
+            ? (["active", "draft", "archived"] as const)
+            : (["active", "archived"] as const)
+          ).map((t) => (
           <Link
             key={t}
             href={buildTabHref(t)}
@@ -370,6 +376,7 @@ function DraftEmptyState() {
 }
 
 function EmptyState() {
+  const { role } = useSession();
   return (
     <div className="h-full flex flex-col items-center justify-center text-center pb-24">
       <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
@@ -379,13 +386,15 @@ function EmptyState() {
         Upload a job description and we&apos;ll pull out the criteria
         recruiters screen on. Saved jobs appear here.
       </p>
-      <Link
-        href="/jobs/new"
-        className="mt-8 inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-5 py-2.5 caps-action hover:bg-primary/90 transition-colors"
-      >
-        <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-        Create the first job
-      </Link>
+      {role === "admin" && (
+        <Link
+          href="/jobs/new"
+          className="mt-8 inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-5 py-2.5 caps-action hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Create the first job
+        </Link>
+      )}
     </div>
   );
 }

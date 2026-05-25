@@ -319,15 +319,6 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
 
             {/* Filter button + popover */}
             <div className="flex items-center gap-2 shrink-0 mt-2">
-              {hasActiveFilter && (
-                <Link
-                  href={buildHref(jobCode, { minScore: 0, dateFrom: null, dateTo: null, minYearsExp: null, maxYearsExp: null, dateSort: null }, current)}
-                  onClick={() => { setTempMinScore(0); setTempDateFrom(""); setTempDateTo(""); setTempMinYearsExp(""); setTempMaxYearsExp(""); setTempDateSort(undefined); }}
-                  className="caps-action text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Clear filters
-                </Link>
-              )}
               <div className="relative">
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -481,6 +472,15 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
                   </>
                 )}
               </div>
+              {hasActiveFilter && (
+                <Link
+                  href={buildHref(jobCode, { minScore: 0, dateFrom: null, dateTo: null, minYearsExp: null, maxYearsExp: null, dateSort: null }, current)}
+                  onClick={() => { setTempMinScore(0); setTempDateFrom(""); setTempDateTo(""); setTempMinYearsExp(""); setTempMaxYearsExp(""); setTempDateSort(undefined); }}
+                  className="caps-action text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear filters
+                </Link>
+              )}
             </div>
 
             {/* Selection count + export — only when items are selected */}

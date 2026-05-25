@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listJobs, getJobById, updateJobStatus, listAllJobs } from "@/services/jobs.service";
 import { jobKeys } from "@/constants/query-keys";
+import { useSession } from "@/app/providers";
 
 export function useJobs(params?: {
   search?: string;
@@ -13,10 +14,14 @@ export function useJobs(params?: {
   dateFrom?: string;
   dateTo?: string;
   sort?: "newest" | "oldest";
+  managerId?: string;
 }) {
+  const { role, userId } = useSession();
+  const managerId = role === "manager" ? userId : undefined;
+  const effectiveParams = managerId ? { ...params, managerId } : params;
   return useQuery({
-    queryKey: jobKeys.list(params),
-    queryFn: () => listJobs(params),
+    queryKey: jobKeys.list(effectiveParams),
+    queryFn: () => listJobs(effectiveParams),
   });
 }
 

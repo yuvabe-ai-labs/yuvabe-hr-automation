@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useJobById, useUpdateJobStatus } from "@/hooks/use-jobs";
+import { useManagers } from "@/features/users/hooks/use-managers";
 import { Button } from "@/components/ui/button";
 import { JdPreviewDialog, jobToPreviewData } from "@/app/jobs/_components/jd-preview-dialog";
 import NavTabClient from "../../../_components/nav-tab";
@@ -143,6 +144,7 @@ function JobViewSkeleton() {
 export function JobViewContent({ code }: { code: string }) {
   const router = useRouter();
   const { data: job, isLoading } = useJobById(code);
+  const { data: managers = [] } = useManagers();
   const [publishPreviewOpen, setPublishPreviewOpen] = useState(false);
   const { mutate: publishJob, isPending: isPublishing } = useUpdateJobStatus();
 
@@ -241,6 +243,14 @@ export function JobViewContent({ code }: { code: string }) {
               <h2 className="mt-3 font-serif italic text-display md:text-display-lg leading-[1.05] tracking-tight">
                 {job.title}
               </h2>
+              {job.hiringManagerId && (() => {
+                const manager = managers.find((m) => m.id === job.hiringManagerId);
+                return manager ? (
+                  <p className="mt-1.5 caps-meta text-muted-foreground">
+                    Hiring manager · {manager.name}
+                  </p>
+                ) : null;
+              })()}
 
               <div className="mt-5 flex items-center gap-3 flex-wrap">
                 <span className="caps-meta tabular bg-secondary px-2 py-1 rounded-sm">

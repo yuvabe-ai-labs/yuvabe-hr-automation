@@ -35,6 +35,7 @@ const createJobSchema = z.object({
   benefitsInPerson: z.array(z.string()).default([]),
   workCulture: z.array(z.string()).default([]),
   status: z.enum(["active", "draft"]).default("active"),
+  hiringManagerId: z.string().optional(),
 });
 
 export async function GET() {

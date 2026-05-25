@@ -60,9 +60,10 @@ export async function listJobs(options?: {
   dateFrom?: string;
   dateTo?: string;
   sort?: "newest" | "oldest";
+  managerId?: string;
 }): Promise<JobsListResult> {
   try {
-    const { status = "active", search, page = 1, pageSize = 10, type, dateFrom, dateTo, sort = "newest" } = options ?? {};
+    const { status = "active", search, page = 1, pageSize = 10, type, dateFrom, dateTo, sort = "newest", managerId } = options ?? {};
     // Drafts have no published_at — use created_at for ordering and date filtering instead
     const dateField = status === "draft" ? "created_at" : "published_at";
     const client = getSupabasePeopleClient();
@@ -72,6 +73,7 @@ export async function listJobs(options?: {
       .eq("status", status)
       .order(dateField, { ascending: sort === "oldest", nullsFirst: false });
 
+    if (managerId) query = query.eq("hiring_manager_id", managerId);
     if (search)   query = query.ilike("title", `%${search}%`);
     if (type)     query = query.eq("type", type);
     if (dateFrom) query = query.gte(dateField, dateFrom);

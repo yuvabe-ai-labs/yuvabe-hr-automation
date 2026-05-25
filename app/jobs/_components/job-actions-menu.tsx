@@ -23,6 +23,7 @@ import {
 import { MoreHorizontal } from "lucide-react";
 import { useUpdateJobStatus } from "@/hooks/use-jobs";
 import { JdPreviewDialog, jobToPreviewData } from "@/app/jobs/_components/jd-preview-dialog";
+import { useSession } from "@/app/providers";
 import type { Job } from "@/types/jobs";
 
 export function JobActionsMenu({
@@ -36,10 +37,13 @@ export function JobActionsMenu({
   status: "active" | "archived" | "draft";
   job?: Job;
 }) {
+  const { role } = useSession();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [publishPreviewOpen, setPublishPreviewOpen] = useState(false);
   const { mutate: updateStatus, isPending } = useUpdateJobStatus();
+
+  if (role === "viewer") return null;
 
   const handleArchiveSelect = () => {
     setDropdownOpen(false);
