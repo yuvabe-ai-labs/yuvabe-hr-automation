@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useManagers } from "@/features/users/hooks/use-managers";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -108,6 +110,8 @@ export default function NewJobPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [hiringManagerId, setHiringManagerId] = useState<string>("");
+  const { data: managers = [], isLoading: loadingManagers } = useManagers();
 
   function pick() {
     // Clear the input's value first so the same file can be re-picked.
@@ -124,6 +128,7 @@ export default function NewJobPage() {
     setSaveState("idle");
     setSaveError(null);
     setPreviewOpen(false);
+    setHiringManagerId("");
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -196,6 +201,7 @@ export default function NewJobPage() {
           benefitsInPerson: result.benefits_inperson ?? [],
           workCulture: result.work_culture ?? [],
           status,
+          hiringManagerId: (hiringManagerId && hiringManagerId !== "__none__") ? hiringManagerId : undefined,
         }),
       });
       const data = await res.json();
@@ -608,6 +614,29 @@ export default function NewJobPage() {
                   <h2 className="font-serif italic text-display md:text-display-md leading-[1.05] mt-3 mb-4 tracking-tight">
                     {result.title_suggestion}
                   </h2>
+                  <div className="space-y-1.5 mt-4">
+                    <Label className="caps-meta text-muted-foreground">
+                      Hiring manager <span className="text-muted-foreground/60">(optional)</span>
+                    </Label>
+                    <Select value={hiringManagerId} onValueChange={setHiringManagerId} disabled={loadingManagers}>
+                      <SelectTrigger className="rounded-sm">
+                        <SelectValue placeholder={loadingManagers ? "Loading…" : "Unassigned"} />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-sm">
+                        <SelectItem value="__none__">Unassigned</SelectItem>
+                        {managers.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.name}
+                          </SelectItem>
+                        ))}
+                        {!loadingManagers && managers.length === 0 && (
+                          <SelectItem value="__empty__" disabled className="text-muted-foreground">
+                            No managers found
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

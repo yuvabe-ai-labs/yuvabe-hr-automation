@@ -26,6 +26,19 @@ export type Interview = {
   createdAt: string
 }
 
+export type RescheduleInterviewInput = {
+  title: string
+  scheduledAt: string
+  durationMinutes: number
+  timezone: string
+  notes?: string
+  location?: string
+  meetingLink?: string
+  interviewerId?: string
+  interviewerName?: string
+  hmEmail?: string
+}
+
 export type ScheduleInterviewInput = {
   candidateId: string
   candidateName: string
@@ -88,6 +101,47 @@ export function useUpcomingInterviews() {
   return useQuery({
     queryKey: interviewKeys.upcoming(),
     queryFn: fetchUpcomingInterviews,
+  })
+}
+
+async function patchInterview(
+  appId: string,
+  interviewId: string,
+  body: Record<string, unknown>,
+): Promise<unknown> {
+  const res = await fetch(`/api/applications/${appId}/interviews/${interviewId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}))
+    throw new Error((json as { error?: string }).error ?? "Failed to update interview")
+  }
+  return res.json()
+}
+
+export function useCancelInterview(appId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (interviewId: string) =>
+      patchInterview(appId, interviewId, { action: "cancel" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: interviewKeys.byApp(appId) })
+      queryClient.invalidateQueries({ queryKey: interviewKeys.upcoming() })
+    },
+  })
+}
+
+export function useRescheduleInterview(appId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ interviewId, input }: { interviewId: string; input: RescheduleInterviewInput }) =>
+      patchInterview(appId, interviewId, { action: "reschedule", ...input }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: interviewKeys.byApp(appId) })
+      queryClient.invalidateQueries({ queryKey: interviewKeys.upcoming() })
+    },
   })
 }
 

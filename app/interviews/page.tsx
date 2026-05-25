@@ -41,10 +41,10 @@ function InterviewsContent() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 overflow-y-auto">
-        <ul className="divide-y divide-border">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 pb-8">
+        <ul className="max-w-4xl divide-y divide-border">
           {Array.from({ length: 5 }).map((_, i) => (
-            <li key={i} className="px-4 md:px-10 py-4 animate-pulse">
+            <li key={i} className="py-4 animate-pulse">
               <div className="h-4 w-1/3 bg-muted rounded-sm mb-2" />
               <div className="h-3 w-1/4 bg-muted rounded-sm" />
             </li>
@@ -56,8 +56,8 @@ function InterviewsContent() {
 
   if (error) {
     return (
-      <div className="flex-1 px-4 md:px-10 py-8">
-        <div className="border-l-2 border-primary pl-4 py-2 bg-primary/[0.03]">
+      <div className="flex-1 px-4 sm:px-6 md:px-10 pt-6 pb-8">
+        <div className="max-w-4xl border-l-2 border-primary pl-4 py-2 bg-primary/[0.03]">
           <p className="caps-action text-primary mb-1">Couldn&apos;t load interviews</p>
           <p className="text-body text-foreground/80">
             {error instanceof Error ? error.message : "Something went wrong."}
@@ -82,15 +82,15 @@ function InterviewsContent() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <ul className="divide-y divide-border">
+    <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 pb-8">
+      <ul className="max-w-4xl divide-y divide-border">
         {interviews.map((interview) => {
           const dateStr = formatDate(interview.scheduledAt, interview.timezone)
           const tz = tzAbbr(interview.timezone)
           return (
             <li
               key={interview.id}
-              className="group relative px-4 md:px-10 py-4 transition-all duration-150 ease-out hover:-translate-y-px hover:shadow-[var(--shadow-hover)] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+              className="group relative py-4 transition-all duration-150 ease-out hover:-translate-y-px hover:shadow-[var(--shadow-hover)] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
             >
               <Link
                 href={`/applications/${interview.applicationId}`}

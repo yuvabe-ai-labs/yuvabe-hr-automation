@@ -3,14 +3,16 @@ import type { FilterStatus } from "@/services/applications.service";
 
 export type ExtendedFilter = FilterStatus | "all" | "new";
 
-export const ALL_FILTER_TABS: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "rejected"];
+export const ALL_FILTER_TABS: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "interview", "hired", "rejected"];
 
 export const FILTER_LABEL: Record<ExtendedFilter, string> = {
-  all: "All",
-  new: "New",
-  reviewing: "Review",
+  all:        "All",
+  new:        "New",
+  reviewing:  "Review",
   shortlisted: "Shortlist",
-  rejected: "Reject",
+  interview:  "Interview",
+  hired:      "Hired",
+  rejected:   "Reject",
 };
 
 export const STATUS_LABEL: Record<ApplicationStatus, string> = {

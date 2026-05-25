@@ -1,5 +1,6 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
 import type { Application, ApplicationRow, ApplicationStatus } from "@/types/applications";
+import { interviewsRepository } from "@/repositories/interviews.repository";
 
 function mapRowToApplication(row: ApplicationRow): Application {
   return {
@@ -23,7 +24,7 @@ function mapRowToApplication(row: ApplicationRow): Application {
   };
 }
 
-export type FilterStatus = "reviewing" | "shortlisted" | "rejected";
+export type FilterStatus = "reviewing" | "shortlisted" | "rejected" | "interview" | "hired";
 
 export type ApplicationsPageResult = {
   applications: Application[];
@@ -35,10 +36,12 @@ const STATUS_GROUP: Record<FilterStatus, ApplicationStatus[]> = {
   reviewing:   ["reviewing"],
   shortlisted: ["shortlisted", "offered"],
   rejected:    ["rejected"],
+  interview:   ["interview_scheduled", "interviewed"],
+  hired:       ["hired"],
 };
 
 export type ApplicationsQueryParams = {
-  status?: ApplicationStatus | null;
+  status?: FilterStatus | "new" | null;
   search?: string;
   sort?: "asc" | "desc";
   minScore?: number;
@@ -52,7 +55,7 @@ export type ApplicationsQueryParams = {
 };
 
 export type AllApplicationsQueryParams = {
-  status?: FilterStatus | "new";
+  status?: FilterStatus | "new" | null;
   search?: string;
   minScore?: number;
   page?: number;
@@ -62,12 +65,13 @@ export type AllApplicationsQueryParams = {
   minYearsExp?: number;
   maxYearsExp?: number;
   sort?: "newest" | "oldest";
+  managerId?: string;
 };
 
 export type AllApplicationsPageResult = {
   applications: Application[];
   total: number;
-  allTotal: number; // unfiltered count — used for the "ALL" tab chip
+  allTotal: number;
   statusCounts: Record<FilterStatus | "new", number>;
 };
 
@@ -132,6 +136,8 @@ export async function listApplicationsByJobCode(
       reviewing:   rawCounts.reviewing,
       shortlisted: rawCounts.shortlisted + rawCounts.offered,
       rejected:    rawCounts.rejected,
+      interview:   rawCounts.interview_scheduled + rawCounts.interviewed,
+      hired:       rawCounts.hired,
     };
 
     // Paginated main query — date sort replaces score sort when selected
@@ -147,8 +153,13 @@ export async function listApplicationsByJobCode(
     }
 
     if (status) {
-      const group = STATUS_GROUP[status as FilterStatus] ?? [status];
-      query = query.in("status", group);
+      if (status === "new") {
+        query = query.eq("status", "new");
+      } else {
+        const group = STATUS_GROUP[status as FilterStatus];
+        if (group) query = query.in("status", group);
+        else query = query.eq("status", status);
+      }
     }
     if (search)      query = query.ilike("candidate_name", `%${search}%`);
     if (minScore > 0) query = query.gte("match_score", minScore);
@@ -177,11 +188,32 @@ export async function listApplicationsByJobCode(
 export async function listApplicationsAll(
   options?: AllApplicationsQueryParams
 ): Promise<AllApplicationsPageResult> {
-  const { status, search, minScore = 0, page = 1, pageSize = 10, dateFrom, dateTo, minYearsExp, maxYearsExp, sort = "newest" } = options ?? {};
+  const { status, search, minScore = 0, page = 1, pageSize = 10, dateFrom, dateTo, minYearsExp, maxYearsExp, sort = "newest", managerId } = options ?? {};
   const client = getSupabasePeopleClient();
 
+  // When scoped to a manager, resolve their assigned job IDs first.
+  let assignedJobIds: string[] | undefined;
+  if (managerId) {
+    const { data: jobRows } = await client
+      .from("jobs")
+      .select("id")
+      .eq("hiring_manager_id", managerId);
+    assignedJobIds = (jobRows ?? []).map((r: { id: string }) => r.id);
+    // Manager has no assigned jobs — return empty result immediately.
+    if (assignedJobIds.length === 0) {
+      return {
+        applications: [],
+        total: 0,
+        allTotal: 0,
+        statusCounts: { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, interview: 0, hired: 0 },
+      };
+    }
+  }
+
   // Status breakdown — lightweight count query for chip totals
-  const { data: statusRows } = await client.from("applications").select("status");
+  let statusQuery = client.from("applications").select("status");
+  if (assignedJobIds) statusQuery = statusQuery.in("job_id", assignedJobIds);
+  const { data: statusRows } = await statusQuery;
 
   const rawCounts: Record<ApplicationStatus, number> = {
     new: 0, reviewing: 0, shortlisted: 0, interview_scheduled: 0,
@@ -196,6 +228,8 @@ export async function listApplicationsAll(
     reviewing:   rawCounts.reviewing,
     shortlisted: rawCounts.shortlisted + rawCounts.offered,
     rejected:    rawCounts.rejected,
+    interview:   rawCounts.interview_scheduled + rawCounts.interviewed,
+    hired:       rawCounts.hired,
   };
 
   let query = client
@@ -203,12 +237,14 @@ export async function listApplicationsAll(
     .select("*", { count: "exact" })
     .order("received_at", { ascending: sort === "oldest" });
 
+  if (assignedJobIds) query = query.in("job_id", assignedJobIds);
   if (status) {
     if (status === "new") {
       query = query.eq("status", "new");
     } else {
-      const group = STATUS_GROUP[status] ?? [status];
-      query = query.in("status", group);
+      const group = STATUS_GROUP[status as FilterStatus];
+      if (group) query = query.in("status", group);
+      else query = query.eq("status", status);
     }
   }
   if (search)      query = query.ilike("candidate_name", `%${search}%`);
@@ -263,6 +299,14 @@ export async function updateApplicationStatus(
       .single();
 
     if (error || !data) return undefined;
+
+    if (status === "interviewed") {
+      const latest = await interviewsRepository.findLatestActiveByApplicationId(id)
+      if (latest) {
+        await interviewsRepository.updateStatus(latest.id, "completed")
+      }
+    }
+
     return mapRowToApplication(data as ApplicationRow);
   } catch {
     return undefined;

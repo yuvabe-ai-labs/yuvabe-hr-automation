@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { headers } from "next/headers";
 import { JobsList } from "./_components/jobs-list";
 import { SearchInput } from "./_components/search-input";
 import { JobsFilterButton } from "./_components/jobs-filter-button";
@@ -15,6 +16,9 @@ export default async function JobsPage({
   const params = await searchParams;
   const newCode = params.new;
   const initialSearch = params.search ?? "";
+  const hdrs = await headers();
+  const role = hdrs.get("x-user-role") ?? "viewer";
+  const isAdmin = role === "admin";
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
@@ -38,13 +42,15 @@ export default async function JobsPage({
                 >
                   All applicants
                 </Link>
-                <Link
-                  href="/jobs/new"
-                  className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-4 py-2 caps-action hover:bg-primary/90 transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                  New job
-                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/jobs/new"
+                    className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-4 py-2 caps-action hover:bg-primary/90 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    New job
+                  </Link>
+                )}
               </div>
             </div>
           </div>

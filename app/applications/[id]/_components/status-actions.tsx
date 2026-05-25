@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "@/app/providers";
+import { STATUS_LABEL, STATUS_COLOR } from "@/lib/constants";
 import { Loader2, Eye, Check, X, CalendarCheck, UserCheck } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import {
   useUpdateApplicationStatus,
   useUpdateApplicationStatusWithReason,
 } from "@/hooks/use-applications";
+import { useInterviewsByApplication } from "@/features/interviews/hooks/use-interviews";
 import type { ApplicationStatus } from "@/types/applications";
 
 // — Pre-interview toggle (new / reviewing / shortlisted / rejected) —
@@ -191,6 +194,9 @@ function PostInterviewActions({
   const [error, setError] = useState<string | null>(null);
   const statusMutation = useUpdateApplicationStatus();
   const statusWithReasonMutation = useUpdateApplicationStatusWithReason();
+  const { data: interviews } = useInterviewsByApplication(applicationId);
+  const allInterviewsCancelled =
+    !!interviews && interviews.length > 0 && interviews.every((i) => i.status === "cancelled");
 
   function markInterviewed() {
     setError(null);
@@ -230,7 +236,7 @@ function PostInterviewActions({
     <>
       <div className="space-y-2">
         <div className="space-y-1.5">
-          {currentStatus === "interview_scheduled" && (
+          {currentStatus === "interview_scheduled" && !allInterviewsCancelled && (
             <Button
               variant="outline"
               size="sm"
@@ -290,11 +296,37 @@ export function StatusActions({
   applicationId: string;
   currentStatus: ApplicationStatus;
 }) {
+  const { role } = useSession();
+  if (role === "viewer") {
+    return (
+      <span className={`caps-meta ${STATUS_COLOR[currentStatus]}`}>
+        {STATUS_LABEL[currentStatus]}
+      </span>
+    );
+  }
+
+  // Terminal states — locked, no further changes allowed
+  if (currentStatus === "hired" || currentStatus === "rejected") {
+    const isHired = currentStatus === "hired";
+    return (
+      <div
+        className={`border-l-2 pl-3 py-1.5 ${
+          isHired
+            ? "border-[#3F6B3F]/60 bg-[#3F6B3F]/3"
+            : "border-primary/40 bg-primary/3"
+        }`}
+      >
+        <p className="eyebrow text-muted-foreground mb-1">Final decision</p>
+        <p className={`caps-meta ${isHired ? "text-[#3F6B3F]" : "text-primary"}`}>
+          {STATUS_LABEL[currentStatus]}
+        </p>
+      </div>
+    );
+  }
+
   const isPostInterview =
     currentStatus === "interview_scheduled" ||
-    currentStatus === "interviewed" ||
-    currentStatus === "hired" ||
-    currentStatus === "rejected";
+    currentStatus === "interviewed";
 
   if (isPostInterview) {
     return (

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, FileText, TriangleAlert } from "lucide-react";
+import { useSession } from "@/app/providers";
 import NavTabClient from "@/app/jobs/_components/nav-tab";
 import { StatusActions } from "./status-actions";
 import { NotesButton } from "./notes-button";
@@ -75,7 +76,7 @@ function ApplicationDetailSkeleton() {
         </nav>
       </header>
 
-      <main className="md:flex-1 grid grid-cols-1 md:grid-cols-[390px_1fr] md:overflow-hidden">
+      <main className="md:flex-1 grid grid-cols-1 md:grid-cols-[390px_1fr] xl:grid-cols-[390px_1fr_1fr] md:overflow-hidden">
         {/* LEFT — candidate profile */}
         <aside className="border-b border-border md:border-r md:border-b-0 md:overflow-y-auto px-4 sm:px-6 md:px-10 py-6 md:py-10 flex flex-col">
           {/* Breadcrumb */}
@@ -148,8 +149,8 @@ function ApplicationDetailSkeleton() {
           </div>
         </aside>
 
-        {/* RIGHT — match analysis */}
-        <section className="md:overflow-y-auto px-4 sm:px-6 md:px-12 py-6 md:py-10">
+        {/* CENTER — match analysis */}
+        <section className="md:overflow-y-auto xl:border-r xl:border-border px-4 sm:px-6 md:px-12 py-6 md:py-10">
           <div className="max-w-3xl">
             {/* Match summary eyebrow */}
             <div className="h-2.5 w-24 bg-muted rounded-sm animate-pulse" />
@@ -196,6 +197,27 @@ function ApplicationDetailSkeleton() {
             </div>
           </div>
         </section>
+
+        {/* INTERVIEWS column skeleton (xl+) */}
+        <section className="hidden xl:flex flex-col overflow-hidden">
+          <div className="shrink-0 px-4 pt-5 pb-4 border-b border-border bg-background flex items-center justify-between gap-3">
+            <div className="flex items-baseline gap-2.5">
+              <div className="h-8 w-8 bg-muted rounded-sm animate-pulse" />
+              <div className="h-5 w-24 bg-muted/70 rounded-sm animate-pulse" />
+            </div>
+            <div className="h-7 w-20 bg-muted/60 rounded-sm animate-pulse shrink-0" />
+          </div>
+          <div className="px-4 py-4 space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="border border-border p-4 space-y-3">
+                <div className="h-3 w-16 bg-muted/60 rounded-sm animate-pulse" />
+                <div className="h-5 w-3/4 bg-muted rounded-sm animate-pulse" />
+                <div className="h-3 w-1/2 bg-muted/70 rounded-sm animate-pulse" />
+                <div className="h-3 w-2/3 bg-muted/60 rounded-sm animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
@@ -219,6 +241,7 @@ export function ApplicationDetailContent({
   id: string;
   currentUser: string;
 }) {
+  const { role } = useSession();
   const { data: application, isLoading } = useApplicationById(id);
   const { data: candidate } = useCandidateById(application?.candidateId ?? "");
   const { data: job } = useJobById(application?.jobCode ?? "");
@@ -279,7 +302,7 @@ export function ApplicationDetailContent({
         </nav>
       </header>
 
-      <main className="md:flex-1 grid grid-cols-1 md:grid-cols-[390px_1fr] md:overflow-hidden">
+      <main className="md:flex-1 grid grid-cols-1 md:grid-cols-[390px_1fr] xl:grid-cols-[390px_1fr_1fr] md:overflow-hidden">
         {/* ———————— LEFT — candidate profile ———————— */}
         <aside className="border-b border-border md:border-r md:border-b-0 md:overflow-y-auto px-4 sm:px-6 md:px-10 py-6 md:py-10 flex flex-col">
           <nav className="mb-3 eyebrow flex items-center gap-2.5 flex-wrap">
@@ -363,9 +386,13 @@ export function ApplicationDetailContent({
             )}
           </div>
 
-          {/* Notes + Interviews */}
-          <div className="mt-6 pt-6 border-t border-border space-y-6">
-            <NotesButton applicationId={application.id} currentUser={currentUser} />
+          {/* Notes */}
+          <div className="mt-6 pt-6 border-t border-border">
+            {role !== "viewer" && <NotesButton applicationId={application.id} currentUser={currentUser} />}
+          </div>
+
+          {/* Interviews — visible on <lg only (lg+ shows in dedicated column) */}
+          <div className="mt-6 pt-6 border-t border-border xl:hidden">
             <InterviewsSection application={application} jobTitle={job?.title} />
           </div>
 
@@ -431,8 +458,8 @@ export function ApplicationDetailContent({
           </div>
         </aside>
 
-        {/* ———————— RIGHT — match analysis ———————— */}
-        <section className="md:overflow-y-auto px-4 sm:px-6 md:px-12 py-6 md:py-10">
+        {/* ———————— CENTER — match analysis ———————— */}
+        <section className="md:overflow-y-auto xl:border-r xl:border-border px-4 sm:px-6 md:px-12 py-6 md:py-10">
           <div className="max-w-3xl">
             {/* Match summary */}
             <Eyebrow>Match summary</Eyebrow>
@@ -521,6 +548,11 @@ export function ApplicationDetailContent({
               </div>
             )}
           </div>
+        </section>
+
+        {/* ———————— INTERVIEWS — right column (xl+) ———————— */}
+        <section className="hidden xl:flex flex-col overflow-hidden">
+          <InterviewsSection application={application} jobTitle={job?.title} asColumn />
         </section>
       </main>
 

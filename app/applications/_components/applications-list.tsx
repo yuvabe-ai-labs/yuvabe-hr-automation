@@ -6,6 +6,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ArrowUpRight, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useApplicationsAll } from "@/hooks/use-applications";
 import { useAllJobs } from "@/hooks/use-jobs";
+import { useSession } from "@/app/providers";
+import { useManagers } from "@/features/users/hooks/use-managers";
 import { useGetCandidatesByIds } from "@/hooks/use-candidates";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
 import { downloadExcel } from "@/lib/export-excel";
@@ -34,6 +36,7 @@ function buildHref(
     minYearsExp?: number | null;
     maxYearsExp?: number | null;
     sort?: "newest" | "oldest";
+    managerId?: string | null;
   },
   current: {
     filter: ExtendedFilter;
@@ -45,6 +48,7 @@ function buildHref(
     minYearsExp?: number;
     maxYearsExp?: number;
     sort: "newest" | "oldest";
+    managerId?: string;
   }
 ): string {
   const params = new URLSearchParams();
@@ -58,6 +62,7 @@ function buildHref(
   const minYearsExp = "minYearsExp" in overrides ? overrides.minYearsExp : current.minYearsExp;
   const maxYearsExp = "maxYearsExp" in overrides ? overrides.maxYearsExp : current.maxYearsExp;
   const sort        = "sort"        in overrides ? overrides.sort        : current.sort;
+  const managerId   = "managerId"   in overrides ? overrides.managerId   : current.managerId;
 
   if (status && status !== "all") params.set("status", status);
   if (top) params.set("top", String(top));
@@ -69,6 +74,7 @@ function buildHref(
   if (minYearsExp) params.set("minYearsExp", String(minYearsExp));
   if (maxYearsExp) params.set("maxYearsExp", String(maxYearsExp));
   if (sort === "oldest") params.set("sort", "oldest");
+  if (managerId)   params.set("managerId", managerId);
 
   const qs = params.toString();
   return `/applications${qs ? `?${qs}` : ""}`;
@@ -97,6 +103,11 @@ export function ApplicationsList() {
   const minYearsExp = searchParams.get("minYearsExp") ? Math.max(0, parseInt(searchParams.get("minYearsExp")!, 10)) : undefined;
   const maxYearsExp = searchParams.get("maxYearsExp") ? Math.max(0, parseInt(searchParams.get("maxYearsExp")!, 10)) : undefined;
   const sort        = searchParams.get("sort") === "oldest" ? "oldest" as const : "newest" as const;
+  const managerId   = searchParams.get("managerId") ?? undefined;
+
+  const { role } = useSession();
+  const canFilterByManager = role !== "manager";
+  const { data: managers = [] } = useManagers();
 
   const [localSearch, setLocalSearch] = useState(search);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -108,6 +119,7 @@ export function ApplicationsList() {
   const [tempMinYearsExp, setTempMinYearsExp] = useState<number | "">(minYearsExp ?? "");
   const [tempMaxYearsExp, setTempMaxYearsExp] = useState<number | "">(maxYearsExp ?? "");
   const [tempSort, setTempSort] = useState<"newest" | "oldest">(sort);
+  const [tempManagerId, setTempManagerId] = useState<string>(managerId ?? "");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"csv" | "excel" | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -135,11 +147,11 @@ export function ApplicationsList() {
     return () => clearTimeout(timer);
   }, [localSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const apiStatus = filter === "all" ? undefined : (filter as FilterStatus | "new");
+  const apiStatus = filter === "all" ? undefined : filter;
 
   // Fetch paginated + filtered applications across all jobs
   const { data, isLoading, isFetching } = useApplicationsAll(
-    { status: apiStatus, search, minScore, page, pageSize: topN ?? PAGE_SIZE, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
+    { status: apiStatus, search, minScore, page, pageSize: topN ?? PAGE_SIZE, dateFrom, dateTo, minYearsExp, maxYearsExp, sort, managerId }
   );
 
   // Fetch jobs for row title lookup and export (all statuses — archived jobs have applications too)
@@ -150,20 +162,22 @@ export function ApplicationsList() {
 
   const applications = useMemo(() => data?.applications ?? [], [data]);
   const total        = data?.total        ?? 0;
-  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 };
+  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, interview: 0, hired: 0 };
   const totalPages   = topN ? 1 : Math.ceil(total / PAGE_SIZE);
 
-  const allCount = data?.allTotal ?? (statusCounts.new + statusCounts.reviewing + statusCounts.shortlisted + statusCounts.rejected);
+  const allCount = data?.allTotal ?? Object.values(statusCounts).reduce((s, n) => s + n, 0);
   const groupedCounts: Record<ExtendedFilter, number> = {
     all:         allCount,
     new:         statusCounts.new,
     reviewing:   statusCounts.reviewing,
     shortlisted: statusCounts.shortlisted,
+    interview:   statusCounts.interview ?? 0,
+    hired:       statusCounts.hired ?? 0,
     rejected:    statusCounts.rejected,
   };
 
   const jobsByCode = new Map(jobs.map((j) => [j.code, j]));
-  const hasActiveFilters = !!search || minScore > 0 || !!topN || !!dateFrom || !!dateTo || !!minYearsExp || !!maxYearsExp || sort === "oldest";
+  const hasActiveFilters = !!search || minScore > 0 || !!topN || !!dateFrom || !!dateTo || !!minYearsExp || !!maxYearsExp || sort === "oldest" || !!managerId;
   const hasData = allCount > 0;
   const showSkeleton = isLoading || (isFetching && applications.length === 0);
 
@@ -287,18 +301,6 @@ export function ApplicationsList() {
 
         {hasData && (
           <div className="flex items-center gap-2 shrink-0">
-            {hasActiveFilters && (
-              <Link
-                href={buildHref(
-                  { minScore: 0, dateFrom: null, dateTo: null, minYearsExp: null, maxYearsExp: null, sort: "newest" },
-                  { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
-                )}
-                onClick={() => { setTempMinScore(0); setTempDateFrom(""); setTempDateTo(""); setTempMinYearsExp(""); setTempMaxYearsExp(""); setTempSort("newest"); }}
-                className="caps-action text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Clear filters
-              </Link>
-            )}
             <div className="relative">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -417,6 +419,23 @@ export function ApplicationsList() {
                       </div>
                     </div>
 
+                    {/* Manager */}
+                    {canFilterByManager && managers.length > 0 && (
+                      <div>
+                        <p className="caps-meta text-muted-foreground mb-2">Manager</p>
+                        <select
+                          value={tempManagerId}
+                          onChange={(e) => setTempManagerId(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                        >
+                          <option value="">All managers</option>
+                          {managers.map((m) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <div className="pt-1">
                       <Link
                         href={buildHref(
@@ -428,8 +447,9 @@ export function ApplicationsList() {
                             minYearsExp: tempMinYearsExp === "" ? null : (tempMinYearsExp as number),
                             maxYearsExp: tempMaxYearsExp === "" ? null : (tempMaxYearsExp as number),
                             sort: tempSort,
+                            managerId: tempManagerId || null,
                           },
-                          { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
+                          { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort, managerId }
                         )}
                         onClick={() => setIsFilterOpen(false)}
                         className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm caps-action transition-colors hover:bg-primary/90 text-center"
@@ -442,6 +462,18 @@ export function ApplicationsList() {
               </>
             )}
             </div>
+            {hasActiveFilters && (
+              <Link
+                href={buildHref(
+                  { minScore: 0, dateFrom: null, dateTo: null, minYearsExp: null, maxYearsExp: null, sort: "newest", managerId: null },
+                  { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort, managerId }
+                )}
+                onClick={() => { setTempMinScore(0); setTempDateFrom(""); setTempDateTo(""); setTempMinYearsExp(""); setTempMaxYearsExp(""); setTempSort("newest"); setTempManagerId(""); }}
+                className="caps-action text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Clear filters
+              </Link>
+            )}
           </div>
         )}
 
@@ -510,7 +542,7 @@ export function ApplicationsList() {
               key={s}
               href={buildHref(
                 { status: s, page: 1 },
-                { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort }
+                { filter, topN, searchQuery: localSearch, minScore, dateFrom, dateTo, minYearsExp, maxYearsExp, sort, managerId }
               )}
               label={FILTER_LABEL[s]}
               count={groupedCounts[s]}

@@ -68,7 +68,76 @@ function rowToInterview(row: InterviewRow): Interview {
   }
 }
 
+export type UpdateInterviewInput = {
+  title?: string
+  scheduledAt?: string
+  durationMinutes?: number
+  timezone?: string
+  notes?: string | null
+  location?: string | null
+  meetingLink?: string | null
+  interviewerId?: string | null
+  interviewerName?: string | null
+}
+
 export const interviewsRepository = {
+  async findById(id: string): Promise<Interview | null> {
+    const supabase = getSupabasePeopleClient()
+    const { data, error } = await supabase
+      .from("interviews")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle()
+    if (error) throw new Error(`Failed to fetch interview: ${error.message}`)
+    return data ? rowToInterview(data) : null
+  },
+
+  async updateStatus(id: string, status: string): Promise<void> {
+    const supabase = getSupabasePeopleClient()
+    const { error } = await supabase
+      .from("interviews")
+      .update({ status })
+      .eq("id", id)
+    if (error) throw new Error(`Failed to update interview status: ${error.message}`)
+  },
+
+  async update(id: string, input: UpdateInterviewInput): Promise<Interview> {
+    const supabase = getSupabasePeopleClient()
+    const patch: Partial<InterviewRow> = {}
+    if (input.title !== undefined)            patch.title             = input.title
+    if (input.scheduledAt !== undefined)      patch.scheduled_at      = input.scheduledAt
+    if (input.durationMinutes !== undefined)  patch.duration_minutes  = input.durationMinutes
+    if (input.timezone !== undefined)         patch.timezone          = input.timezone
+    if ("notes" in input)                     patch.notes             = input.notes ?? null
+    if ("location" in input)                  patch.location          = input.location ?? null
+    if ("meetingLink" in input)               patch.meeting_link      = input.meetingLink ?? null
+    if ("interviewerId" in input)             patch.interviewer_id    = input.interviewerId ?? null
+    if ("interviewerName" in input)           patch.interviewer_name  = input.interviewerName ?? null
+
+    const { data, error } = await supabase
+      .from("interviews")
+      .update(patch)
+      .eq("id", id)
+      .select()
+      .single()
+    if (error) throw new Error(`Failed to update interview: ${error.message}`)
+    return rowToInterview(data)
+  },
+
+  async findLatestActiveByApplicationId(applicationId: string): Promise<Interview | null> {
+    const supabase = getSupabasePeopleClient()
+    const { data, error } = await supabase
+      .from("interviews")
+      .select("*")
+      .eq("application_id", applicationId)
+      .in("status", ["scheduled", "rescheduled"])
+      .order("scheduled_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) throw new Error(`Failed to fetch latest interview: ${error.message}`)
+    return data ? rowToInterview(data) : null
+  },
+
   async findByApplicationId(applicationId: string): Promise<Interview[]> {
     const supabase = getSupabasePeopleClient()
     const { data, error } = await supabase
