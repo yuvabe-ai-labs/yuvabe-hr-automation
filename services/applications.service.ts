@@ -24,7 +24,7 @@ function mapRowToApplication(row: ApplicationRow): Application {
   };
 }
 
-export type FilterStatus = "reviewing" | "shortlisted" | "rejected";
+export type FilterStatus = "reviewing" | "shortlisted" | "rejected" | "interview" | "hired";
 
 export type ApplicationsPageResult = {
   applications: Application[];
@@ -36,10 +36,12 @@ const STATUS_GROUP: Record<FilterStatus, ApplicationStatus[]> = {
   reviewing:   ["reviewing"],
   shortlisted: ["shortlisted", "offered"],
   rejected:    ["rejected"],
+  interview:   ["interview_scheduled", "interviewed"],
+  hired:       ["hired"],
 };
 
 export type ApplicationsQueryParams = {
-  status?: ApplicationStatus | null;
+  status?: FilterStatus | "new" | null;
   search?: string;
   sort?: "asc" | "desc";
   minScore?: number;
@@ -53,7 +55,7 @@ export type ApplicationsQueryParams = {
 };
 
 export type AllApplicationsQueryParams = {
-  status?: FilterStatus | "new";
+  status?: FilterStatus | "new" | null;
   search?: string;
   minScore?: number;
   page?: number;
@@ -69,7 +71,7 @@ export type AllApplicationsQueryParams = {
 export type AllApplicationsPageResult = {
   applications: Application[];
   total: number;
-  allTotal: number; // unfiltered count — used for the "ALL" tab chip
+  allTotal: number;
   statusCounts: Record<FilterStatus | "new", number>;
 };
 
@@ -134,6 +136,8 @@ export async function listApplicationsByJobCode(
       reviewing:   rawCounts.reviewing,
       shortlisted: rawCounts.shortlisted + rawCounts.offered,
       rejected:    rawCounts.rejected,
+      interview:   rawCounts.interview_scheduled + rawCounts.interviewed,
+      hired:       rawCounts.hired,
     };
 
     // Paginated main query — date sort replaces score sort when selected
@@ -149,8 +153,13 @@ export async function listApplicationsByJobCode(
     }
 
     if (status) {
-      const group = STATUS_GROUP[status as FilterStatus] ?? [status];
-      query = query.in("status", group);
+      if (status === "new") {
+        query = query.eq("status", "new");
+      } else {
+        const group = STATUS_GROUP[status as FilterStatus];
+        if (group) query = query.in("status", group);
+        else query = query.eq("status", status);
+      }
     }
     if (search)      query = query.ilike("candidate_name", `%${search}%`);
     if (minScore > 0) query = query.gte("match_score", minScore);
@@ -196,7 +205,7 @@ export async function listApplicationsAll(
         applications: [],
         total: 0,
         allTotal: 0,
-        statusCounts: { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 },
+        statusCounts: { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, interview: 0, hired: 0 },
       };
     }
   }
@@ -219,6 +228,8 @@ export async function listApplicationsAll(
     reviewing:   rawCounts.reviewing,
     shortlisted: rawCounts.shortlisted + rawCounts.offered,
     rejected:    rawCounts.rejected,
+    interview:   rawCounts.interview_scheduled + rawCounts.interviewed,
+    hired:       rawCounts.hired,
   };
 
   let query = client
@@ -231,8 +242,9 @@ export async function listApplicationsAll(
     if (status === "new") {
       query = query.eq("status", "new");
     } else {
-      const group = STATUS_GROUP[status] ?? [status];
-      query = query.in("status", group);
+      const group = STATUS_GROUP[status as FilterStatus];
+      if (group) query = query.in("status", group);
+      else query = query.eq("status", status);
     }
   }
   if (search)      query = query.ilike("candidate_name", `%${search}%`);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useJobById, useUpdateJobStatus } from "@/hooks/use-jobs";
 import { useManagers } from "@/features/users/hooks/use-managers";
@@ -146,7 +146,11 @@ export function JobViewContent({ code }: { code: string }) {
   const { data: job, isLoading } = useJobById(code);
   const { data: managers = [] } = useManagers();
   const [publishPreviewOpen, setPublishPreviewOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { mutate: publishJob, isPending: isPublishing } = useUpdateJobStatus();
+
+  const studiosBase = (process.env.NEXT_PUBLIC_YB_STUDIOS ?? "").replace(/\/$/, "");
+  const publishedUrl = `${studiosBase}/${code}`;
 
   if (isLoading) return <JobViewSkeleton />;
   if (!job) notFound();
@@ -243,6 +247,33 @@ export function JobViewContent({ code }: { code: string }) {
               <h2 className="mt-3 font-serif italic text-display md:text-display-lg leading-[1.05] tracking-tight">
                 {job.title}
               </h2>
+              {job.status === "active" && (
+                <div className="mt-2 flex items-center gap-1">
+                  <a
+                    href={publishedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 caps-meta text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Published link
+                  </a>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(publishedUrl);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    aria-label="Copy published link"
+                  >
+                    {copied ? (
+                      <Check className="h-3 w-3 text-primary" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </button>
+                </div>
+              )}
               {job.hiringManagerId && (() => {
                 const manager = managers.find((m) => m.id === job.hiringManagerId);
                 return manager ? (
@@ -253,6 +284,9 @@ export function JobViewContent({ code }: { code: string }) {
               })()}
 
               <div className="mt-5 flex items-center gap-3 flex-wrap">
+                {job.type && (
+                  <span className="caps-meta text-muted-foreground bg-secondary px-2 py-1 rounded-sm">{job.type}</span>
+                )}
                 <span className="caps-meta tabular bg-secondary px-2 py-1 rounded-sm">
                   <span className="text-foreground">{String(job.criteria.length).padStart(2, "0")}</span>{" "}
                   <span className="text-muted-foreground">all</span>

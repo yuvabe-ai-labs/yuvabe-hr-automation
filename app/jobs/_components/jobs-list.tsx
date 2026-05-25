@@ -250,6 +250,12 @@ export function JobsList({ newCode }: { newCode?: string }) {
                       </div>
                       <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                         <JobIdBadge code={job.code} />
+                        {job.type && (
+                          <>
+                            <span className="text-border">·</span>
+                            <span className="caps-meta text-muted-foreground hidden sm:inline">{job.type}</span>
+                          </>
+                        )}
                         <span className="text-border">·</span>
                         <span className="caps-meta tabular hidden sm:inline">
                           <span

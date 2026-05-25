@@ -136,7 +136,7 @@ export async function sendInterviewInvite(
   await resend.emails.send({
     from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
-    // cc: ccList.length > 0 ? ccList : undefined,
+    cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Invitation: ${title} — ${jobTitle}`,
     html,
   });
@@ -180,7 +180,7 @@ export async function sendInterviewCancellation(
   await resend.emails.send({
     from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
-    // cc: ccList.length > 0 ? ccList : undefined,
+    cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Cancelled: ${title} — ${jobTitle}`,
     html,
   });
@@ -252,7 +252,7 @@ export async function sendInterviewReschedule(
   await resend.emails.send({
     from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
-    // cc: ccList.length > 0 ? ccList : undefined,
+    cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Rescheduled: ${title} — ${jobTitle}`,
     html,
   });

@@ -4,7 +4,6 @@ import NavTab from "@/app/jobs/_components/nav-tab";
 import { SignOutButton } from "@/app/_components/sign-out-button";
 import { Eyebrow } from "@/components/shared/eyebrow";
 import { UserBadge } from "@/app/_components/user-badge";
-import { StudioLink } from "@/app/_components/studio-link";
 
 export function PageHeader() {
   return (
@@ -31,7 +30,6 @@ export function PageHeader() {
         <NavTab href="/jobs" label="Jobs" prefix="/jobs" />
         <NavTab href="/interviews" label="Interviews" prefix="/interviews" />
         <div className="ml-auto flex items-center gap-5">
-          <StudioLink />
           <SignOutButton />
         </div>
       </nav>

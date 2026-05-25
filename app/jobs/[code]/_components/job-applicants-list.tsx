@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpRight, Eye, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
+import { ArrowUpRight, Check, Copy, Eye, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useApplicationsByJobCode } from "@/hooks/use-applications";
 import type { ApplicationsQueryParams } from "@/hooks/use-applications";
 import { useJobById } from "@/hooks/use-jobs";
@@ -15,7 +15,7 @@ import { STATUS_LABEL, STATUS_COLOR, FILTER_LABEL, ALL_FILTER_TABS } from "@/lib
 import type { ExtendedFilter } from "@/lib/constants";
 import { ScoreChip } from "@/components/shared/score-chip";
 import { StatusFilterChip } from "@/components/shared/status-filter-chip";
-import type { Application, ApplicationStatus } from "@/types/applications";
+import type { Application } from "@/types/applications";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 
 const DEFAULT_PAGE_SIZE = 15;
@@ -127,6 +127,10 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [copiedPublished, setCopiedPublished] = useState(false);
+
+  const studiosBase = (process.env.NEXT_PUBLIC_YB_STUDIOS ?? "").replace(/\/$/, "");
+  const publishedUrl = `${studiosBase}/${jobCode}`;
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [tempMinScore, setTempMinScore] = useState(minScore);
   const [tempDateFrom, setTempDateFrom] = useState(dateFrom ?? "");
@@ -146,7 +150,7 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
 
   const currentParams: ApplicationsQueryParams = {
-    status: filter === "all" ? undefined : (filter as ApplicationStatus),
+    status: filter === "all" ? undefined : filter,
     search,
     sort: sortOrder,
     minScore,
@@ -164,7 +168,7 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
 
   const applications = useMemo(() => data?.applications ?? [], [data]);
   const total = data?.total ?? 0;
-  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 };
+  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, interview: 0, hired: 0 };
   const totalPages = Math.ceil(total / pageSize);
   const totalAll = Object.values(statusCounts).reduce((s, n) => s + n, 0);
 
@@ -176,6 +180,8 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
     new:         statusCounts.new ?? 0,
     reviewing:   statusCounts.reviewing ?? 0,
     shortlisted: statusCounts.shortlisted ?? 0,
+    interview:   statusCounts.interview ?? 0,
+    hired:       statusCounts.hired ?? 0,
     rejected:    statusCounts.rejected ?? 0,
   };
 
@@ -544,6 +550,12 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
           {/* Metadata row */}
           <div className="mt-4 flex items-center gap-4 flex-wrap">
             <JobIdBadge code={jobCode} />
+            {job?.type && (
+              <>
+                <span className="text-border">·</span>
+                <span className="caps-meta text-muted-foreground">{job.type}</span>
+              </>
+            )}
             <span className="text-border">·</span>
             <span className="eyebrow text-muted-foreground">
               <span className="tabular">{String(totalAll).padStart(2, "0")}</span>{" "}
@@ -554,6 +566,34 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
               posted{" "}
               {new Date(jobCreatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
+            {job?.status === "active" && (
+              <>
+                <span className="text-border">·</span>
+                <a
+                  href={publishedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 caps-meta text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Published link
+                </a>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(publishedUrl);
+                    setCopiedPublished(true);
+                    setTimeout(() => setCopiedPublished(false), 1500);
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Copy published link"
+                >
+                  {copiedPublished ? (
+                    <Check className="h-3 w-3 text-primary" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </button>
+              </>
+            )}
             <Link
               href={`/jobs/${jobCode}/view`}
               className="ml-auto inline-flex items-center gap-1.5 caps-action text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"

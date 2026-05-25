@@ -147,7 +147,7 @@ export function ApplicationsList() {
     return () => clearTimeout(timer);
   }, [localSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const apiStatus = filter === "all" ? undefined : (filter as FilterStatus | "new");
+  const apiStatus = filter === "all" ? undefined : filter;
 
   // Fetch paginated + filtered applications across all jobs
   const { data, isLoading, isFetching } = useApplicationsAll(
@@ -162,15 +162,17 @@ export function ApplicationsList() {
 
   const applications = useMemo(() => data?.applications ?? [], [data]);
   const total        = data?.total        ?? 0;
-  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0 };
+  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, interview: 0, hired: 0 };
   const totalPages   = topN ? 1 : Math.ceil(total / PAGE_SIZE);
 
-  const allCount = data?.allTotal ?? (statusCounts.new + statusCounts.reviewing + statusCounts.shortlisted + statusCounts.rejected);
+  const allCount = data?.allTotal ?? Object.values(statusCounts).reduce((s, n) => s + n, 0);
   const groupedCounts: Record<ExtendedFilter, number> = {
     all:         allCount,
     new:         statusCounts.new,
     reviewing:   statusCounts.reviewing,
     shortlisted: statusCounts.shortlisted,
+    interview:   statusCounts.interview ?? 0,
+    hired:       statusCounts.hired ?? 0,
     rejected:    statusCounts.rejected,
   };
 
