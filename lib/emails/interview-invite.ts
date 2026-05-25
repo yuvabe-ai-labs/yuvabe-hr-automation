@@ -76,16 +76,14 @@ export async function sendInterviewInvite(
   if (hmEmail) ccList.push(hmEmail);
   if (hrEmail) ccList.push(hrEmail);
 
-  const locationLine = location
-    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Venue</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${location}</td></tr>`
-    : "";
-
-  const meetingLinkLine = meetingLink
-    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Location link</td><td style="padding: 6px 0; font-size: 14px;"><a href="${meetingLink}" style="color: #B8553A;">${meetingLink}</a></td></tr>`
-    : "";
-
   const interviewerLine = interviewerName
     ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Interviewer</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${interviewerName}</td></tr>`
+    : "";
+
+  const modeLine = meetingLink
+    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Mode</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">Remote</td></tr><tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Meeting link</td><td style="padding: 6px 0; font-size: 14px;"><a href="${meetingLink}" style="color: #B8553A;">${meetingLink}</a></td></tr>`
+    : location
+    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Mode</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">In-person</td></tr><tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Venue</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${location}</td></tr>`
     : "";
 
   const notesSection = notes
@@ -118,8 +116,7 @@ export async function sendInterviewInvite(
           <td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${startTime} to ${endTime}</td>
         </tr>
         ${interviewerLine}
-        ${locationLine}
-        ${meetingLinkLine}
+        ${modeLine}
       </table>
 
       ${notesSection}
@@ -208,14 +205,13 @@ export async function sendInterviewReschedule(
   const endIso = new Date(new Date(scheduledAt).getTime() + durationMinutes * 60_000).toISOString();
   const endTime = formatTime(endIso, timezone);
 
-  const locationLine = location
-    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Venue</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${location}</td></tr>`
-    : "";
-  const meetingLinkLine = meetingLink
-    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Location link</td><td style="padding: 6px 0; font-size: 14px;"><a href="${meetingLink}" style="color: #B8553A;">${meetingLink}</a></td></tr>`
-    : "";
   const interviewerLine = interviewerName
     ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Interviewer</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${interviewerName}</td></tr>`
+    : "";
+  const modeLine = meetingLink
+    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Mode</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">Remote</td></tr><tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Meeting link</td><td style="padding: 6px 0; font-size: 14px;"><a href="${meetingLink}" style="color: #B8553A;">${meetingLink}</a></td></tr>`
+    : location
+    ? `<tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Mode</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">In-person</td></tr><tr><td style="padding: 6px 0; color: #8A857B; font-size: 13px; width: 120px;">Venue</td><td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${location}</td></tr>`
     : "";
   const notesSection = notes
     ? `<div style="margin-top: 28px;"><p style="font-size: 15px; font-weight: 600; color: #1A1815; margin: 0 0 10px 0;">What to bring / prepare</p><p style="font-size: 14px; color: #1A1815; margin: 0; white-space: pre-line; line-height: 1.7;">${notes}</p></div>`
@@ -238,7 +234,7 @@ export async function sendInterviewReschedule(
           <td style="padding: 6px 0; color: #8A857B; font-size: 13px;">Time</td>
           <td style="padding: 6px 0; font-size: 14px; color: #1A1815;">${startTime} to ${endTime}</td>
         </tr>
-        ${interviewerLine}${locationLine}${meetingLinkLine}
+        ${interviewerLine}${modeLine}
       </table>
       ${notesSection}
       <hr style="border: none; border-top: 1px solid #E5E0D5; margin: 32px 0 20px 0;" />

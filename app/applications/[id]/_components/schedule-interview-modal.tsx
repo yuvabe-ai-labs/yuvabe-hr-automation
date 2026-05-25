@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -94,12 +100,10 @@ function buildPreviewHtml(p: PreviewParams): string {
   ).toISOString();
   const endTime = formatTime(endIso, p.timezone);
 
-  const locationLine = p.location
-    ? `<tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Venue</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${p.location}</td></tr>`
-    : "";
-
-  const meetingLinkLine = p.meetingLink
-    ? `<tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Location link</td><td style="padding:6px 0;font-size:14px;"><a href="${p.meetingLink}" style="color:#B8553A;">${p.meetingLink}</a></td></tr>`
+  const modeLine = p.meetingLink
+    ? `<tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Mode</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">Remote</td></tr><tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Meeting link</td><td style="padding:6px 0;font-size:14px;"><a href="${p.meetingLink}" style="color:#B8553A;">${p.meetingLink}</a></td></tr>`
+    : p.location
+    ? `<tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Mode</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">In-person</td></tr><tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Venue</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${p.location}</td></tr>`
     : "";
 
   const interviewerLine = p.interviewerName
@@ -119,7 +123,7 @@ function buildPreviewHtml(p: PreviewParams): string {
       <table style="border-collapse:collapse;width:100%;">
         <tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Date</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${startDate}</td></tr>
         <tr><td style="padding:6px 0;color:#8A857B;font-size:13px;">Time</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${startTime} to ${endTime}</td></tr>
-        ${interviewerLine}${locationLine}${meetingLinkLine}
+        ${interviewerLine}${modeLine}
       </table>
       ${notesSection}
       <hr style="border:none;border-top:1px solid #E5E0D5;margin:32px 0 20px 0;" />
@@ -143,6 +147,7 @@ export function ScheduleInterviewModal({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("10:00");
   const [duration, setDuration] = useState("60");
+  const [mode, setMode] = useState<"in-person" | "remote">("in-person");
   const [location, setLocation] = useState("");
   const [meetingLink, setMeetingLink] = useState("");
   const [notes, setNotes] = useState("");
@@ -160,6 +165,7 @@ export function ScheduleInterviewModal({
     setDate("");
     setTime("10:00");
     setDuration("60");
+    setMode("in-person");
     setLocation("");
     setMeetingLink("");
     setNotes("");
@@ -169,22 +175,12 @@ export function ScheduleInterviewModal({
   function handlePreview(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!title.trim()) {
-      setError("Please enter an interview title.");
-      return;
-    }
-    if (!interviewerId) {
-      setError("Please select an interviewer.");
-      return;
-    }
-    if (!date) {
-      setError("Please pick a date.");
-      return;
-    }
-    if (!time) {
-      setError("Please enter a time.");
-      return;
-    }
+    if (!title.trim())   { setError("Please enter an interview title."); return; }
+    if (!interviewerId)  { setError("Please select an interviewer."); return; }
+    if (!date)           { setError("Please pick a date."); return; }
+    if (!time)           { setError("Please enter a time."); return; }
+    if (mode === "in-person" && !location.trim()) { setError("Please enter a location."); return; }
+    if (mode === "remote" && !meetingLink.trim())  { setError("Please enter a meeting link."); return; }
     setStep("preview");
   }
 
@@ -290,35 +286,33 @@ export function ScheduleInterviewModal({
               <Label className="caps-meta text-muted-foreground">
                 Interviewer
               </Label>
-              <Select
-                value={interviewerId}
-                onValueChange={setInterviewerId}
-                disabled={loadingManagers}
-              >
-                <SelectTrigger className="rounded-sm">
-                  <SelectValue
-                    placeholder={
-                      loadingManagers ? "Loading…" : "Select interviewer"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild disabled={loadingManagers}>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-3 py-2 border border-border rounded-sm bg-background text-sm text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:opacity-50"
+                  >
+                    <span className={interviewerId ? "text-foreground" : "text-muted-foreground"}>
+                      {loadingManagers ? "Loading…" : (selectedManager?.name ?? "Select interviewer")}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
                   {managers.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
+                    <DropdownMenuItem key={m.id} onSelect={() => setInterviewerId(m.id)}>
                       {m.name}
-                    </SelectItem>
+                    </DropdownMenuItem>
                   ))}
                   {!loadingManagers && managers.length === 0 && (
-                    <SelectItem value="__none" disabled>
-                      No managers found
-                    </SelectItem>
+                    <DropdownMenuItem disabled>No managers found</DropdownMenuItem>
                   )}
-                </SelectContent>
-              </Select>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
-            {/* Date + Time */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Date + Time + Duration */}
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="caps-meta text-muted-foreground">Date</Label>
                 <Input
@@ -338,60 +332,75 @@ export function ScheduleInterviewModal({
                   className="rounded-sm"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label className="caps-meta text-muted-foreground">Duration</Label>
+                <Select value={duration} onValueChange={setDuration}>
+                  <SelectTrigger className="rounded-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATION_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <p className="caps-meta text-muted-foreground -mt-1">
               Timezone: {timezone}
             </p>
 
-            {/* Duration */}
+            {/* Mode */}
             <div className="space-y-1.5">
-              <Label className="caps-meta text-muted-foreground">
-                Duration
-              </Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger className="rounded-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DURATION_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="caps-meta text-muted-foreground">Mode</Label>
+              <div className="flex gap-2">
+                {(["in-person", "remote"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      setMode(m);
+                      if (m === "in-person") setMeetingLink("");
+                      else setLocation("");
+                    }}
+                    className={`caps-meta px-3 py-1.5 rounded-sm border transition-colors ${
+                      mode === m
+                        ? "border-primary text-primary bg-primary/5"
+                        : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                    }`}
+                  >
+                    {m === "in-person" ? "In-person" : "Remote"}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Location */}
-            <div className="space-y-1.5">
-              <Label className="caps-meta text-muted-foreground">
-                Location{" "}
-                <span className="text-muted-foreground/60">(optional)</span>
-              </Label>
-              <Input
-                type="text"
-                placeholder="e.g. Yuvabe Office, Floor 3"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="rounded-sm"
-              />
-            </div>
-
-            {/* Meeting link */}
-            <div className="space-y-1.5">
-              <Label className="caps-meta text-muted-foreground">
-                Meeting link{" "}
-                <span className="text-muted-foreground/60">(optional)</span>
-              </Label>
-              <Input
-                type="url"
-                placeholder="https://meet.google.com/…"
-                value={meetingLink}
-                onChange={(e) => setMeetingLink(e.target.value)}
-                className="rounded-sm"
-              />
-            </div>
+            {mode === "in-person" ? (
+              <div className="space-y-1.5">
+                <Label className="caps-meta text-muted-foreground">Location</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Yuvabe Office, Floor 3"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="rounded-sm"
+                />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="caps-meta text-muted-foreground">Meeting link</Label>
+                <Input
+                  type="url"
+                  placeholder="https://meet.google.com/…"
+                  value={meetingLink}
+                  onChange={(e) => setMeetingLink(e.target.value)}
+                  className="rounded-sm"
+                />
+              </div>
+            )}
 
             {/* Notes */}
             <div className="space-y-1.5">
@@ -403,7 +412,7 @@ export function ScheduleInterviewModal({
                 placeholder="e.g. Please carry a laptop. Keep your submission link ready."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={3}
+                rows={2}
                 className="rounded-sm resize-none"
               />
             </div>
