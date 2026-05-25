@@ -18,7 +18,7 @@ import type { Criterion, Importance } from "@/lib/prompts/extractCriteria.v1";
 import { JdPreviewDialog, type JdExtractionResult, type JdPreviewData } from "@/app/jobs/_components/jd-preview-dialog";
 import { IMPORTANCE_LABEL, IMPORTANCE_COLOR } from "@/lib/constants";
 import { Eyebrow } from "@/components/shared/eyebrow";
-import NavTab from "@/app/jobs/_components/nav-tab";
+import { AppHeader } from "@/app/_components/app-header";
 import { PageFooter } from "@/app/_components/page-footer";
 
 const ACCEPTED = ".pdf,.docx,.txt,.md";
@@ -268,18 +268,9 @@ export default function NewJobPage() {
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
-      {/* —————— Sticky header — brand + tabs —————— */}
-      <header className="flex-shrink-0 border-b border-border bg-background z-10">
-        {/* Brand row */}
-        <div className="px-4 md:px-10 pt-4 pb-3 flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <span className="font-serif italic text-lg leading-none">
-              Yuvabe
-            </span>
-            <span className="text-muted-foreground">/</span>
-            <Eyebrow>ATS</Eyebrow>
-          </div>
-          <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
+      <AppHeader
+        topRight={
+          <div className="flex items-center gap-3 md:gap-6 shrink-0">
             <Eyebrow>
               <span className="tabular">01</span> &nbsp;/&nbsp;{" "}
               <span className="hidden sm:inline">New job</span>
@@ -295,13 +286,8 @@ export default function NewJobPage() {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Tabs row */}
-        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto">
-          <NavTab href="/jobs" label="Jobs" prefix="/jobs" />
-        </nav>
-      </header>
+        }
+      />
 
       {/* —————— Two-column body (stacks on mobile) —————— */}
       <main className="md:flex-1 grid grid-cols-1 md:grid-cols-2 md:overflow-hidden">
