@@ -149,16 +149,17 @@ export const interviewsRepository = {
     return (data ?? []).map(rowToInterview)
   },
 
-  async findUpcoming(): Promise<Interview[]> {
+  async findAll(opts?: { jobIds?: string[] }): Promise<Interview[]> {
     const supabase = getSupabasePeopleClient()
-    const now = new Date().toISOString()
-    const { data, error } = await supabase
+    let query = supabase
       .from("interviews")
       .select("*")
-      .in("status", ["scheduled", "rescheduled"])
-      .gte("scheduled_at", now)
-      .order("scheduled_at", { ascending: true })
-    if (error) throw new Error(`Failed to fetch upcoming interviews: ${error.message}`)
+      .order("scheduled_at", { ascending: false })
+    if (opts?.jobIds && opts.jobIds.length > 0) {
+      query = query.in("job_id", opts.jobIds)
+    }
+    const { data, error } = await query
+    if (error) throw new Error(`Failed to fetch interviews: ${error.message}`)
     return (data ?? []).map(rowToInterview)
   },
 

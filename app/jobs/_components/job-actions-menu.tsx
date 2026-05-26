@@ -54,7 +54,7 @@ export function JobActionsMenu({
     setTimeout(() => setCopied(false), 1500);
   }
 
-  if (role === "viewer") return null;
+  if (role === "viewer" || role === "manager") return null;
 
   const handleArchiveSelect = () => {
     setDropdownOpen(false);
@@ -120,7 +120,6 @@ export function JobActionsMenu({
               </button>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem disabled>Duplicate</DropdownMenuItem>
           <DropdownMenuSeparator />
           {status === "draft" ? (
             <DropdownMenuItem

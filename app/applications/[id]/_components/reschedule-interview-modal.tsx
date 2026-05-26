@@ -90,11 +90,23 @@ function formatDate(isoUtc: string, tz: string): string {
       timeZone: tz,
       weekday: "long",
       year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+      month: "long",
+      day: "numeric",
     }).format(new Date(isoUtc));
   } catch {
     return isoUtc;
+  }
+}
+
+function tzAbbr(isoUtc: string, tz: string): string {
+  try {
+    return (
+      new Intl.DateTimeFormat("en", { timeZone: tz, timeZoneName: "short" })
+        .formatToParts(new Date(isoUtc))
+        .find((p) => p.type === "timeZoneName")?.value ?? tz
+    );
+  } catch {
+    return tz;
   }
 }
 
@@ -124,40 +136,65 @@ type PreviewParams = {
   notes?: string;
 };
 
+const ROW = (label: string, value: string) =>
+  `<tr>
+    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;color:#8A857B;font-size:13px;width:130px;vertical-align:top;">${label}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;font-size:14px;color:#1A1815;font-weight:500;">${value}</td>
+  </tr>`;
+
 function buildPreviewHtml(p: PreviewParams): string {
   const startDate = formatDate(p.scheduledAt, p.timezone);
   const startTime = formatTime(p.scheduledAt, p.timezone);
-  const endIso = new Date(
-    new Date(p.scheduledAt).getTime() + p.durationMinutes * 60_000,
-  ).toISOString();
+  const endIso = new Date(new Date(p.scheduledAt).getTime() + p.durationMinutes * 60_000).toISOString();
   const endTime = formatTime(endIso, p.timezone);
+  const tz = tzAbbr(p.scheduledAt, p.timezone);
 
-  const modeLine = p.meetingLink
-    ? `<tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Mode</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">Remote</td></tr><tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Meeting link</td><td style="padding:6px 0;font-size:14px;"><a href="${p.meetingLink}" style="color:#B8553A;">${p.meetingLink}</a></td></tr>`
+  const interviewerRow = p.interviewerName ? ROW("Interviewer", p.interviewerName) : "";
+  const modeRows = p.meetingLink
+    ? ROW("Format", "Video Call") + ROW("Meeting Link", `<a href="${p.meetingLink}" style="color:#B8553A;word-break:break-all;">${p.meetingLink}</a>`)
     : p.location
-    ? `<tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Mode</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">In-person</td></tr><tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Venue</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${p.location}</td></tr>`
-    : "";
-  const interviewerLine = p.interviewerName
-    ? `<tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Interviewer</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${p.interviewerName}</td></tr>`
+    ? ROW("Format", "In-Person") + ROW("Venue", p.location)
     : "";
   const notesSection = p.notes
-    ? `<div style="margin-top:28px;"><p style="font-size:15px;font-weight:600;color:#1A1815;margin:0 0 10px 0;">What to bring / prepare</p><p style="font-size:14px;color:#1A1815;margin:0;white-space:pre-line;line-height:1.7;">${p.notes}</p></div>`
+    ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid #F0EDE8;">
+        <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#8A857B;margin:0 0 8px 0;font-weight:600;">Preparation Notes</p>
+        <p style="font-size:14px;color:#1A1815;margin:0;white-space:pre-line;line-height:1.7;">${p.notes}</p>
+      </div>`
     : "";
 
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#e8e4dc;">
-    <div style="font-family:sans-serif;max-width:580px;margin:24px auto;color:#1A1815;background:#FAF8F4;padding:40px 32px;border-radius:4px;">
-      <p style="font-size:16px;margin:0 0 6px 0;">Hi ${p.candidateName},</p>
-      <p style="font-size:15px;color:#1A1815;margin:0 0 28px 0;">Your interview at Yuvabe has been rescheduled. Please find the updated details below.</p>
-      <hr style="border:none;border-top:1px solid #E5E0D5;margin:0 0 24px 0;" />
-      <p style="font-size:15px;font-weight:600;color:#1A1815;margin:0 0 14px 0;">${p.title}</p>
-      <table style="border-collapse:collapse;width:100%;">
-        <tr><td style="padding:6px 0;color:#8A857B;font-size:13px;width:120px;">Date</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${startDate}</td></tr>
-        <tr><td style="padding:6px 0;color:#8A857B;font-size:13px;">Time</td><td style="padding:6px 0;font-size:14px;color:#1A1815;">${startTime} to ${endTime}</td></tr>
-        ${interviewerLine}${modeLine}
-      </table>
-      ${notesSection}
-      <hr style="border:none;border-top:1px solid #E5E0D5;margin:32px 0 20px 0;" />
-      <p style="color:#8A857B;font-size:12px;margin:0;">This is an automated message from Yuvabe People regarding your application for <strong>${p.jobTitle}</strong>. If you have questions, reply to this email.</p>
+  return `<!DOCTYPE html><html lang="en"><body style="margin:0;padding:0;background:#f0ece5;">
+    <div style="font-family:Helvetica Neue,Helvetica,Arial,sans-serif;max-width:600px;margin:32px auto;">
+      <div style="background:#1A1815;padding:24px 32px;border-radius:4px 4px 0 0;">
+        <p style="font-size:20px;color:#FAF8F4;margin:0;font-weight:700;">Yuvabe</p>
+        <p style="font-size:11px;color:#8A857B;margin:4px 0 0 0;letter-spacing:1.5px;text-transform:uppercase;">People &amp; Talent</p>
+      </div>
+      <div style="padding:40px 32px;background:#FAF8F4;">
+        <p style="font-size:16px;color:#1A1815;margin:0 0 6px 0;">Dear ${p.candidateName},</p>
+        <p style="font-size:15px;color:#1A1815;line-height:1.7;margin:0 0 32px 0;">
+          We sincerely apologise for the inconvenience, and wish to inform you that your interview for the <strong>${p.jobTitle}</strong> role at Yuvabe has been rescheduled. Please note the updated details below and disregard any previous interview confirmation.
+        </p>
+        <div style="background:#ffffff;border:1px solid #E5E0D5;border-radius:4px;padding:24px;">
+          <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#8A857B;margin:0 0 16px 0;font-weight:600;">${p.title}</p>
+          <table style="border-collapse:collapse;width:100%;">
+            ${ROW("Date", startDate)}
+            ${ROW("Time", `${startTime} – ${endTime} <span style="color:#8A857B;font-size:12px;">(${p.durationMinutes} min · ${tz})</span>`)}
+            ${interviewerRow}
+            ${modeRows}
+          </table>
+          ${notesSection}
+        </div>
+        <p style="font-size:14px;color:#1A1815;line-height:1.7;margin:28px 0 0 0;">
+          If the updated time does not work for you, please reply to this email at your earliest convenience and we will do our best to accommodate you.
+        </p>
+        <p style="font-size:14px;color:#1A1815;margin:24px 0 0 0;">We look forward to speaking with you.</p>
+        <p style="font-size:14px;color:#1A1815;margin:16px 0 0 0;">Thank you for your understanding and continued patience.</p>
+        <p style="font-size:14px;color:#1A1815;margin:20px 0 0 0;line-height:1.6;">Warm regards,<br/><strong>Yuvabe People &amp; Talent</strong></p>
+      </div>
+      <div style="background:#1A1815;padding:20px 32px;border-radius:0 0 4px 4px;">
+        <p style="font-size:12px;color:#5C5752;margin:0;line-height:1.7;">
+          This is an automated message from Yuvabe People &amp; Talent.<br/>If you have questions, please reply to this email.
+        </p>
+      </div>
     </div>
   </body></html>`;
 }
