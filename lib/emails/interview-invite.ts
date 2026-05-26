@@ -58,8 +58,8 @@ function tzAbbr(isoUtc: string, timezone: string): string {
 
 const ROW = (label: string, value: string) =>
   `<tr>
-    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;color:#8A857B;font-size:13px;width:130px;vertical-align:top;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${label}</td>
-    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;font-size:14px;color:#1A1815;font-weight:500;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${value}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;color:#1A1815;font-size:13px;width:130px;vertical-align:top;font-weight:700;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${label}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;font-size:14px;color:#1A1815;font-weight:700;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${value}</td>
   </tr>`;
 
 function buildDetailsCard(params: {
@@ -94,7 +94,7 @@ function buildDetailsCard(params: {
 
   return `
     <div style="background:#ffffff;border:1px solid #E5E0D5;border-radius:4px;padding:24px;">
-      <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#8A857B;margin:0 0 16px 0;font-weight:600;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${title}</p>
+      <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#1A1815;margin:0 0 16px 0;font-weight:700;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${title}</p>
       <table style="border-collapse:collapse;width:100%;">
         ${ROW("Date", startDate)}
         ${ROW("Time", `${startTime} – ${endTime} <span style="color:#8A857B;font-size:12px;">(${durationMinutes} min · ${tz})</span>`)}
@@ -106,6 +106,8 @@ function buildDetailsCard(params: {
 }
 
 function emailShell(bodyContent: string): string {
+  const appUrl = (process.env.APP_URL ?? "").replace(/\/$/, "");
+  const logoUrl = `${appUrl}/assests/yuvabe.png`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -113,22 +115,13 @@ function emailShell(bodyContent: string): string {
   <div style="font-family:Helvetica Neue,Helvetica,Arial,sans-serif;max-width:600px;margin:32px auto;">
 
     <!-- Header -->
-    <div style="background:#1A1815;padding:24px 32px;border-radius:4px 4px 0 0;">
-      <p style="font-size:20px;color:#FAF8F4;margin:0;font-weight:700;letter-spacing:0.3px;">Yuvabe</p>
-      <p style="font-size:11px;color:#8A857B;margin:4px 0 0 0;letter-spacing:1.5px;text-transform:uppercase;">People &amp; Talent</p>
+    <div style="background:#ffffff;padding:20px 32px;border-radius:4px 4px 0 0;border-bottom:1px solid #E5E0D5;">
+      <img src="${logoUrl}" alt="Yuvabe" height="40" style="display:block;object-fit:contain;" />
     </div>
 
     <!-- Body -->
     <div style="padding:40px 32px;background:#FAF8F4;">
       ${bodyContent}
-    </div>
-
-    <!-- Footer -->
-    <div style="background:#1A1815;padding:20px 32px;border-radius:0 0 4px 4px;">
-      <p style="font-size:12px;color:#5C5752;margin:0;line-height:1.7;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">
-        This is an automated message from Yuvabe People &amp; Talent.<br/>
-        If you have questions, please reply to this email.
-      </p>
     </div>
 
   </div>
@@ -179,11 +172,11 @@ export async function sendInterviewInvite(params: InterviewInviteParams): Promis
 
     <p style="font-size:14px;color:#1A1815;margin:20px 0 0 0;line-height:1.6;">
       Warm regards,<br/>
-      <strong>Yuvabe People &amp; Talent</strong>
+      <strong>Yuvabe HR Team</strong>
     </p>`;
 
   await resend.emails.send({
-    from: `Yuvabe People <${senderEmail}>`,
+    from: `Yuvabe <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Invitation — ${jobTitle} (${title})`,
@@ -226,10 +219,6 @@ export async function sendInterviewReschedule(params: InterviewRescheduleParams)
 
     ${detailsCard}
 
-    <p style="font-size:14px;color:#1A1815;line-height:1.7;margin:28px 0 0 0;">
-      If the updated time does not work for you, please reply to this email at your earliest convenience and we will do our best to accommodate you.
-    </p>
-
     <p style="font-size:14px;color:#1A1815;margin:24px 0 0 0;">
       We look forward to speaking with you.
     </p>
@@ -240,11 +229,11 @@ export async function sendInterviewReschedule(params: InterviewRescheduleParams)
 
     <p style="font-size:14px;color:#1A1815;margin:20px 0 0 0;line-height:1.6;">
       Warm regards,<br/>
-      <strong>Yuvabe People &amp; Talent</strong>
+      <strong>Yuvabe HR Team</strong>
     </p>`;
 
   await resend.emails.send({
-    from: `Yuvabe People <${senderEmail}>`,
+    from: `Yuvabe <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Rescheduled — ${jobTitle} (${title})`,
@@ -298,11 +287,11 @@ export async function sendInterviewCancellation(params: InterviewCancellationPar
 
     <p style="font-size:14px;color:#1A1815;margin:20px 0 0 0;line-height:1.6;">
       Warm regards,<br/>
-      <strong>Yuvabe People &amp; Talent</strong>
+      <strong>Yuvabe HR Team</strong>
     </p>`;
 
   await resend.emails.send({
-    from: `Yuvabe People <${senderEmail}>`,
+    from: `Yuvabe <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Cancellation — ${jobTitle} (${title})`,

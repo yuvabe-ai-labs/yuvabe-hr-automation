@@ -138,8 +138,8 @@ type PreviewParams = {
 
 const ROW = (label: string, value: string) =>
   `<tr>
-    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;color:#8A857B;font-size:13px;width:130px;vertical-align:top;">${label}</td>
-    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;font-size:14px;color:#1A1815;font-weight:500;">${value}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;color:#1A1815;font-size:13px;width:130px;vertical-align:top;font-weight:700;">${label}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #F0EDE8;font-size:14px;color:#1A1815;font-weight:700;">${value}</td>
   </tr>`;
 
 function buildPreviewHtml(p: PreviewParams): string {
@@ -164,9 +164,8 @@ function buildPreviewHtml(p: PreviewParams): string {
 
   return `<!DOCTYPE html><html lang="en"><body style="margin:0;padding:0;background:#f0ece5;">
     <div style="font-family:Helvetica Neue,Helvetica,Arial,sans-serif;max-width:600px;margin:32px auto;">
-      <div style="background:#1A1815;padding:24px 32px;border-radius:4px 4px 0 0;">
-        <p style="font-size:20px;color:#FAF8F4;margin:0;font-weight:700;">Yuvabe</p>
-        <p style="font-size:11px;color:#8A857B;margin:4px 0 0 0;letter-spacing:1.5px;text-transform:uppercase;">People &amp; Talent</p>
+      <div style="background:#ffffff;padding:20px 32px;border-radius:4px 4px 0 0;border-bottom:1px solid #E5E0D5;">
+        <img src="/assests/yuvabe.png" alt="Yuvabe" height="40" style="display:block;object-fit:contain;" />
       </div>
       <div style="padding:40px 32px;background:#FAF8F4;">
         <p style="font-size:16px;color:#1A1815;margin:0 0 6px 0;">Dear ${p.candidateName},</p>
@@ -174,7 +173,7 @@ function buildPreviewHtml(p: PreviewParams): string {
           We sincerely apologise for the inconvenience, and wish to inform you that your interview for the <strong>${p.jobTitle}</strong> role at Yuvabe has been rescheduled. Please note the updated details below and disregard any previous interview confirmation.
         </p>
         <div style="background:#ffffff;border:1px solid #E5E0D5;border-radius:4px;padding:24px;">
-          <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#8A857B;margin:0 0 16px 0;font-weight:600;">${p.title}</p>
+          <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#1A1815;margin:0 0 16px 0;font-weight:700;">${p.title}</p>
           <table style="border-collapse:collapse;width:100%;">
             ${ROW("Date", startDate)}
             ${ROW("Time", `${startTime} – ${endTime} <span style="color:#8A857B;font-size:12px;">(${p.durationMinutes} min · ${tz})</span>`)}
@@ -183,17 +182,9 @@ function buildPreviewHtml(p: PreviewParams): string {
           </table>
           ${notesSection}
         </div>
-        <p style="font-size:14px;color:#1A1815;line-height:1.7;margin:28px 0 0 0;">
-          If the updated time does not work for you, please reply to this email at your earliest convenience and we will do our best to accommodate you.
-        </p>
         <p style="font-size:14px;color:#1A1815;margin:24px 0 0 0;">We look forward to speaking with you.</p>
         <p style="font-size:14px;color:#1A1815;margin:16px 0 0 0;">Thank you for your understanding and continued patience.</p>
-        <p style="font-size:14px;color:#1A1815;margin:20px 0 0 0;line-height:1.6;">Warm regards,<br/><strong>Yuvabe People &amp; Talent</strong></p>
-      </div>
-      <div style="background:#1A1815;padding:20px 32px;border-radius:0 0 4px 4px;">
-        <p style="font-size:12px;color:#5C5752;margin:0;line-height:1.7;">
-          This is an automated message from Yuvabe People &amp; Talent.<br/>If you have questions, please reply to this email.
-        </p>
+        <p style="font-size:14px;color:#1A1815;margin:20px 0 0 0;line-height:1.6;">Warm regards,<br/><strong>Yuvabe HR Team</strong></p>
       </div>
     </div>
   </body></html>`;
