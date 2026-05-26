@@ -1,6 +1,15 @@
 import type { Tables } from "@/integrations/database.types";
 
-export type ApplicationStatus = "new" | "reviewing" | "shortlisted" | "rejected" | "offered";
+export type ApplicationStatus =
+  | "new"
+  | "reviewing"
+  | "shortlisted"
+  | "interview_scheduled"
+  | "interviewed"
+  | "offered"
+  | "hired"
+  | "rejected"
+  | "withdrawn";
 
 export type CriterionMatch = {
   criterionId?: string;
@@ -27,6 +36,8 @@ export type Application = {
   resumeUrl?: string;
   receivedAt: string;
   status: ApplicationStatus;
+  rejectionReason?: string;
+  assignedInterviewerId?: string;
 };
 
 export type ApplicationRow = Tables<"applications">;

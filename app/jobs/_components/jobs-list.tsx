@@ -4,69 +4,41 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import { ChevronRight, Plus } from "lucide-react";
+import { useSession } from "@/app/providers";
 import { useJobs } from "@/hooks/use-jobs";
+import { useApplications } from "@/hooks/use-applications";
 import { useQueryClient } from "@tanstack/react-query";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 import { JobActionsMenu } from "./job-actions-menu";
-import type { JobsListResult } from "@/services/jobs.service";
+import { relativeTime } from "@/lib/utils";
 import type { Job } from "@/types/jobs";
-import type { Application } from "@/types/applications";
 
 const PAGE_SIZE = 10;
 
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const seconds = Math.floor((now - then) / 1000);
 
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const date = new Date(iso);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function importanceCounts(criteria: Job["criteria"]) {
-  let must = 0,
-    strong = 0,
-    nice = 0;
-  for (const c of criteria) {
-    if (c.importance === "must") must++;
-    else if (c.importance === "strong") strong++;
-    else nice++;
-  }
-  return { must, strong, nice };
-}
-
-export function JobsList({
-  initialData,
-  initialApplications,
-  newCode,
-  initialSearch = "",
-  initialPage = 1,
-  initialTab = "active",
-}: {
-  initialData?: JobsListResult;
-  initialApplications: Application[];
-  newCode?: string;
-  initialSearch?: string;
-  initialPage?: number;
-  initialTab?: "active" | "archived";
-}) {
+export function JobsList({ newCode }: { newCode?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { role } = useSession();
   const isFirstRender = useRef(true);
   // Guard: only refresh once per unique newCode to prevent loops.
   const refreshedForRef = useRef<string | null>(null);
 
-  const tab = (searchParams.get("tab") === "archived" ? "archived" : "active") as "active" | "archived";
+  const rawTab = searchParams.get("tab");
+  const tab = (rawTab === "archived" ? "archived" : rawTab === "draft" ? "draft" : "active") as "active" | "archived" | "draft";
   const search = searchParams.get("search") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
+
+  const JOB_TYPES = ["full-time", "part-time", "contract", "internship"] as const;
+  const rawType = searchParams.get("type");
+  const jobType = (JOB_TYPES as readonly string[]).includes(rawType ?? "")
+    ? (rawType as Job["type"])
+    : undefined;
+  const dateFrom = searchParams.get("dateFrom") ?? undefined;
+  const dateTo = searchParams.get("dateTo") ?? undefined;
+  const sort = searchParams.get("sort") === "oldest" ? "oldest" as const : "newest" as const;
+  const managerId = searchParams.get("managerId") ?? undefined;
   // Read newCode from the live URL — useSearchParams() always reflects the
   // current URL even when Next.js serves a cached RSC payload.
   const newCodeFromUrl = searchParams.get("new") ?? undefined;
@@ -113,12 +85,8 @@ export function JobsList({
     return () => clearTimeout(timer);
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isInitialParams =
-    search === initialSearch && page === initialPage && tab === initialTab;
-  const { data } = useJobs(
-    { search, page, pageSize: PAGE_SIZE, status: tab },
-    isInitialParams ? initialData : undefined
-  );
+  const { data, isLoading, isFetching } = useJobs({ search, page, pageSize: PAGE_SIZE, status: tab, type: jobType, dateFrom, dateTo, sort, managerId });
+  const { data: applications } = useApplications();
 
   const jobs = data?.jobs ?? [];
   const total = data?.total ?? 0;
@@ -134,7 +102,7 @@ export function JobsList({
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
-  function buildTabHref(targetTab: "active" | "archived") {
+  function buildTabHref(targetTab: "active" | "draft" | "archived") {
     const params = new URLSearchParams(searchParams.toString());
     if (targetTab === "active") {
       params.delete("tab");
@@ -146,19 +114,23 @@ export function JobsList({
   }
 
   const appsByJobCode = new Map<string, number>();
-  for (const a of initialApplications) {
+  for (const a of applications ?? []) {
     appsByJobCode.set(a.jobCode, (appsByJobCode.get(a.jobCode) ?? 0) + 1);
   }
 
   const isFiltered = !!search;
-  const isEmpty = jobs.length === 0;
+  const showSkeleton = isLoading || (isFetching && jobs.length === 0);
+  const isEmpty = !showSkeleton && jobs.length === 0;
 
   return (
     <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
       <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-6 md:pt-8 pb-8">
-      {/* Active / Archived tabs */}
+      {/* Active / Draft / Archived tabs */}
       <div className="max-w-4xl flex items-center gap-6 border-b border-border mb-6">
-        {(["active", "archived"] as const).map((t) => (
+        {(role !== "manager"
+            ? (["active", "draft", "archived"] as const)
+            : (["active", "archived"] as const)
+          ).map((t) => (
           <Link
             key={t}
             href={buildTabHref(t)}
@@ -168,7 +140,7 @@ export function JobsList({
                 : "text-foreground/55 border-transparent hover:text-foreground"
             }`}
           >
-            {t === "active" ? "Active" : "Archived"}
+            {t === "active" ? "Active" : t === "draft" ? "Draft" : "Archived"}
           </Link>
         ))}
       </div>
@@ -201,19 +173,44 @@ export function JobsList({
           <FilterEmptyState onClear={() => setSearchInput("")} />
         ) : tab === "archived" ? (
           <ArchivedEmptyState />
+        ) : tab === "draft" ? (
+          <DraftEmptyState />
         ) : (
           <EmptyState />
         )
       )}
 
+      {/* Skeleton rows while loading or switching tabs with empty stale cache */}
+      {showSkeleton && (
+        <ul className="max-w-4xl">
+          {["w-2/3", "w-1/2", "w-3/5", "w-1/2", "w-2/5"].map((titleW, i) => (
+            <li key={i} className={`border-b border-border/60 ${i === 0 ? "border-t border-border/60" : ""}`}>
+              <div className="py-5 md:py-6 px-4 grid grid-cols-[1fr_auto] items-center gap-3">
+                <div className="min-w-0">
+                  <div className={`h-7 md:h-8 ${titleW} bg-muted rounded-sm animate-pulse mb-3`} />
+                  <div className="flex items-center gap-3">
+                    <div className="h-3 w-16 bg-muted/70 rounded-sm animate-pulse" />
+                    <span className="text-border">·</span>
+                    <div className="h-3 w-20 bg-muted/70 rounded-sm animate-pulse" />
+                    <span className="text-border hidden sm:inline">·</span>
+                    <div className="h-3 w-24 bg-muted/70 rounded-sm animate-pulse hidden sm:inline-block" />
+                  </div>
+                </div>
+                <div className="h-4 w-4 bg-muted/70 rounded-sm animate-pulse" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* List */}
-      {jobs.length > 0 && (
+      {!showSkeleton && jobs.length > 0 && (
         <>
           <ul className="max-w-4xl">
             {jobs.map((job, idx) => {
-              const counts = importanceCounts(job.criteria);
               const isNew = job.code === effectiveNewCode;
               const isArchived = job.status === "archived";
+              const isDraft = job.status === "draft";
               const appCount = appsByJobCode.get(job.code) ?? 0;
               return (
                 <li
@@ -227,9 +224,9 @@ export function JobsList({
                 >
                   <div className="py-5 md:py-6 -mx-4 pl-4 pr-6 md:pr-8 rounded-sm grid grid-cols-[1fr_auto_auto] items-center gap-2 md:gap-3">
                     <Link
-                      href={`/jobs/${job.code}`}
+                      href={isDraft ? `/jobs/${job.code}/view` : `/jobs/${job.code}`}
                       className="min-w-0 after:absolute after:inset-0 after:content-[''] after:rounded-sm focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-primary focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
-                      aria-label={`View applicants for ${job.title}`}
+                      aria-label={isDraft ? `View draft ${job.title}` : `View applicants for ${job.title}`}
                     >
                       <div className="flex items-baseline gap-3 mb-2">
                         <h3 className={`font-serif italic text-h2 md:text-h1 leading-tight tracking-tight truncate ${isArchived ? "text-foreground/60" : ""}`}>
@@ -245,9 +242,20 @@ export function JobsList({
                             archived
                           </span>
                         )}
+                        {isDraft && (
+                          <span className="eyebrow text-muted-foreground shrink-0 hidden sm:inline">
+                            draft
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                         <JobIdBadge code={job.code} />
+                        {job.type && (
+                          <>
+                            <span className="text-border">·</span>
+                            <span className="caps-meta text-muted-foreground hidden sm:inline">{job.type}</span>
+                          </>
+                        )}
                         <span className="text-border">·</span>
                         <span className="caps-meta tabular hidden sm:inline">
                           <span
@@ -265,7 +273,7 @@ export function JobsList({
                         </span>
                         <span className="text-border hidden lg:inline">·</span>
                         <span className="caps-meta text-muted-foreground hidden lg:inline">
-                          {relativeTime(job.createdAt)}
+                          {relativeTime(job.publishedAt ?? job.createdAt)}
                         </span>
                       </div>
                     </Link>
@@ -274,6 +282,7 @@ export function JobsList({
                       jobCode={job.code}
                       jobTitle={job.title}
                       status={job.status}
+                      job={isDraft ? job : undefined}
                     />
 
                     <ChevronRight
@@ -359,7 +368,21 @@ function ArchivedEmptyState() {
   );
 }
 
+function DraftEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-24">
+      <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
+        No draft jobs.
+      </p>
+      <p className="mt-4 max-w-sm text-body-lg text-muted-foreground leading-relaxed">
+        Jobs saved as drafts appear here. Publish when you&apos;re ready to open applications.
+      </p>
+    </div>
+  );
+}
+
 function EmptyState() {
+  const { role } = useSession();
   return (
     <div className="h-full flex flex-col items-center justify-center text-center pb-24">
       <p className="font-serif italic text-display md:text-display-md text-foreground/55 leading-tight">
@@ -369,13 +392,15 @@ function EmptyState() {
         Upload a job description and we&apos;ll pull out the criteria
         recruiters screen on. Saved jobs appear here.
       </p>
-      <Link
-        href="/jobs/new"
-        className="mt-8 inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-5 py-2.5 caps-action hover:bg-primary/90 transition-colors"
-      >
-        <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-        Create the first job
-      </Link>
+      {role === "admin" && (
+        <Link
+          href="/jobs/new"
+          className="mt-8 inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-5 py-2.5 caps-action hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Create the first job
+        </Link>
+      )}
     </div>
   );
 }

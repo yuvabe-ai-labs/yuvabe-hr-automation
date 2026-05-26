@@ -1,121 +1,291 @@
 # Yuvabe ATS
 
-A small, opinionated applicant-tracking system for Yuvabe. Inbound applications arrive via email; the system routes each to the right Job, scores the fit against recruiter-confirmed criteria, and surfaces a ranked list of applicants with explainable per-criterion reasoning.
+A small, opinionated applicant-tracking system for Yuvabe. Inbound applications arrive via a public form; the system routes each to the right Job, scores the fit against recruiter-confirmed criteria, and surfaces a ranked list of applicants with explainable per-criterion reasoning.
 
 The thesis the product embodies: *"a score without reasoning is not a score."* Every match score the recruiter sees comes with the evidence that produced it.
 
+---
+
 ## Stack at a glance
 
-- **Next.js 16** (App Router, server components by default)
-- **TypeScript** strict
-- **Tailwind 4** (CSS-first theming via `@theme` in `globals.css`; no `tailwind.config.js`)
-- **shadcn/ui** primitives only — no custom UI primitives. Visual identity lives in `className` + design tokens.
-- **OpenAI** (`gpt-4o`, `temperature: 0`, `seed: 42`) for JD criteria extraction. Single wrapper at `lib/llm.ts`.
-- **Supabase Postgres** for data. Three tables (`jobs`, `candidates`, `applications`) with JSONB columns for embedded sub-collections (criteria, skills, experience, education, matchBreakdown). Server-only client at `lib/supabase.ts` uses the new-format secret key (`sb_secret_...`); RLS is currently off (auth is a future plan). Schema lives in `supabase/migrations/*.sql`. The committed mock seed in `data/*.example.json` loads via `pnpm db:seed`.
-- **File parsing**: `unpdf` (PDF), `mammoth` (DOCX), native UTF-8 (TXT/MD). See `lib/parseUpload.ts`.
-- **Fonts**: Newsreader (display/italic), Geist (UI/body), Geist Mono (numerics/captions). Wired in `app/layout.tsx` via `next/font/google`.
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 App Router, TypeScript strict |
+| Styling | Tailwind CSS v4 (CSS-first, `globals.css @theme`), shadcn/ui primitives |
+| Server state | TanStack React Query v5 |
+| Database | Supabase Postgres (JSONB sub-collections) |
+| Auth | HMAC-signed session cookie via `lib/auth.ts` (Edge-safe, 7-day TTL) |
+| LLM | OpenAI `gpt-4o`, `temperature: 0`, `seed: 42` |
+| Validation | Zod v4 (source of truth for all domain types) |
+| File parsing | `unpdf` (PDF), `mammoth` (DOCX), native UTF-8 (TXT) |
+| Fonts | Newsreader (display/italic), Geist (UI/body), Geist Mono (numerics/captions) |
 
-## Domain in one paragraph
+---
 
-A **Job** has many **Applications**. Each Application has one **Candidate** (the person) and one **Match Score** (LLM-computed: per-criterion `matched: yes | partial | no` plus 0–10 score plus an evidence sentence). UI label is "Applicants" because recruiters reason about people, not events; the data model still treats Application and Candidate as distinct entities. See `CONTEXT.md` for the canonical glossary.
+## Architecture — strict layers
 
-## Pages
+```
+UI (pages/components)
+  └── Feature hooks (TanStack Query)  [features/<domain>/hooks/]
+        └── Services (business logic) [services/]
+              └── Repositories (DB access only) [repositories/]
+                    └── Supabase client [lib/supabase.ts or integrations/supabase-people.ts]
+```
 
-| Route | Purpose | Type |
+**Absolute rules — no exceptions:**
+- Components NEVER import from `repositories/` or Supabase clients
+- Components NEVER contain business logic or heavy transforms
+- Services call repositories; NEVER Supabase directly
+- Repositories are the ONLY place Supabase calls live
+- Hooks call services, NEVER repositories directly
+- Query key strings NEVER appear inline — always from `constants/query-keys.ts`
+
+If you are about to violate one of these, stop and surface it before writing code.
+
+---
+
+## Folder structure — target (in-progress refactor)
+
+```
+app/                    — Next.js App Router pages (server components by default)
+repositories/           — DB access only. The ONLY place Supabase is called.
+services/               — Business logic. Calls repositories. Never Supabase.
+features/
+  jobs/hooks/           — TanStack Query hooks for jobs
+  applications/hooks/   — TanStack Query hooks for applications
+  candidates/hooks/     — TanStack Query hooks for candidates
+schemas/                — Zod schemas. Source of truth for all domain types.
+types/                  — z.infer<> inferred types only. No hand-written interfaces.
+constants/
+  query-keys.ts         — Query key factory. Single source of query key strings.
+hooks/                  — Shared cross-feature hooks
+components/ui/          — shadcn primitives only (no modification)
+components/shared/      — Cross-feature shared components
+lib/
+  supabase.ts           — Server-only Supabase client (secret key, import "server-only")
+  llm.ts                — OpenAI wrapper
+  parseUpload.ts        — File parsing (PDF/DOCX/TXT)
+  auth.ts               — Session cookie helpers (Edge-compatible)
+  utils.ts              — cn(), formatDate(), pure utilities
+  prompts/              — LLM prompt templates
+providers/              — QueryClient provider
+store/                  — Zustand for UI-only state (not server state)
+integrations/
+  supabase-people.ts    — Client-safe Supabase client (anon key)
+middleware.ts           — Auth gate (Edge runtime, reads session cookie)
+```
+
+---
+
+## Migration status
+
+This codebase is mid-refactor from the original flat anti-pattern to the clean layered architecture. Read this before writing any code.
+
+### Not yet migrated (old anti-pattern — do NOT copy as a pattern)
+
+- `lib/jobs-store.ts` — Supabase calls here; will move to `repositories/jobs.repository.ts`
+- `lib/candidates-store.ts` — same
+- `lib/applications-store.ts` — same
+- `lib/notes-store.ts` — same
+- `services/jobs.service.ts` — currently calls `getSupabasePeopleClient()` directly; needs repository extraction
+- `services/applications.service.ts` — same violation
+- `services/candidates.service.ts` — same violation
+- `hooks/use-jobs.ts`, `hooks/use-applications.ts` — inline query key strings; needs key factory
+
+### Does not exist yet (create when needed)
+
+- `repositories/` directory — create when refactoring a store
+- `features/` directory — create when adding new hooks
+- `schemas/` directory — create when adding Zod schemas
+- `constants/query-keys.ts` — create immediately when touching any hook
+- `store/` directory — create when Zustand UI state is needed
+
+### Rules during migration
+
+- **New code always uses target architecture.** Never copy from `lib/*-store.ts` as a pattern.
+- **When touching a service**, extract its repository layer in the same PR.
+- **When writing or modifying a hook**, always use the key factory — no inline strings.
+- **Use the `yuvabe-refactor` skill** when migrating a store file step by step.
+- **After migrating a domain**, update this section to reflect the new state.
+
+---
+
+## Repository pattern
+
+Repositories own exactly one thing: **database I/O**. Nothing else.
+
+```ts
+// repositories/jobs.repository.ts
+import { getSupabasePeopleClient } from '@/integrations/supabase-people'
+
+type JobRow = { id: string; code: string; title: string; ... } // stays in this file only
+
+function rowToJob(row: JobRow): Job { ... } // mapper lives in the repository
+
+export const jobsRepository = {
+  async findAll(opts?: { status?: string }): Promise<Job[]> {
+    const supabase = getSupabasePeopleClient()
+    const { data, error } = await supabase.from('jobs').select('*')
+    if (error) throw new Error(`Failed to fetch jobs: ${error.message}`)
+    return data.map(rowToJob)
+  },
+  // findByCode, create, updateStatus, archive
+}
+```
+
+**Repository rules:**
+- Export a plain object (not a class)
+- `type JobRow` (raw DB shape) stays in the repository file — never exported
+- `rowToJob()` mapper is in the repository, maps snake_case → camelCase, converts `null` → `undefined`
+- Throws on Supabase error — never silently returns undefined for DB failures
+- Function names: `findAll`, `findById`, `findByCode`, `create`, `update`, `upsert`, `remove`
+- No business logic: no `nanoid`, no scoring, no domain validation
+
+**Service rules:**
+- Calls repositories; never Supabase directly — no `@supabase/supabase-js` imports
+- Contains business logic: code generation, retry loops, data orchestration
+- Maps results to domain types (or delegates to repository mapper)
+- Throws typed errors with business context
+
+---
+
+## React Query rules
+
+All query keys in `constants/query-keys.ts`. Never define inline keys in hooks or components.
+
+```ts
+// constants/query-keys.ts
+export const jobKeys = {
+  all: ['jobs'] as const,
+  lists: () => [...jobKeys.all, 'list'] as const,
+  list: (filters?: JobFilters) => [...jobKeys.lists(), filters] as const,
+  details: () => [...jobKeys.all, 'detail'] as const,
+  detail: (code: string) => [...jobKeys.details(), code] as const,
+}
+```
+
+QueryClient defaults in `app/providers.tsx`: `staleTime: 60_000`, `gcTime: 300_000`, `retry: 1`, `refetchOnWindowFocus: false`.
+
+Mutations MUST invalidate: `queryClient.invalidateQueries({ queryKey: jobKeys.all })`.
+
+---
+
+## TypeScript rules
+
+- `strict: true` — no exceptions
+- No `any` — use `unknown` and narrow
+- Domain types inferred from Zod: `type Job = z.infer<typeof JobSchema>`
+- No hand-written interfaces for domain entities — they belong in `schemas/`
+- No `as SomeType` cast without a comment explaining why it is safe
+
+---
+
+## Error handling
+
+- Repositories throw on Supabase error (`throw new Error(...)`)
+- Services catch and rethrow with business context, or let propagate
+- API routes return `{ error: string }` with appropriate HTTP status
+- Hooks surface errors through TanStack's `error` state
+- Components show error state — never swallow silently
+- Mutations use toast for user-facing feedback on `onError`
+
+---
+
+## Server vs Client components
+
+Default: Server Component. Use `"use client"` only for:
+- Forms + interactivity
+- `useState` / `useReducer`
+- Browser APIs
+- Event handlers
+- TanStack Query hooks
+
+URL-driven filters (`?status=...`, `?sort=...`) stay server-side via `searchParams` — never useState for filter values.
+
+---
+
+## Naming conventions
+
+| Thing | Convention | Example |
 |---|---|---|
-| `/` | Redirects to `/jobs` | Page |
-| `/jobs` | List of jobs · counts · two CTAs per row (View applicants, Edit-disabled) | Server |
-| `/jobs/new` | JD upload → LLM extracts criteria → recruiter edits Must/Strong/Nice → save | Client |
-| `/jobs/[code]` | Job detail + ranked applicants list, status filter chips (URL-driven `?status=...`) | Server |
-| `/applications` | Cross-job applicants list, status filtered | Server |
-| `/applications/[id]` | Full applicant profile + per-criterion match breakdown + cover letter + resume | Server |
+| Files | kebab-case | `jobs.repository.ts` |
+| Components | PascalCase | `JobRow.tsx` |
+| Hooks | camelCase, `use` prefix | `useJobs.ts` |
+| Services | camelCase, `.service.ts` | `jobs.service.ts` |
+| Repositories | camelCase, `.repository.ts` | `jobs.repository.ts` |
+| Schemas | PascalCase, `Schema` suffix | `JobSchema` |
+| Types | PascalCase | `Job`, `ApplicationStatus` |
+| Query keys | camelCase factory | `jobKeys.list()` |
 
-API routes (no UI): `POST /api/extract-criteria` (JD file → LLM), `GET/POST /api/jobs` (jobs CRUD).
+---
 
-## What's built vs. what's deferred
+## Separation of concerns — utilities and types
 
-**Built:** Job creation flow, criteria extraction + editing (3-tier importance with editable dropdown), Supabase-backed jobs/candidates/applications stores, full applicant detail with editorial match breakdown, status filtering via URL params + status toggle group on detail page, full responsive layouts, contrast-AA-compliant text styling, breadcrumb IA on detail pages, real apply submission pipeline (resume upload → LLM parse + score → Postgres write).
+**Utility functions:**
+- Never define helper/utility functions inside component files — extract to `lib/utils.ts`, `features/<domain>/utils/`, or a new dedicated file
+- Exception: a one-liner used only in that component's JSX (e.g. inline format expression) is OK
 
-**Seeded mock universe:** 3 jobs, 15 candidates, 21 applications loaded from `data/*.example.json` via `pnpm db:seed`.
+**Type definitions:**
+- Component prop types (`type Props = { ... }`) can live inside the component file — nothing else
+- Domain types → `types/<domain>.ts`, always inferred from Zod: `type Job = z.infer<typeof JobSchema>`
+- Cross-domain shared utility types → `types/common.ts`
+- Feature-local types → `features/<domain>/types/` (only if genuinely not shared)
+- Before creating a new types file, check if an existing one is the right home
+- No duplicate type definitions across files
 
-**Deferred** (deliberately, see `docs/queries.md` and `docs/prd.md`):
-- Email intake via Postmark webhook (the actual receive-and-score flow)
-- `/jobs/[code]/edit` (currently a disabled CTA)
-- Auth + Row-Level Security (currently no auth — service-role key, anyone with the URL has full access)
-- Realtime subscriptions for live status updates across recruiters
+```ts
+// ✅ OK inside a component
+type Props = { jobCode: string; onClose: () => void }
+
+// ❌ FAIL inside a component — extract to types/jobs.ts
+type JobStatus = 'active' | 'paused' | 'closed'
+
+// ❌ FAIL inside a component — extract to lib/utils.ts
+function formatScore(score: number) { return `${score}/10` }
+```
+
+---
+
+## Locked design constraints
+
+- **shadcn primitives only** — no custom UI primitives. Visual identity in `className` + `globals.css`.
+- **Borders, not shadows** — two shadows only: heavy (modals + bulk bar), hairline `--shadow-hover` (hover-lift). Never `shadow-sm`/`shadow-md`.
+- **Warm palette locked** — `#FAF8F4` bg, `#1A1815` ink, `#8A857B` muted, `#B8553A` terracotta. No new tokens without explicit request.
+- **WCAG AA** — use `text-foreground/X` to dim, never `text-muted-foreground/X` below 80% on informational text.
+- **Tailwind 4, not Tailwind 3** — no `tailwind.config.js`. All tokens in `app/globals.css` via `@theme inline`.
+- **Responsive by default** — usable at 360px, stack on `<md`.
+
+---
 
 ## Skills loaded automatically
 
-| Skill | When it activates | Read it from |
-|---|---|---|
-| `yuvabe-design-system` | Before writing/editing any `.tsx` in `app/` or `components/`, or changing `globals.css` tokens. **Apply this proactively.** | `.claude/skills/yuvabe-design-system/SKILL.md` |
-| `yuvabe-interaction-design` | Before writing any list, table, card-grid, or surface that forks into a detail view. Before adding/removing row actions. **Apply this proactively.** | `.claude/skills/yuvabe-interaction-design/SKILL.md` |
-| `yuvabe-vd-checker` | After completing a screen, when user says "VD check", "audit this screen", "is this on-brand?". | `.claude/skills/yuvabe-vd-checker/SKILL.md` |
+| Skill | When it activates |
+|---|---|
+| `yuvabe-design-system` | Before writing/editing any `.tsx`, before changing `globals.css` tokens |
+| `yuvabe-interaction-design` | Before writing any list, table, card-grid, or collection surface |
+| `yuvabe-vd-checker` | After completing a screen; when user says "VD check" or "audit" |
+| `yuvabe-repository-pattern` | Before writing any repository, service, or data-access file |
+| `yuvabe-react-query` | Before writing any TanStack Query hook or mutation |
+| `yuvabe-feature-scaffold` | Before adding a new feature domain |
+| `yuvabe-form-pattern` | Before writing any form component |
+| `yuvabe-auth-pattern` | Before touching `middleware.ts`, `lib/auth.ts`, or session logic |
+| `yuvabe-data-modeling` | Before schema changes or new DB entities |
+| `yuvabe-pr-review` | On "review this", "PR check", "code review" requests |
+| `yuvabe-refactor` | On "refactor X", "migrate X to clean arch", "clean up the store" |
 
-The three skills divide the design surface: **design-system** governs *how a single surface looks*, **interaction-design** governs *how surfaces compose into flows*, and **vd-checker** *verifies what was built* against the visual system. Design-system + interaction-design are generative (apply before writing); vd-checker is verifying (apply after).
+---
 
-## Locked constraints
+## Domain
 
-These are non-negotiable. If a request seems to conflict with one, surface it before silently overriding.
+A **Job** has many **Applications**. Each Application has one **Candidate** and one **Match Score** (LLM: per-criterion `matched: yes|partial|no`, 0–10 score, evidence sentence). Importance tiers: `must | preferred | nice`. Pipeline stages: `new | reviewing | shortlisted | interview_scheduled | interviewed | offered | hired | rejected | withdrawn`.
 
-- **shadcn primitives only — no custom UI primitives.** Visual identity in `className` and `globals.css` tokens, never new components in `components/`.
-- **Borders, not shadows.** Two shadows exist, and only two: the *heavy* shadow on modals + the bulk-action bar, and the *hairline* `--shadow-hover` (`0 1px 2px rgb(26 24 21 / 0.04)`) used for hover-lift on row-as-link surfaces and clickable cards (NOT buttons). No third — never reach for `shadow-sm`/`shadow-md`/etc. Everywhere else: borders.
-- **Warm palette is locked.** `#FAF8F4` bg, `#1A1815` ink, `#8A857B` muted, `#B8553A` terracotta accent. No new color tokens without explicit user request.
-- **WCAG AA target.** Use `text-foreground/X` to dim text, never `text-muted-foreground/X` below 80% on informational text.
-- **Responsive by default.** Stack on `<md`, scale display sizes, gutter `px-4 md:px-10` etc. See design-system skill §Responsiveness.
-- **Tailwind 4, not Tailwind 3.** No `tailwind.config.js`. Theme tokens live in `app/globals.css` `@theme inline`.
-- **Seed data is *committed* (`data/*.example.json`); it loads into Supabase via `pnpm db:seed`.** No live JSON shadows — Postgres is the only runtime store.
+---
 
-## File map
+## Fresh session orientation
 
-```
-app/
-  jobs/
-    page.tsx                   List of jobs
-    new/page.tsx               Create-a-job (LLM extraction, client component)
-    [code]/page.tsx            Job detail + applicants
-    _components/nav-tab.tsx    Nav tab (client)
-  applications/
-    page.tsx                   Cross-job applicants list
-    [id]/page.tsx              Full applicant detail (sticky aside + scrolling main)
-  api/
-    extract-criteria/route.ts  Multipart upload → parse → LLM → criteria
-    jobs/route.ts              POST creates job, GET lists jobs
-  globals.css                  Palette tokens + grain texture + animations
-  layout.tsx                   Font wiring (Geist + Geist Mono + Newsreader)
-lib/
-  supabase.ts                  Server-only Supabase client + dev-mode query logger
-  jobs-store.ts                Jobs CRUD against Supabase
-  candidates-store.ts          Candidates CRUD against Supabase
-  applications-store.ts        Applications CRUD against Supabase
-  llm.ts                       OpenAI wrapper (single export: extractCriteria)
-  parseUpload.ts               PDF / DOCX / TXT parsing
-  prompts/
-    extractCriteria.v1.ts      Section-anchored prompt for 3-tier importance
-components/ui/                 shadcn primitives (button, badge, select, etc.)
-supabase/
-  migrations/
-    0001_init.sql              Initial schema (3 tables, JSONB sub-collections)
-    0002_tighten_application_snapshots.sql  Stage 4 — NOT NULL on snapshot fields
-scripts/
-  seed-supabase.ts             Reads data/*.example.json → inserts into Supabase
-data/
-  jobs.example.json            Seed jobs (committed; loaded via pnpm db:seed)
-  candidates.example.json      Seed candidates (committed)
-  applications.example.json    Seed applications (committed)
-docs/
-  prd.md                       Original PRD — full system spec, source of intent
-  design-brief.md              Visual design brief — palette, typography, screen specs
-  queries.md                   Open business questions for stakeholder review
-  data-modeling.md             Schema design rationale + access-pattern rules
-CONTEXT.md                     Canonical domain glossary
-```
-
-## Workflow conventions
-
-- **Business judgment vs. technical** — when ambiguity needs *business* input (policy, naming, workflow, audience), suggest adding to `docs/queries.md`. The pattern + capture format is in `AGENTS.md` below.
-- **Fresh session orientation** — confirm `SUPABASE_URL` + `SUPABASE_SECRET_KEY` are set in `.env.local`, run `pnpm db:seed` if Postgres is empty, then `pnpm dev` and visit `/jobs`. The mock universe gives you 3 jobs + 15 candidates + 21 applications immediately.
-- **Before any UI change**: invoke the `yuvabe-design-system` skill. After: invoke `yuvabe-vd-checker`. Don't skip either, especially when adding screens.
-- **Pages are server components by default**; only `/jobs/new` is `"use client"` because of upload + dropdown state. Filtering uses URL search params (`?status=...`) so the server still does the work and pages stay bookmarkable.
+1. Confirm `.env.local` has `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_YUVABE_PEOPLE_SUPABASE_URL`, `NEXT_PUBLIC_YUVABE_PEOPLE_SUPABASE_KEY`, `AUTH_SECRET`, `OPENAI_API_KEY`
+2. `pnpm db:seed` — loads `data/*.example.json` into Supabase (3 jobs, 15 candidates, 21 applications)
+3. `pnpm dev` — visit `http://localhost:3000` → redirects to `/login`
+4. Log in with the credentials in `.env.local` (or the default recruiter account)
 
 @AGENTS.md

@@ -16,7 +16,9 @@
  * TS and Postgres layers.
  */
 
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabasePeopleClient } from "@/integrations/supabase-people";
+const supabase = getSupabasePeopleClient() as unknown as SupabaseClient;
 import type { Importance } from "@/lib/prompts/extractCriteria.v1";
 
 /** Per-criterion analysis produced by the matching pipeline. */

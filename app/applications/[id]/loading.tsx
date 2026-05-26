@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 /**
  * Instant Suspense fallback for /applications/[id].
  * Mirrors app/applications/[id]/page.tsx — sticky aside (contact, score,
@@ -8,7 +10,8 @@ export default function ApplicationDetailLoading() {
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
       <header className="flex-shrink-0 border-b border-border bg-background z-10">
         <div className="px-4 md:px-10 pt-4 pb-3 flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <Image src="/assests/yuvabe_logo.png" alt="" width={24} height={24} className="object-contain" />
             <span className="font-serif italic text-h3 leading-none text-foreground">Yuvabe</span>
             <span className="text-muted-foreground">/</span>
             <span className="eyebrow text-muted-foreground">ATS</span>

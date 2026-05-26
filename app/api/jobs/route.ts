@@ -24,8 +24,8 @@ const createJobSchema = z.object({
   department: z.string().min(1).max(100).optional(),
   location: z.enum(["Auroville, India", "Remote", "Flexible"]).optional(),
   compensation: z.string().max(200).optional(),
-  type: z.enum(["Full Time", "Part Time", "Contract", "Internship"]).optional(),
-  level: z.enum(["Entry Level", "Experienced"]).optional(),
+  type: z.enum(["full-time", "part-time", "contract", "internship"]).optional(),
+  level: z.enum(["entry-level", "experienced"]).optional(),
   summary: z.string().max(1000).optional(),
   responsibilities: z.array(z.string()).default([]),
   requirements: z.array(z.string()).default([]),
@@ -34,6 +34,8 @@ const createJobSchema = z.object({
   benefitsRemote: z.array(z.string()).default([]),
   benefitsInPerson: z.array(z.string()).default([]),
   workCulture: z.array(z.string()).default([]),
+  status: z.enum(["active", "draft"]).default("active"),
+  hiringManagerId: z.string().optional(),
 });
 
 export async function GET() {
