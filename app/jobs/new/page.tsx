@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
+import { useManagers } from "@/features/users/hooks/use-managers";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,18 +14,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, Loader2, FileText, ArrowUpRight, TriangleAlert, OctagonAlert } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog";
-import type {
-  Criterion,
-  ExtractCriteriaResult,
-  Importance,
-} from "@/lib/prompts/extractCriteria.v1";
+import type { Criterion, Importance } from "@/lib/prompts/extractCriteria.v1";
+import { JdPreviewDialog, type JdExtractionResult, type JdPreviewData } from "@/app/jobs/_components/jd-preview-dialog";
+import { IMPORTANCE_LABEL, IMPORTANCE_COLOR } from "@/lib/constants";
+import { Eyebrow } from "@/components/shared/eyebrow";
+import { AppHeader } from "@/app/_components/app-header";
+import { PageFooter } from "@/app/_components/page-footer";
 
 const ACCEPTED = ".pdf,.docx,.txt,.md";
 
@@ -44,25 +39,6 @@ const CATEGORY_ORDER: Criterion["category"][] = [
   "other",
 ];
 
-const IMPORTANCE_LABEL: Record<Importance, string> = {
-  must: "Must",
-  strong: "Preferred",
-  nice: "Nice",
-};
-
-/** Three opacity tiers within the warm ink palette — no new accent colors.
- *  "nice" climbs to foreground on hover so the muted state still gets a
- *  visible intensity bump when the trigger is being interacted with. */
-const IMPORTANCE_COLOR: Record<Importance, string> = {
-  must: "text-primary",
-  strong: "text-foreground",
-  nice: "text-muted-foreground hover:text-foreground",
-};
-
-type Result = ExtractCriteriaResult & {
-  jd_text: string;
-  file: { name: string; size: number };
-};
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -70,11 +46,27 @@ function formatSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-/* —————————————————————————— small typographic atoms —————————————————————————— */
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <span className="eyebrow text-muted-foreground">{children}</span>;
+function toPreviewData(result: JdExtractionResult): JdPreviewData {
+  return {
+    title: result.title_suggestion,
+    fileName: result.file.name,
+    department: result.department ?? undefined,
+    location: result.location ?? undefined,
+    type: result.job_type ?? undefined,
+    level: result.level ?? undefined,
+    compensation: result.compensation ?? undefined,
+    summary: result.summary ?? undefined,
+    responsibilities: result.responsibilities ?? undefined,
+    requirements: result.requirements ?? undefined,
+    niceToHave: result.nice_to_have ?? undefined,
+    portfolioRequirement: result.portfolio_requirement ?? undefined,
+    benefitsRemote: result.benefits_remote ?? undefined,
+    benefitsInPerson: result.benefits_inperson ?? undefined,
+    workCulture: result.work_culture ?? undefined,
+  };
 }
+
+/* —————————————————————————— small typographic atoms —————————————————————————— */
 
 function ColumnMarker({
   numeral,
@@ -99,35 +91,6 @@ function HairRule() {
   return <div className="h-px bg-border w-full" />;
 }
 
-function NavTab({
-  href,
-  label,
-  prefix,
-}: {
-  href: string;
-  label: string;
-  prefix?: string;
-}) {
-  const pathname = usePathname();
-  const active = prefix ? pathname.startsWith(prefix) : pathname === href;
-  return (
-    <Link
-      href={href}
-      className={`
-        caps-meta py-3 -mb-px border-b-2 transition-colors
-        ${
-          active
-            ? "text-foreground border-primary"
-            : "text-foreground/55 border-transparent hover:text-foreground"
-        }
-      `}
-    >
-      {label}
-    </Link>
-  );
-}
-
-
 /* —————————————————————————— page —————————————————————————— */
 
 export default function NewJobPage() {
@@ -135,18 +98,20 @@ export default function NewJobPage() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<JdExtractionResult | null>(null);
   /** Local editable copy of result.criteria. The recruiter can change importance per row. */
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  /** Save state: idle | saving | saved (briefly before redirect). */
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
+  /** Save state: idle | saving-draft | saving-active | error */
+  const [saveState, setSaveState] = useState<"idle" | "saving-draft" | "saving-active" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [hiringManagerId, setHiringManagerId] = useState<string>("");
+  const { data: managers = [], isLoading: loadingManagers } = useManagers();
 
   function pick() {
     // Clear the input's value first so the same file can be re-picked.
@@ -163,6 +128,7 @@ export default function NewJobPage() {
     setSaveState("idle");
     setSaveError(null);
     setPreviewOpen(false);
+    setHiringManagerId("");
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -209,9 +175,9 @@ export default function NewJobPage() {
     );
   }
 
-  async function saveJob() {
+  async function saveJob(status: "active" | "draft") {
     if (!result) return;
-    setSaveState("saving");
+    setSaveState(status === "draft" ? "saving-draft" : "saving-active");
     setSaveError(null);
     try {
       const res = await fetch("/api/jobs", {
@@ -234,12 +200,18 @@ export default function NewJobPage() {
           benefitsRemote: result.benefits_remote ?? [],
           benefitsInPerson: result.benefits_inperson ?? [],
           workCulture: result.work_culture ?? [],
+          status,
+          hiringManagerId: (hiringManagerId && hiringManagerId !== "__none__") ? hiringManagerId : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Save failed (${res.status})`);
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      router.push(`/jobs?new=${data.job.code}`);
+      if (status === "draft") {
+        router.push(`/jobs?tab=draft&new=${data.job.code}`);
+      } else {
+        router.push(`/jobs?new=${data.job.code}`);
+      }
     } catch (err) {
       setSaveState("error");
       setSaveError(err instanceof Error ? err.message : "Save failed");
@@ -296,18 +268,9 @@ export default function NewJobPage() {
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-background">
-      {/* —————— Sticky header — brand + tabs —————— */}
-      <header className="flex-shrink-0 border-b border-border bg-background z-10">
-        {/* Brand row */}
-        <div className="px-4 md:px-10 pt-4 pb-3 flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <span className="font-serif italic text-lg leading-none">
-              Yuvabe
-            </span>
-            <span className="text-muted-foreground">/</span>
-            <Eyebrow>ATS</Eyebrow>
-          </div>
-          <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
+      <AppHeader
+        topRight={
+          <div className="flex items-center gap-3 md:gap-6 shrink-0">
             <Eyebrow>
               <span className="tabular">01</span> &nbsp;/&nbsp;{" "}
               <span className="hidden sm:inline">New job</span>
@@ -323,13 +286,8 @@ export default function NewJobPage() {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Tabs row */}
-        <nav className="px-4 md:px-10 flex items-center gap-6 md:gap-8 overflow-x-auto">
-          <NavTab href="/jobs" label="Jobs" prefix="/jobs" />
-        </nav>
-      </header>
+        }
+      />
 
       {/* —————— Two-column body (stacks on mobile) —————— */}
       <main className="md:flex-1 grid grid-cols-1 md:grid-cols-2 md:overflow-hidden">
@@ -424,12 +382,30 @@ export default function NewJobPage() {
                     )}
                   </div>
                   {!loading && (
-                    <button
-                      onClick={pick}
-                      className="caps-action text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
-                    >
-                      Replace
-                    </button>
+                    // <div className="flex flex-col items-end gap-2 shrink-0">
+                    //   <button
+                    //     onClick={pick}
+                    //     className="caps-action text-muted-foreground hover:text-primary transition-colors"
+                    //   >
+                    //     Replace
+                    //   </button>
+                    //   {result && (
+                    //     <button
+                    //       onClick={() => setPreviewOpen(true)}
+                    //       className="caps-action text-muted-foreground hover:text-primary transition-colors"
+                    //     >
+                    //       See Preview
+                    //     </button>
+                    //   )}
+                    // </div>
+                    <div className="flex flex-col items-end gap-6 shrink-0">
+  <button
+    onClick={pick}
+    className="caps-action text-muted-foreground hover:text-primary transition-colors"
+  >
+    Replace
+  </button>
+</div>
                   )}
                 </div>
 
@@ -624,6 +600,29 @@ export default function NewJobPage() {
                   <h2 className="font-serif italic text-display md:text-display-md leading-[1.05] mt-3 mb-4 tracking-tight">
                     {result.title_suggestion}
                   </h2>
+                  <div className="space-y-1.5 mt-4">
+                    <Label className="caps-meta text-muted-foreground">
+                      Hiring manager <span className="text-muted-foreground/60">(optional)</span>
+                    </Label>
+                    <Select value={hiringManagerId} onValueChange={setHiringManagerId} disabled={loadingManagers}>
+                      <SelectTrigger className="rounded-sm">
+                        <SelectValue placeholder={loadingManagers ? "Loading…" : "Unassigned"} />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-sm">
+                        <SelectItem value="__none__">Unassigned</SelectItem>
+                        {managers.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.name}
+                          </SelectItem>
+                        ))}
+                        {!loadingManagers && managers.length === 0 && (
+                          <SelectItem value="__empty__" disabled className="text-muted-foreground">
+                            No managers found
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
@@ -719,242 +718,50 @@ export default function NewJobPage() {
                 ) : (
                   <p className="text-body-sm text-muted-foreground italic font-serif truncate">
                     {criteria.length} criteria locked in.
-                    
                   </p>
                 )}
               </div>
-              <Button
-                onClick={saveJob}
-                disabled={saveState === "saving" || !canSave}
-                size="sm"
-                className="rounded-sm caps-action gap-2 min-w-[110px]"
-              >
-                {saveState === "saving" ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Saving
-                  </>
-                ) : (
-                  <>
-                    Save job
-                    <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  onClick={() => saveJob("draft")}
+                  disabled={saveState === "saving-draft" || saveState === "saving-active" || !canSave}
+                  size="sm"
+                  className="rounded-sm caps-action gap-2"
+                >
+                  {saveState === "saving-draft" ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Saving
+                    </>
+                  ) : (
+                    "Save as Draft"
+                  )}
+                </Button>
+                <Button
+                  onClick={() => setPreviewOpen(true)}
+                  disabled={saveState === "saving-draft" || saveState === "saving-active" || !canSave}
+                  size="sm"
+                  className="rounded-sm caps-action gap-2"
+                >
+                  Publish
+                  <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
+                </Button>
+              </div>
             </div>
           )}
         </section>
       </main>
 
-      {/* —————— Bottom rule —————— */}
-      <footer className="border-t border-border px-4 sm:px-6 md:px-10 py-3 flex-shrink-0 flex items-center justify-between gap-3 eyebrow text-muted-foreground">
-        <span className="truncate">
-          Yuvabe ATS &nbsp; · &nbsp; v0.1
-        </span>
-        <span className="italic font-serif normal-case tracking-normal text-muted-foreground/80 hidden md:inline">
-          Hiring is a human act.
-        </span>
-        <span>2026</span>
-      </footer>
+      <PageFooter />
 
-      {/* Preview Dialog */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-serif italic text-h2 text-foreground/85">
-              Job Preview
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-8 pt-2">
-            {result && (
-              <>
-                {/* Section I — Basic Info */}
-                <div className="space-y-5">
-                  <h3 className="flex items-baseline gap-3 font-serif italic text-h3 text-foreground/85">
-                    <span className="font-serif italic text-display text-primary">i.</span>
-                    <span>Basic Info</span>
-                  </h3>
-                  <div className="space-y-6">
-                    <div>
-                      <p className="caps-meta text-muted-foreground mb-2">
-                        Title
-                      </p>
-                      <p className="text-body text-foreground">{result.title_suggestion}</p>
-                    </div>
-                    {result.department?.trim() && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Department <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <p className="text-body text-foreground">{result.department}</p>
-                      </div>
-                    )}
-                    {result.level?.trim() && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Level <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <p className="text-body text-foreground">{result.level}</p>
-                      </div>
-                    )}
-                    {result.job_type?.trim() && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Type <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <p className="text-body text-foreground">{result.job_type}</p>
-                      </div>
-                    )}
-                    {result.location?.trim() && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Location <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <p className="text-body text-foreground">{result.location}</p>
-                      </div>
-                    )}
-                    {result.compensation?.trim() && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Compensation <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <p className="text-body text-foreground">{result.compensation}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Section II — Role Details */}
-                <div className="space-y-5">
-                  <h3 className="flex items-baseline gap-3 font-serif italic text-h3 text-foreground/85">
-                    <span className="font-serif italic text-display text-primary">ii.</span>
-                    <span>Role Details</span>
-                  </h3>
-                  <div className="space-y-6">
-                    {result.summary?.trim() && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Summary <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <p className="text-body text-foreground leading-relaxed">{result.summary}</p>
-                      </div>
-                    )}
-                    {result.responsibilities && result.responsibilities.length > 0 && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Responsibilities <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <ul className="space-y-1 mt-2">
-                          {result.responsibilities.map((item, i) => (
-                            <li key={i} className="text-body text-foreground/80 flex gap-2">
-                              <span className="text-muted-foreground mt-0.5">·</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {result.requirements && result.requirements.length > 0 && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Requirements <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <ul className="space-y-1 mt-2">
-                          {result.requirements.map((item, i) => (
-                            <li key={i} className="text-body text-foreground/80 flex gap-2">
-                              <span className="text-muted-foreground mt-0.5">·</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {result.nice_to_have && result.nice_to_have.length > 0 && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">
-                          Nice to Have <span className="text-[#B8553A]">*</span>
-                        </p>
-                        <ul className="space-y-1 mt-2">
-                          {result.nice_to_have.map((item, i) => (
-                            <li key={i} className="text-body text-foreground/80 flex gap-2">
-                              <span className="text-muted-foreground mt-0.5">·</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {result.portfolio_requirement && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">Portfolio Requirement</p>
-                        <p className="text-body text-foreground">{result.portfolio_requirement}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Section III — Benefits & Culture */}
-                <div className="space-y-5">
-                  <h3 className="flex items-baseline gap-3 font-serif italic text-h3 text-foreground/85">
-                    <span className="font-serif italic text-display text-primary">iii.</span>
-                    <span>Benefits & Culture</span>
-                  </h3>
-                  <div className="space-y-6">
-                    {result.benefits_remote && result.benefits_remote.length > 0 && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">Remote Benefits</p>
-                        <ul className="space-y-1 mt-2">
-                          {result.benefits_remote.map((item, i) => (
-                            <li key={i} className="text-body text-foreground/80 flex gap-2">
-                              <span className="text-muted-foreground mt-0.5">·</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {result.benefits_inperson && result.benefits_inperson.length > 0 && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">In-Person Benefits</p>
-                        <ul className="space-y-1 mt-2">
-                          {result.benefits_inperson.map((item, i) => (
-                            <li key={i} className="text-body text-foreground/80 flex gap-2">
-                              <span className="text-muted-foreground mt-0.5">·</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {result.work_culture && result.work_culture.length > 0 && (
-                      <div>
-                        <p className="caps-meta text-muted-foreground mb-2">Work Culture</p>
-                        <ul className="space-y-1 mt-2">
-                          {result.work_culture.map((item, i) => (
-                            <li key={i} className="text-body text-foreground/80 flex gap-2">
-                              <span className="text-muted-foreground mt-0.5">·</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-border mt-6">
-            <DialogClose asChild>
-              <button className="caps-action text-muted-foreground hover:text-foreground transition-colors">
-                ← Close preview
-              </button>
-            </DialogClose>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <JdPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        data={result ? toPreviewData(result) : null}
+        onPublish={canSave ? () => { setPreviewOpen(false); saveJob("active"); } : undefined}
+        isPublishing={saveState === "saving-active"}
+      />
     </div>
   );
 }

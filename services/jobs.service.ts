@@ -1,5 +1,5 @@
 import { getSupabasePeopleClient } from "@/integrations/supabase-people";
-import type { Job, JobRow } from "@/types/jobs";
+import type { Job, JobRow, Criterion } from "@/types/jobs";
 
 function mapRowToJob(row: JobRow): Job {
   return {
@@ -7,11 +7,11 @@ function mapRowToJob(row: JobRow): Job {
     code: row.code || "",
     title: row.title || "",
     description: row.description || "",
-    criteria: (row.criteria as any[]) || [],
+    criteria: (row.criteria as Criterion[]) || [],
     department: row.department || undefined,
     location: row.location || undefined,
     compensation: row.compensation || undefined,
-    type: row.type || undefined,
+    type: (row.type as Job["type"]) || undefined,
     level: row.level || undefined,
     summary: row.summary || undefined,
     responsibilities: (row.responsibilities as string[]) || [],
@@ -23,12 +23,17 @@ function mapRowToJob(row: JobRow): Job {
     workCulture: (row.workculture as string[]) || [],
     createdAt: row.created_at || new Date().toISOString(),
     archivedAt: row.archived_at || undefined,
-    status: (row.status === "archived" ? "archived" : "active") as "active" | "archived",
+    status: (row.status === "archived" ? "archived" : row.status === "draft" ? "draft" : "active") as "active" | "archived" | "draft",
+    publishedAt: row.published_at || undefined,
+    closedAt: row.closed_at || undefined,
+    isPaidListing: row.is_paid_listing ?? false,
+    hiringManagerId: row.hiring_manager_id || undefined,
   };
 }
 
 export type JobsListResult = { jobs: Job[]; total: number };
 
+// Fetch a single job by its public code
 export async function getJobById(code: string): Promise<Job | undefined> {
   try {
     const client = getSupabasePeopleClient();
@@ -45,24 +50,34 @@ export async function getJobById(code: string): Promise<Job | undefined> {
   }
 }
 
+// Fetch paginated list of jobs filtered by status and optional search/filters
 export async function listJobs(options?: {
-  status?: "active" | "archived";
+  status?: "active" | "archived" | "draft";
   search?: string;
   page?: number;
   pageSize?: number;
+  type?: "full-time" | "part-time" | "contract" | "internship";
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: "newest" | "oldest";
+  managerId?: string;
 }): Promise<JobsListResult> {
   try {
-    const { status = "active", search, page = 1, pageSize = 10 } = options ?? {};
+    const { status = "active", search, page = 1, pageSize = 10, type, dateFrom, dateTo, sort = "newest", managerId } = options ?? {};
+    // Drafts have no published_at — use created_at for ordering and date filtering instead
+    const dateField = status === "draft" ? "created_at" : "published_at";
     const client = getSupabasePeopleClient();
     let query = client
       .from("jobs")
       .select("*", { count: "exact" })
       .eq("status", status)
-      .order("created_at", { ascending: false });
+      .order(dateField, { ascending: sort === "oldest", nullsFirst: false });
 
-    if (search) {
-      query = query.ilike("title", `%${search}%`);
-    }
+    if (managerId) query = query.eq("hiring_manager_id", managerId);
+    if (search)   query = query.ilike("title", `%${search}%`);
+    if (type)     query = query.eq("type", type);
+    if (dateFrom) query = query.gte(dateField, dateFrom);
+    if (dateTo)   query = query.lte(dateField, dateTo);
 
     const offset = (page - 1) * pageSize;
     query = query.range(offset, offset + pageSize - 1);
@@ -77,6 +92,22 @@ export async function listJobs(options?: {
   }
 }
 
+// Fetch all jobs without status filter or pagination — used for cross-page lookups
+export async function listAllJobs(): Promise<Job[]> {
+  try {
+    const client = getSupabasePeopleClient();
+    const { data, error } = await client
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data as JobRow[]).map(mapRowToJob);
+  } catch (err) {
+    throw err instanceof Error ? err : new Error("listAllJobs failed");
+  }
+}
+
+// Count applications for a given job code
 export async function countJobsByCode(code: string): Promise<number> {
   try {
     const client = getSupabasePeopleClient();
@@ -92,6 +123,7 @@ export async function countJobsByCode(code: string): Promise<number> {
   }
 }
 
+// Archive or unarchive a job by its code
 export async function updateJobStatus(
   code: string,
   status: "active" | "archived"
@@ -103,6 +135,7 @@ export async function updateJobStatus(
       .update({
         status,
         archived_at: status === "archived" ? new Date().toISOString() : null,
+        ...(status === "active" ? { published_at: new Date().toISOString() } : {}),
       })
       .eq("code", code)
       .select()

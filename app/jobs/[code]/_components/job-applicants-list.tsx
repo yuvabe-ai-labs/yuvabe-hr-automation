@@ -3,88 +3,59 @@
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Eye, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
+import { ArrowUpRight, Check, Copy, Eye, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useApplicationsByJobCode } from "@/hooks/use-applications";
-import type { ApplicationsQueryParams, ApplicationsPageResult } from "@/hooks/use-applications";
-import { getCandidatesByIds } from "@/services/candidates.service";
+import type { ApplicationsQueryParams } from "@/hooks/use-applications";
+import { useJobById } from "@/hooks/use-jobs";
+import { useGetCandidatesByIds } from "@/hooks/use-candidates";
 import { buildCsvContent, downloadCsv } from "@/lib/export-csv";
 import { downloadExcel } from "@/lib/export-excel";
-import type { Application, ApplicationStatus } from "@/types/applications";
-import type { FilterStatus } from "@/services/applications.service";
+import { relativeTime } from "@/lib/utils";
+import { STATUS_LABEL, STATUS_COLOR, FILTER_LABEL, ALL_FILTER_TABS } from "@/lib/constants";
+import type { ExtendedFilter } from "@/lib/constants";
+import { ScoreChip } from "@/components/shared/score-chip";
+import { StatusFilterChip } from "@/components/shared/status-filter-chip";
+import type { Application } from "@/types/applications";
 import { JobIdBadge } from "@/app/_components/job-id-badge";
 
 const DEFAULT_PAGE_SIZE = 15;
 
-type ExtendedFilter = FilterStatus | "all" | "new";
-
-const ALL_TABS: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "rejected"];
-
 type SortOrder = "asc" | "desc";
-
-const FILTER_LABEL: Record<ExtendedFilter, string> = {
-  all:         "All",
-  new:         "New",
-  reviewing:   "Review",
-  shortlisted: "Shortlist",
-  rejected:    "Reject",
-};
-
-// Used for individual row display
-const STATUS_LABEL: Record<ApplicationStatus, string> = {
-  new: "New",
-  reviewing: "Reviewing",
-  shortlisted: "Shortlisted",
-  rejected: "Rejected",
-  offered: "Offered",
-};
-
-const STATUS_COLOR: Record<ApplicationStatus, string> = {
-  new: "text-foreground/70",
-  reviewing: "text-foreground",
-  shortlisted: "text-[#2F5E7A]",
-  rejected: "text-muted-foreground line-through",
-  offered: "text-[#3F6B3F]",
-};
-
-function relativeTime(iso: string): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const m = Math.floor(seconds / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function ScoreChip({ score }: { score: number }) {
-  const band = score >= 75 ? "high" : score >= 50 ? "mid" : "low";
-  const colorClass =
-    band === "high"
-      ? "text-[#3F6B3F] border-[#3F6B3F]/40 bg-[#3F6B3F]/[0.06]"
-      : band === "mid"
-      ? "text-[#B8893A] border-[#B8893A]/45 bg-[#B8893A]/[0.06]"
-      : "text-primary border-primary/40 bg-primary/[0.06]";
-  return (
-    <div
-      className={`inline-flex items-baseline justify-center min-w-[44px] md:min-w-[58px] px-2 md:px-2.5 py-1.5 border rounded-sm font-mono text-body-lg md:text-h3 tabular leading-none ${colorClass}`}
-      aria-label={`Match score ${score}`}
-    >
-      {String(score).padStart(2, "0")}
-    </div>
-  );
-}
 
 function buildHref(
   jobCode: string,
-  overrides: { status?: ExtendedFilter; search?: string | null; minScore?: number },
-  current: { filter: ExtendedFilter; searchQuery: string; minScore: number; sortOrder: SortOrder; pageSize: number }
+  overrides: {
+    status?: ExtendedFilter;
+    search?: string | null;
+    minScore?: number;
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    minYearsExp?: number | null;
+    maxYearsExp?: number | null;
+    dateSort?: "newest" | "oldest" | null;
+  },
+  current: {
+    filter: ExtendedFilter;
+    searchQuery: string;
+    minScore: number;
+    sortOrder: SortOrder;
+    pageSize: number;
+    dateFrom?: string;
+    dateTo?: string;
+    minYearsExp?: number;
+    maxYearsExp?: number;
+    dateSort?: "newest" | "oldest";
+  }
 ): string {
   const params = new URLSearchParams();
-  const status = "status" in overrides ? overrides.status : current.filter;
-  const search = "search" in overrides ? overrides.search : current.searchQuery;
-  const minScore = "minScore" in overrides ? overrides.minScore : current.minScore;
+  const status      = "status"      in overrides ? overrides.status      : current.filter;
+  const search      = "search"      in overrides ? overrides.search      : current.searchQuery;
+  const minScore    = "minScore"    in overrides ? overrides.minScore    : current.minScore;
+  const dateFrom    = "dateFrom"    in overrides ? overrides.dateFrom    : current.dateFrom;
+  const dateTo      = "dateTo"      in overrides ? overrides.dateTo      : current.dateTo;
+  const minYearsExp = "minYearsExp" in overrides ? overrides.minYearsExp : current.minYearsExp;
+  const maxYearsExp = "maxYearsExp" in overrides ? overrides.maxYearsExp : current.maxYearsExp;
+  const dateSort    = "dateSort"    in overrides ? overrides.dateSort    : current.dateSort;
 
   // Omit "all" from URL — it's the default
   if (status && status !== "all") params.set("status", status);
@@ -92,28 +63,18 @@ function buildHref(
   if (minScore !== undefined && minScore > 0) params.set("minScore", String(minScore));
   if (current.sortOrder !== "desc") params.set("sort", current.sortOrder);
   if (current.pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(current.pageSize));
+  if (dateFrom)    params.set("dateFrom", dateFrom);
+  if (dateTo)      params.set("dateTo", dateTo);
+  if (minYearsExp) params.set("minYearsExp", String(minYearsExp));
+  if (maxYearsExp) params.set("maxYearsExp", String(maxYearsExp));
+  if (dateSort)    params.set("dateSort", dateSort);
 
   const qs = params.toString();
   return `/jobs/${jobCode}${qs ? `?${qs}` : ""}`;
 }
 
-const VALID_STATUSES: ExtendedFilter[] = ["all", "new", "reviewing", "shortlisted", "rejected"];
 
-export function JobApplicantsList({
-  jobCode,
-  jobTitle,
-  jobCreatedAt,
-  initialData,
-  initialParams,
-  initialFilter,
-}: {
-  jobCode: string;
-  jobTitle: string;
-  jobCreatedAt: string;
-  initialData: ApplicationsPageResult;
-  initialParams: ApplicationsQueryParams;
-  initialFilter: ExtendedFilter;
-}) {
+export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFirstRender = useRef(true);
@@ -121,7 +82,7 @@ export function JobApplicantsList({
   // URL-derived state
   const rawStatus = searchParams.get("status");
   const filter: ExtendedFilter =
-    rawStatus && VALID_STATUSES.includes(rawStatus as ExtendedFilter)
+    rawStatus && ALL_FILTER_TABS.includes(rawStatus as ExtendedFilter)
       ? (rawStatus as ExtendedFilter)
       : "all";
   const sortOrder: SortOrder = searchParams.get("sort") === "asc" ? "asc" : "desc";
@@ -129,6 +90,13 @@ export function JobApplicantsList({
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const pageSizeParam = searchParams.get("pageSize");
   const pageSize = pageSizeParam ? Math.max(10, Math.min(100, parseInt(pageSizeParam, 10))) : DEFAULT_PAGE_SIZE;
+  const dateFrom    = searchParams.get("dateFrom") ?? undefined;
+  const dateTo      = searchParams.get("dateTo") ?? undefined;
+  const minYearsExp = searchParams.get("minYearsExp") ? Math.max(0, parseInt(searchParams.get("minYearsExp")!, 10)) : undefined;
+  const maxYearsExp = searchParams.get("maxYearsExp") ? Math.max(0, parseInt(searchParams.get("maxYearsExp")!, 10)) : undefined;
+  const dateSort    = searchParams.get("dateSort") === "oldest" ? "oldest" as const
+                    : searchParams.get("dateSort") === "newest" ? "newest" as const
+                    : undefined;
 
   // Search input with derived-state sync for back/forward nav
   const search = searchParams.get("search") ?? "";
@@ -159,38 +127,48 @@ export function JobApplicantsList({
   }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [copiedPublished, setCopiedPublished] = useState(false);
+
+  const studiosBase = (process.env.NEXT_PUBLIC_YB_STUDIOS ?? "").replace(/\/$/, "");
+  const publishedUrl = `${studiosBase}/${jobCode}`;
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [tempMinScore, setTempMinScore] = useState(minScore);
+  const [tempDateFrom, setTempDateFrom] = useState(dateFrom ?? "");
+  const [tempDateTo, setTempDateTo] = useState(dateTo ?? "");
+  const [tempMinYearsExp, setTempMinYearsExp] = useState<number | "">(minYearsExp ?? "");
+  const [tempMaxYearsExp, setTempMaxYearsExp] = useState<number | "">(maxYearsExp ?? "");
+  const [tempDateSort, setTempDateSort] = useState<"newest" | "oldest" | undefined>(dateSort);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"csv" | "excel" | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
+  // Fetch job details for title and posted date
+  const { data: job } = useJobById(jobCode);
+  const jobTitle = job?.title ?? "";
+  const jobCreatedAt = job?.createdAt ?? "";
+  // Imperative fetch for candidate enrichment (used during export only)
+  const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
+
   const currentParams: ApplicationsQueryParams = {
-    status: filter === "all" ? undefined : (filter as ApplicationStatus),
+    status: filter === "all" ? undefined : filter,
     search,
     sort: sortOrder,
     minScore,
     page,
     pageSize,
+    dateFrom,
+    dateTo,
+    minYearsExp,
+    maxYearsExp,
+    dateSort,
   };
 
-  const isInitialParams =
-    filter === initialFilter &&
-    search === (initialParams.search ?? "") &&
-    sortOrder === (initialParams.sort ?? "desc") &&
-    minScore === (initialParams.minScore ?? 0) &&
-    page === (initialParams.page ?? 1) &&
-    pageSize === (initialParams.pageSize ?? DEFAULT_PAGE_SIZE);
-
-  const { data, isPending } = useApplicationsByJobCode(
-    jobCode,
-    currentParams,
-    isInitialParams ? initialData : undefined
-  );
+  // Fetch paginated + filtered applications for this job
+  const { data, isPending } = useApplicationsByJobCode(jobCode, currentParams);
 
   const applications = useMemo(() => data?.applications ?? [], [data]);
   const total = data?.total ?? 0;
-  const statusCounts = data?.statusCounts ?? initialData.statusCounts;
+  const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, interview: 0, hired: 0 };
   const totalPages = Math.ceil(total / pageSize);
   const totalAll = Object.values(statusCounts).reduce((s, n) => s + n, 0);
 
@@ -202,6 +180,8 @@ export function JobApplicantsList({
     new:         statusCounts.new ?? 0,
     reviewing:   statusCounts.reviewing ?? 0,
     shortlisted: statusCounts.shortlisted ?? 0,
+    interview:   statusCounts.interview ?? 0,
+    hired:       statusCounts.hired ?? 0,
     rejected:    statusCounts.rejected ?? 0,
   };
 
@@ -255,7 +235,7 @@ export function JobApplicantsList({
     const jobTitles = new Map([[jobCode, jobTitle]]);
 
     const [enrichments, ...notesResults] = await Promise.all([
-      getCandidatesByIds(candidateIds),
+      fetchCandidates(candidateIds),
       ...toExport.map((a) =>
         fetch(`/api/applications/${a.id}/notes`)
           .then((r) => r.json())
@@ -272,7 +252,7 @@ export function JobApplicantsList({
     );
 
     return { selectedApplications: toExport, enrichments, jobTitles, notesByAppId };
-  }, [applications, selectedIds, jobCode, jobTitle]);
+  }, [applications, selectedIds, jobCode, jobTitle, fetchCandidates]);
 
   const handleExportCsv = useCallback(async () => {
     setExportingFormat("csv");
@@ -295,14 +275,14 @@ export function JobApplicantsList({
     }
   }, [getExportData, jobCode]);
 
-  const current = { filter, searchQuery: search, minScore, sortOrder, pageSize };
-  const hasActiveFilter = minScore > 0;
+  const current = { filter, searchQuery: search, minScore, sortOrder, pageSize, dateFrom, dateTo, minYearsExp, maxYearsExp, dateSort };
+  const hasActiveFilter = minScore > 0 || !!dateFrom || !!dateTo || !!minYearsExp || !!maxYearsExp || !!dateSort;
 
   return (
     <div className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
 
       {/* Static top: breadcrumb + title row + metadata */}
-      <div className="flex-shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 border-b border-border bg-background">
+      <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 border-b border-border bg-background">
         <div className="max-w-5xl">
           {/* Breadcrumb */}
           <nav className="mb-4 eyebrow flex items-center gap-2.5">
@@ -316,7 +296,7 @@ export function JobApplicantsList({
           {/* Title + search + controls */}
           <div className="flex items-center gap-3 md:gap-5">
             {/* i. Job Title */}
-            <div className="flex items-baseline gap-2 md:gap-3 flex-shrink-0">
+            <div className="flex items-baseline gap-2 md:gap-3 shrink-0">
               <span className="font-serif italic text-display md:text-display-xl leading-none text-primary tabular">i.</span>
               <h1 className="font-serif italic text-h2 md:text-h1 leading-tight md:leading-none text-foreground tracking-tight max-w-[28ch] truncate">
                 {jobTitle}
@@ -344,70 +324,179 @@ export function JobApplicantsList({
             </div>
 
             {/* Filter button + popover */}
-            <div className="relative flex-shrink-0 mt-2">
-              <button
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`p-1.5 border rounded-sm transition-colors ${
-                  hasActiveFilter
-                    ? "text-primary border-primary"
-                    : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
-                aria-label="Open filters"
-              >
-                <Filter className="h-4 w-4" strokeWidth={2} />
-              </button>
+            <div className="flex items-center gap-2 shrink-0 mt-2">
+              <div className="relative">
+                <button
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className={`p-1.5 border rounded-sm transition-colors ${
+                    hasActiveFilter
+                      ? "text-primary border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
+                  aria-label="Open filters"
+                >
+                  <Filter className="h-4 w-4" strokeWidth={2} />
+                </button>
 
-              {isFilterOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs caps-meta text-muted-foreground mb-1.5">
-                          Min Score: {tempMinScore}
-                        </label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={tempMinScore}
-                          onChange={(e) => setTempMinScore(parseInt(e.target.value))}
-                          className="w-full h-1.5 bg-secondary rounded-sm appearance-none cursor-pointer accent-primary"
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={tempMinScore}
-                          onChange={(e) =>
-                            setTempMinScore(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))
-                          }
-                          className="w-full mt-1 px-2 py-1 border border-border rounded-sm text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div className="pt-1">
-                        <Link
-                          href={buildHref(jobCode, { minScore: tempMinScore }, current)}
-                          onClick={() => setIsFilterOpen(false)}
-                          className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm text-xs font-medium transition-colors hover:bg-primary/90 text-center"
-                        >
-                          Apply
-                        </Link>
+                {isFilterOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
+                    <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-sm shadow-lg z-50 p-3 w-64">
+                      <div className="space-y-3">
+
+                        {/* Date Sort */}
+                        <div>
+                          <p className="caps-meta text-muted-foreground mb-2">Sort By Date</p>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => setTempDateSort(undefined)}
+                              className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                                tempDateSort === undefined
+                                  ? "border-primary text-primary"
+                                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                              }`}
+                            >
+                              Score
+                            </button>
+                            {(["newest", "oldest"] as const).map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => setTempDateSort(s)}
+                                className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                                  tempDateSort === s
+                                    ? "border-primary text-primary"
+                                    : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                                }`}
+                              >
+                                {s === "newest" ? "Newest" : "Oldest"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Min Score */}
+                        <div>
+                          <label className="block caps-meta text-muted-foreground mb-1.5">
+                            Min Score: {tempMinScore}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={tempMinScore}
+                            onChange={(e) => setTempMinScore(parseInt(e.target.value))}
+                            className="w-full h-1.5 bg-secondary rounded-sm appearance-none cursor-pointer accent-primary"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={tempMinScore}
+                            onChange={(e) =>
+                              setTempMinScore(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))
+                            }
+                            className="w-full mt-1 px-2 py-1 border border-border rounded-sm text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+
+                        {/* Date Applied */}
+                        <div>
+                          <p className="caps-meta text-muted-foreground mb-2">Date Applied</p>
+                          <div className="space-y-2">
+                            <div>
+                              <label className="caps-meta text-muted-foreground/70 block mb-1">From</label>
+                              <input
+                                type="date"
+                                value={tempDateFrom}
+                                onChange={(e) => setTempDateFrom(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                              />
+                            </div>
+                            <div>
+                              <label className="caps-meta text-muted-foreground/70 block mb-1">To</label>
+                              <input
+                                type="date"
+                                value={tempDateTo}
+                                onChange={(e) => setTempDateTo(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-border rounded-sm bg-background text-body text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Years of Experience */}
+                        <div>
+                          <p className="caps-meta text-muted-foreground mb-2">Experience</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {([
+                              { label: "Any",      min: "" as const, max: "" as const },
+                              { label: "0–2 yrs",  min: 0 as const,  max: 2 as const  },
+                              { label: "3–5 yrs",  min: 3 as const,  max: 5 as const  },
+                              { label: "6–10 yrs", min: 6 as const,  max: 10 as const },
+                              { label: "10+ yrs",  min: 10 as const, max: "" as const },
+                            ] as const).map((range) => {
+                              const active = tempMinYearsExp === range.min && tempMaxYearsExp === range.max;
+                              return (
+                                <button
+                                  key={range.label}
+                                  onClick={() => { setTempMinYearsExp(range.min); setTempMaxYearsExp(range.max); }}
+                                  className={`caps-meta px-2.5 py-1 rounded-sm border transition-colors ${
+                                    active
+                                      ? "border-primary text-primary"
+                                      : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                                  }`}
+                                >
+                                  {range.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="pt-1">
+                          <Link
+                            href={buildHref(
+                              jobCode,
+                              {
+                                minScore: tempMinScore,
+                                dateFrom: tempDateFrom || null,
+                                dateTo: tempDateTo || null,
+                                minYearsExp: tempMinYearsExp === "" ? null : (tempMinYearsExp as number),
+                                maxYearsExp: tempMaxYearsExp === "" ? null : (tempMaxYearsExp as number),
+                                dateSort: tempDateSort ?? null,
+                              },
+                              current
+                            )}
+                            onClick={() => setIsFilterOpen(false)}
+                            className="block w-full px-2 py-1.5 bg-primary text-primary-foreground rounded-sm caps-action transition-colors hover:bg-primary/90 text-center"
+                          >
+                            Apply
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </>
+                  </>
+                )}
+              </div>
+              {hasActiveFilter && (
+                <Link
+                  href={buildHref(jobCode, { minScore: 0, dateFrom: null, dateTo: null, minYearsExp: null, maxYearsExp: null, dateSort: null }, current)}
+                  onClick={() => { setTempMinScore(0); setTempDateFrom(""); setTempDateTo(""); setTempMinYearsExp(""); setTempMaxYearsExp(""); setTempDateSort(undefined); }}
+                  className="caps-action text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear filters
+                </Link>
               )}
             </div>
 
             {/* Selection count + export — only when items are selected */}
             {selectedIds.size > 0 && (
               <>
-                <span className="caps-meta text-muted-foreground tabular whitespace-nowrap flex-shrink-0 mt-2">
+                <span className="caps-meta text-muted-foreground tabular whitespace-nowrap shrink-0 mt-2">
                   {selectedIds.size} selected
                 </span>
 
-                <div className="relative flex-shrink-0 mt-2">
+                <div className="relative shrink-0 mt-2">
                   <button
                     onClick={() => !exportingFormat && setIsExportMenuOpen(!isExportMenuOpen)}
                     className="p-1.5 border border-border rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -430,7 +519,7 @@ export function JobApplicantsList({
                           disabled={!!exportingFormat}
                           className="w-full px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
-                          {exportingFormat === "csv" && <Loader2 className="h-3 w-3 animate-spin text-primary flex-shrink-0" />}
+                          {exportingFormat === "csv" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
                           {exportingFormat === "csv" ? "Exporting…" : "Export CSV"}
                         </button>
                         <div className="border-t border-border" />
@@ -439,7 +528,7 @@ export function JobApplicantsList({
                           disabled={!!exportingFormat}
                           className="w-full px-3 py-2.5 text-left caps-action text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
                         >
-                          {exportingFormat === "excel" && <Loader2 className="h-3 w-3 animate-spin text-primary flex-shrink-0" />}
+                          {exportingFormat === "excel" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
                           {exportingFormat === "excel" ? "Exporting…" : "Export as Excel"}
                         </button>
                       </div>
@@ -450,7 +539,7 @@ export function JobApplicantsList({
                 <button
                   onClick={() => { setSelectedIds(new Set()); setIsExportMenuOpen(false); }}
                   aria-label="Clear selection"
-                  className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors mt-2"
+                  className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors mt-2"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -461,6 +550,12 @@ export function JobApplicantsList({
           {/* Metadata row */}
           <div className="mt-4 flex items-center gap-4 flex-wrap">
             <JobIdBadge code={jobCode} />
+            {job?.type && (
+              <>
+                <span className="text-border">·</span>
+                <span className="caps-meta text-muted-foreground">{job.type}</span>
+              </>
+            )}
             <span className="text-border">·</span>
             <span className="eyebrow text-muted-foreground">
               <span className="tabular">{String(totalAll).padStart(2, "0")}</span>{" "}
@@ -471,6 +566,34 @@ export function JobApplicantsList({
               posted{" "}
               {new Date(jobCreatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
+            {job?.status === "active" && (
+              <>
+                <span className="text-border">·</span>
+                <a
+                  href={publishedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 caps-meta text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Published link
+                </a>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(publishedUrl);
+                    setCopiedPublished(true);
+                    setTimeout(() => setCopiedPublished(false), 1500);
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Copy published link"
+                >
+                  {copiedPublished ? (
+                    <Check className="h-3 w-3 text-primary" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </button>
+              </>
+            )}
             <Link
               href={`/jobs/${jobCode}/view`}
               className="ml-auto inline-flex items-center gap-1.5 caps-action text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
@@ -482,10 +605,11 @@ export function JobApplicantsList({
         </div>
       </div>
 
+
       {/* Status filter chips */}
       {totalAll > 0 && (
         <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-3 pb-1 flex items-center gap-1 flex-wrap">
-          {ALL_TABS.map((s) => (
+          {ALL_FILTER_TABS.map((s) => (
             <StatusFilterChip
               key={s}
               href={buildHref(jobCode, { status: s }, current)}
@@ -500,7 +624,32 @@ export function JobApplicantsList({
 
       {/* Scrolling list */}
       <div className="md:flex-1 md:overflow-y-auto px-4 sm:px-6 md:px-10 pt-4 md:pt-6 pb-8">
-        {!isPending && applications.length === 0 ? (
+        {isPending ? (
+          <ul className="max-w-5xl">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <li key={i} className={`border-b border-border/60 ${i === 0 ? "border-t border-border/60" : ""}`}>
+                <div className="py-5 px-4 flex items-center justify-between gap-3 md:gap-6">
+                  <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1">
+                    <div className="h-8 md:h-9 min-w-11 md:min-w-14.5 bg-muted/80 rounded-sm animate-pulse" />
+                    <div className="min-w-0 flex-1">
+                      <div className={`h-6 ${i % 2 === 0 ? "w-1/2" : "w-2/5"} bg-muted rounded-sm animate-pulse mb-2`} />
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-24 bg-muted/70 rounded-sm animate-pulse" />
+                        <span className="text-border hidden sm:inline">·</span>
+                        <div className="h-3 w-32 bg-muted/70 rounded-sm animate-pulse hidden sm:inline-block" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 md:gap-5 shrink-0">
+                    <div className="h-3 w-16 bg-muted/70 rounded-sm animate-pulse" />
+                    <div className="h-3 w-12 bg-muted/70 rounded-sm animate-pulse hidden md:inline-block" />
+                    <div className="h-4 w-4 bg-muted/70 rounded-sm animate-pulse" />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : applications.length === 0 ? (
           <EmptyState
             code={jobCode}
             filter={filter}
@@ -607,7 +756,7 @@ function ApplicationRow({ application }: { application: Application }) {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-3 md:gap-5 flex-shrink-0">
+      <div className="flex items-center gap-3 md:gap-5 shrink-0">
         <span className={`caps-meta ${STATUS_COLOR[application.status]}`}>
           {STATUS_LABEL[application.status]}
         </span>
@@ -615,48 +764,11 @@ function ApplicationRow({ application }: { application: Application }) {
           {relativeTime(application.receivedAt)}
         </span>
         <ArrowUpRight
-          className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px group-hover:-translate-y-px transition-all flex-shrink-0"
+          className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-px group-hover:-translate-y-px transition-all shrink-0"
           strokeWidth={1.75}
         />
       </div>
     </div>
-  );
-}
-
-function StatusFilterChip({
-  href,
-  label,
-  count,
-  tone,
-  active,
-}: {
-  href: string;
-  label: string;
-  count: number;
-  tone: "neutral" | "shortlist" | "reject";
-  active: boolean;
-}) {
-  const toneClass =
-    tone === "shortlist"
-      ? "text-[#2F5E7A]"
-      : tone === "reject"
-      ? "text-primary"
-      : "text-muted-foreground";
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      className={`
-        caps-meta tabular
-        flex items-center gap-1.5 px-3 py-2.5 md:py-1 rounded-sm
-        transition-all duration-150
-        ${toneClass}
-        ${active ? "bg-secondary opacity-100" : "opacity-65 hover:opacity-100 hover:bg-secondary/40"}
-      `}
-    >
-      <span>{String(count).padStart(2, "0")}</span>
-      <span>{label}</span>
-    </Link>
   );
 }
 
