@@ -2,6 +2,7 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,9 +33,14 @@ function LoginShell() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-12">
           <span className="eyebrow text-muted-foreground">ATS</span>
-          <h1 className="mt-3 font-serif italic text-display leading-none">
-            Yuvabe
-          </h1>
+          <Image
+            src="/assests/yuvabe.png"
+            alt="Yuvabe"
+            width={160}
+            height={48}
+            className="mt-3 mx-auto -translate-x-3"
+            priority
+          />
         </div>
       </div>
     </main>
@@ -45,7 +51,7 @@ function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") || "/jobs";
 
-  const [user, setUser] = useState("");
+  const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +64,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user, pass }),
+        body: JSON.stringify({ email, pass }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -79,9 +85,14 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-12">
           <span className="eyebrow text-muted-foreground">ATS</span>
-          <h1 className="mt-3 font-serif italic text-display leading-none">
-            Yuvabe
-          </h1>
+          <Image
+            src="/assests/yuvabe.png"
+            alt="Yuvabe"
+            width={160}
+            height={48}
+            className="mt-3 mx-auto -translate-x-3"
+            priority
+          />
           <p className="mt-4 font-serif italic text-body-lg text-foreground/70">
             Sign in to continue
           </p>
@@ -90,17 +101,17 @@ function LoginForm() {
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label
-              htmlFor="user"
+              htmlFor="email"
               className="eyebrow text-muted-foreground"
             >
-              Username
+              Email
             </Label>
             <Input
-              id="user"
-              type="text"
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
-              autoComplete="username"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               autoFocus
               required
               className="h-10"
