@@ -65,5 +65,6 @@ next-env.d.ts
 
 playground/
 
-# Generated test report (run pnpm test:report to produce)
+# Generated test reports (run pnpm test:report to produce)
 /test-report.md
+/tests/report/

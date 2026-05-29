@@ -15,6 +15,10 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
     "test:report": "playwright test && tsx --env-file=.env.local scripts/generate-report.ts",
+    "test:workflow:report": "playwright test tests/e2e/job-new-workflow.spec.ts tests/e2e/draft-jobs-workflow.spec.ts && tsx --env-file=.env.local scripts/generate-report.ts",
+    "test:workflow:demo": "SLOW_MO=1000 playwright test tests/e2e/job-new-workflow.spec.ts tests/e2e/draft-jobs-workflow.spec.ts --headed && tsx --env-file=.env.local scripts/generate-report.ts",
+    "test:job-new:demo": "SLOW_MO=1000 playwright test tests/e2e/job-new-workflow.spec.ts --headed && tsx --env-file=.env.local scripts/generate-report.ts",
+    "test:draft:demo": "SLOW_MO=1000 playwright test tests/e2e/draft-jobs-workflow.spec.ts --headed && tsx --env-file=.env.local scripts/generate-report.ts",
     "test:all": "pnpm test && pnpm test:e2e",
     "typecheck": "tsc --noEmit"
   },
@@ -26,6 +30,7 @@
     "@tanstack/react-query": "^5.100.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "lucide-react": "^1.13.0",
     "mammoth": "^1.12.0",
     "nanoid": "^5.1.9",

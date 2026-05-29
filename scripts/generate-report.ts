@@ -1,15 +1,18 @@
 /**
  * Reads test-results/results.json (written by Playwright's JSON reporter)
- * and writes a human-readable test-report.md to the project root.
+ * and writes a human-readable test-report.md to tests/report/.
  *
  * Run via: pnpm test:report
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 const RESULTS_FILE = join(process.cwd(), "test-results", "results.json");
-const OUTPUT_FILE = join(process.cwd(), "test-report.md");
+const REPORT_DIR   = join(process.cwd(), "tests", "report");
+const OUTPUT_FILE  = join(REPORT_DIR, "test-report.md");
+
+mkdirSync(REPORT_DIR, { recursive: true });
 
 interface TestResult {
   status: "passed" | "failed" | "timedOut" | "skipped" | "interrupted";
@@ -149,4 +152,4 @@ const md = [
 ].join("\n");
 
 writeFileSync(OUTPUT_FILE, md, "utf-8");
-console.log(`[report] Written to test-report.md — ${rows.length} tests, ${summaryLine}`);
+console.log(`[report] Written to tests/report/test-report.md — ${rows.length} tests, ${summaryLine}`);

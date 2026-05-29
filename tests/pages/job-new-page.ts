@@ -7,10 +7,13 @@ export class JobNewPage {
   readonly extractButton: Locator;
   readonly saveDraftButton: Locator;
   readonly publishButton: Locator;
-  // backwards-compat alias used by real-flow.spec.ts
-  readonly saveButton: Locator;
+  readonly saveButton: Locator; // alias used by real-flow.spec.ts
   readonly loadingMessage: Locator;
   readonly jobTitleHeading: Locator;
+  readonly fileError: Locator;
+  readonly previewDialog: Locator;
+  readonly confirmPublishButton: Locator;
+  readonly hiringManagerTrigger: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -22,6 +25,10 @@ export class JobNewPage {
     this.saveButton = page.getByRole("button", { name: /^publish$/i });
     this.loadingMessage = page.getByText(/reading the description/i);
     this.jobTitleHeading = page.getByRole("heading", { level: 2 });
+    this.fileError = page.getByText(/couldn't process this file/i);
+    this.previewDialog = page.getByRole("dialog");
+    this.confirmPublishButton = page.getByRole("button", { name: /^confirm$/i });
+    this.hiringManagerTrigger = page.getByRole("combobox").filter({ hasText: /unassigned/i });
   }
 
   async goto() {
@@ -32,7 +39,6 @@ export class JobNewPage {
     await this.fileInput.setInputFiles({ name, mimeType, buffer: Buffer.from(content) });
   }
 
-  /** Importance tier combobox — matches any Select currently showing that tier label */
   filterChip(value: string): Locator {
     return this.page.getByRole("combobox").filter({ hasText: value }).first();
   }
@@ -41,8 +47,15 @@ export class JobNewPage {
     return this.page.getByText(label);
   }
 
-  /** First importance selector in the criteria list */
   firstImportanceSelector(): Locator {
     return this.page.getByRole("combobox").first();
+  }
+
+  /** Returns the importance Select trigger for a specific criterion by its label text */
+  importanceSelectorFor(criterionLabel: string): Locator {
+    return this.page
+      .locator("li")
+      .filter({ hasText: criterionLabel })
+      .getByRole("combobox");
   }
 }
