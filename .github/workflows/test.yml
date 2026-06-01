@@ -56,7 +56,7 @@ jobs:
           AUTH_USER=${{ secrets.AUTH_USER }}
           AUTH_PASS=${{ secrets.AUTH_PASS }}
           AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL=${{ secrets.NEXT_PUBLIC_YUVABE_PEOPLE_SUPABASE_URL }}
           SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
           RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
           EOF
