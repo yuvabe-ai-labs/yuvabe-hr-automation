@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const getResend = () => new Resend(process.env.RESEND_API_KEY ?? "");
 
 export type InterviewInviteParams = {
   candidateName: string;
@@ -130,7 +130,7 @@ export async function sendInterviewInvite(
     </div>
   `;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
@@ -174,7 +174,7 @@ export async function sendInterviewCancellation(
     </div>
   `;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
@@ -245,7 +245,7 @@ export async function sendInterviewReschedule(
     </div>
   `;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,

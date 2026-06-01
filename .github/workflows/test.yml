@@ -58,6 +58,7 @@ jobs:
           AUTH_SECRET=${{ secrets.AUTH_SECRET }}
           SUPABASE_URL=${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
+          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
           EOF
 
       - name: Seed test database
