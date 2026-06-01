@@ -16,6 +16,8 @@ export default defineConfig({
     ["list"],
     ["html", { open: "never" }],
     ["json", { outputFile: "test-results/results.json" }],
+    ["./reporters/linear-reporter.ts"],
+    ["./reporters/excel-reporter.ts"],
   ],
 
   use: {

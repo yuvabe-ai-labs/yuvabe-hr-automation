@@ -34,8 +34,6 @@ async function uploadAndExtract(page: Page, jobNewPage: JobNewPage, file: string
 }
 
 test.describe("Job Creation Workflow", () => {
-  test.describe.configure({ mode: "serial" });
-
   // ── JN_01 ─────────────────────────────────────────────────────────────────
   test("JN_01 /jobs/new renders with file upload drop zone and format hints", async ({ page }) => {
     const jobNewPage = new JobNewPage(page);
@@ -154,19 +152,19 @@ test.describe("Job Creation Workflow", () => {
   });
 
   // ── JN_08 🐢 ───────────────────────────────────────────────────────────────
-  test("JN_08 criteria show Must / Preferred / Nice importance tier dropdowns", async ({ page }) => {
+  test("JN_08 criteria show Must / Strong / Nice importance tier dropdowns", async ({ page }) => {
     const jobNewPage = new JobNewPage(page);
     await uploadAndExtract(page, jobNewPage, TXT_FILE);
 
     const mustCount      = await page.getByRole("combobox").filter({ hasText: /^Must$/ }).count();
-    const preferredCount = await page.getByRole("combobox").filter({ hasText: /^Preferred$/ }).count();
-    const niceCount      = await page.getByRole("combobox").filter({ hasText: /^Nice$/ }).count();
+    const StrongCount = await page.getByRole("combobox").filter({ hasText: /^Strong$/ }).count();
+    const noCount      = await page.getByRole("combobox").filter({ hasText: /^No$/ }).count();
 
-    expect(mustCount + preferredCount + niceCount).toBeGreaterThan(0);
+    expect(mustCount + StrongCount + noCount).toBeGreaterThan(0);
   });
 
   // ── JN_09 🐢 ───────────────────────────────────────────────────────────────
-  test("JN_09 clicking a criterion importance dropdown opens a popover with Must / Preferred / Nice options", async ({ page }) => {
+  test("JN_09 clicking a criterion importance dropdown opens a popover with Must / Strong / Nice options", async ({ page }) => {
     const jobNewPage = new JobNewPage(page);
     await uploadAndExtract(page, jobNewPage, TXT_FILE);
 
@@ -178,8 +176,8 @@ test.describe("Job Creation Workflow", () => {
 
     // All three tier options must appear in the opened popover
     await expect(page.getByRole("option", { name: /^Must$/ })).toBeVisible();
-    await expect(page.getByRole("option", { name: /^Preferred$/ })).toBeVisible();
-    await expect(page.getByRole("option", { name: /^Nice$/ })).toBeVisible();
+    await expect(page.getByRole("option", { name: /^Strong$/ })).toBeVisible();
+    await expect(page.getByRole("option", { name: /^No$/ })).toBeVisible();
 
     await page.keyboard.press("Escape");
   });
