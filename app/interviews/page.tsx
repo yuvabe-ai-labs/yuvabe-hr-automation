@@ -72,7 +72,7 @@ function InterviewsContent() {
       <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-20">
         <CalendarClock className="h-8 w-8 text-muted-foreground/30 mb-6" strokeWidth={1} />
         <p className="font-serif italic text-h2 md:text-h1 text-foreground/40 leading-snug max-w-xs">
-          No upcoming interviews.
+          No interviews found.
         </p>
         <p className="mt-4 eyebrow text-muted-foreground/60">
           Interviews scheduled from candidate profiles will appear here.
@@ -146,7 +146,7 @@ export default function InterviewsPage() {
       <main className="md:flex-1 md:overflow-hidden">
         <section className="md:h-full flex flex-col md:overflow-hidden">
           <div className="shrink-0 px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-6 border-b border-border bg-background">
-            <ColumnMarker numeral="i" title="Upcoming Interviews" />
+            <ColumnMarker numeral="i" title="Interviews" />
           </div>
           <InterviewsContent />
         </section>

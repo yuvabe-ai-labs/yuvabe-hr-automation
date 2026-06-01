@@ -148,6 +148,16 @@ export async function getInterviewsForApplication(applicationId: string): Promis
   return interviewsRepository.findByApplicationId(applicationId)
 }
 
-export async function getUpcomingInterviews(): Promise<Interview[]> {
-  return interviewsRepository.findUpcoming()
+export async function getAllInterviews(opts?: { managerId?: string }): Promise<Interview[]> {
+  if (opts?.managerId) {
+    const supabase = (await import("@/integrations/supabase-people")).getSupabasePeopleClient()
+    const { data } = await supabase
+      .from("jobs")
+      .select("id")
+      .eq("hiring_manager_id", opts.managerId)
+    const jobIds = (data ?? []).map((r: { id: string }) => r.id)
+    if (jobIds.length === 0) return []
+    return interviewsRepository.findAll({ jobIds })
+  }
+  return interviewsRepository.findAll()
 }
