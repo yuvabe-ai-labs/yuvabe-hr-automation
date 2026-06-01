@@ -29,6 +29,7 @@ export function useJobById(code: string) {
   return useQuery({
     queryKey: jobKeys.detail(code),
     queryFn: () => getJobById(code),
+    enabled: !!code,
   });
 }
 

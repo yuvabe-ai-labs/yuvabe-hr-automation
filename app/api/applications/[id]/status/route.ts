@@ -6,7 +6,10 @@ import { updateApplicationStatus } from "@/lib/applications-store";
 export const runtime = "nodejs";
 
 const patchSchema = z.object({
-  status: z.enum(["new", "reviewing", "shortlisted", "rejected", "offered"]),
+  status: z.enum([
+    "new", "reviewing", "shortlisted", "interview_scheduled",
+    "interviewed", "offered", "hired", "rejected", "withdrawn",
+  ]),
 });
 
 export async function PATCH(

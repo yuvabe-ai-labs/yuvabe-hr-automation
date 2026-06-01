@@ -10,8 +10,9 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 2 : 2,
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
   reporter: [
     ["list"],
     ["html", { open: "never" }],
@@ -26,6 +27,8 @@ export default defineConfig({
     video: process.env.TRACE ? "on" : "on-first-retry",
     screenshot: "only-on-failure",
     storageState: path.join(__dirname, "tests/.auth/session.json"),
+    actionTimeout: process.env.CI ? 20_000 : 15_000,
+    navigationTimeout: process.env.CI ? 45_000 : 30_000,
   },
 
   projects: [

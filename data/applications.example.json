@@ -22,6 +22,7 @@
         { "criterionLabel": "Publications or talks", "importance": "nice", "matched": "no", "evidence": "No publications or talks listed.", "score": 0 }
       ],
       "coverLetter": "I've followed Yuvabe's work for a while and the focus on practical, outcome-driven AI is exactly the kind of place I want to spend the next chapter. My current role at Helio is rewarding but the team has stabilized and I'm looking for a smaller, higher-ownership environment. I'd be happy to walk through the inference architecture I built — it's the kind of decision-making I'd want to bring here.",
+      "resumeUrl": "https://www.w3.org/WAI/WCAG21/Techniques/pdf/PDF2.pdf",
       "receivedAt": "2026-04-29T08:14:22.000Z",
       "status": "shortlisted"
     },
@@ -113,7 +114,7 @@
       ],
       "coverLetter": "I want to transition from SRE into ML engineering and would value Yuvabe's mentorship-focused culture. I'm aware my ML experience is academic only — I'm hoping the strong infrastructure and Python foundation makes the conversation worth having.",
       "receivedAt": "2026-04-27T07:30:00.000Z",
-      "status": "new"
+      "status": "interview_scheduled"
     },
     {
       "id": "app_AIEN9X_lakshmi",
@@ -150,7 +151,7 @@
       ],
       "coverLetter": "I'm pivoting from marketing analytics into ML. I'm aware this is a stretch.",
       "receivedAt": "2026-04-25T19:11:09.000Z",
-      "status": "new"
+      "status": "interviewed"
     },
 
     {

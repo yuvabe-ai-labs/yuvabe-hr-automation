@@ -13,6 +13,10 @@ export class JobsPage {
 
   async goto() {
     await this.page.goto("/jobs");
+    // Jobs list is client-side (TanStack Query) — wait for at least one row or empty state.
+    const firstRow = this.page.getByRole("listitem").first();
+    const empty = this.page.getByText(/no jobs yet/i);
+    await firstRow.or(empty).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
   }
 
   jobRow(title: string): Locator {

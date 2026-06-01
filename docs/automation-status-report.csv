@@ -5,130 +5,130 @@ Authentication,AUTH_03,Wrong credentials show error and stay on /login,Done
 Authentication,AUTH_04,Empty fields show validation error and do not submit,Done
 Authentication,AUTH_05,Unauthenticated access to /jobs redirects to /login,Done
 Authentication,AUTH_06,User lands on /jobs after successful login,Done
-Authentication,AUTH_07,Logout clears session and redirects to /login,Pending
-Authentication,AUTH_08,Session cookie persists after page refresh,Pending
-Authentication,AUTH_09,Back-navigation after logout redirects to /login,Pending
+Authentication,AUTH_07,Logout clears session and redirects to /login,Done
+Authentication,AUTH_08,Session cookie persists after page refresh,Done
+Authentication,AUTH_09,Back-navigation after logout redirects to /login,Done
 Jobs List,JOBS_01,/jobs loads with job list and + New Job button,Done
 Jobs List,JOBS_02,Job row shows title applicant count criteria counts and date,Done
 Jobs List,JOBS_03,Active tab shows only active jobs,Done
-Jobs List,JOBS_04,Archived tab shows only archived jobs,Pending
-Jobs List,JOBS_05,Closed tab shows only closed jobs,Pending
+Jobs List,JOBS_04,Archived tab shows only archived jobs,Done
+Jobs List,JOBS_05,Closed tab shows only closed jobs,Done
 Jobs List,JOBS_06,Each job row shows a relative published date,Done
 Jobs List,JOBS_07,Clicking a job row navigates to job detail,Done
 Jobs List,JOBS_09,+ New Job button navigates to /jobs/new,Done
-Jobs List,JOBS_10,Actions dropdown shows View Criteria and Archive options,Pending
-Jobs List,JOBS_11,Archive action archives job and removes it from active list,Pending
-Jobs List,JOBS_13,Re-open action changes closed job status back to active,Pending
-Jobs List,JOBS_14,Empty state shown with prompt to create first job when no jobs exist,Pending
-Jobs List,JOBS_15,Applicant count on row matches total count in job detail page,Pending
+Jobs List,JOBS_10,Actions dropdown shows View Criteria and Archive options,Done
+Jobs List,JOBS_11,Archive action archives job and removes it from active list,Done
+Jobs List,JOBS_13,Re-open action changes closed job status back to active,Done
+Jobs List,JOBS_14,Empty state shown with prompt to create first job when no jobs exist,Done
+Jobs List,JOBS_15,Applicant count on row matches total count in job detail page,Done
 Create Job,JN_01,/jobs/new renders with file upload area,Done
 Create Job,JN_02,PDF upload accepted and AI extracts criteria,Done
-Create Job,JN_03,DOCX upload accepted and criteria extracted,Pending
-Create Job,JN_04,TXT/MD upload accepted and criteria extracted,Pending
-Create Job,JN_05,Unsupported file type (.jpg) rejected with error message,Pending
+Create Job,JN_03,DOCX upload accepted and criteria extracted,Skipped
+Create Job,JN_04,TXT/MD upload accepted and criteria extracted,Done
+Create Job,JN_05,Unsupported file type (.jpg) rejected with error message,Done
 Create Job,JN_06,AI-suggested job title auto-populated from JD content,Done
 Create Job,JN_07,Extracted criteria list renders with labels and importance tiers,Done
 Create Job,JN_08,Criteria grouped into Must Preferred Nice tiers,Done
-Create Job,JN_09,Editing a criterion label updates and saves the new label,Pending
-Create Job,JN_10,Changing a criterion importance tier moves it to the correct group,Pending
-Create Job,JN_11,Manually added criterion appears in the list with correct tier,Pending
-Create Job,JN_12,Deleting a criterion removes it from the list,Pending
-Create Job,JN_13,Save as Draft saves job with draft status; not shown in active list,Pending
-Create Job,JN_14,Preview dialog shows formatted job title and all criteria before going live,Pending
+Create Job,JN_09,Editing a criterion label updates and saves the new label,Skipped
+Create Job,JN_10,Changing a criterion importance tier moves it to the correct group,Done
+Create Job,JN_11,Manually added criterion appears in the list with correct tier,Skipped
+Create Job,JN_12,Deleting a criterion removes it from the list,Skipped
+Create Job,JN_13,Save as Draft saves job with draft status; not shown in active list,Done
+Create Job,JN_14,Preview dialog shows formatted job title and all criteria before going live,Done
 Create Job,JN_15,Published job appears in /jobs active list,Done
-Create Job,JN_16,Clicking Save without uploading a file shows validation error,Pending
-Create Job,JN_17,Criteria count per tier shown after extraction,Pending
-Create Job,JN_18,Job assigned to hiring manager; HM only sees assigned jobs,Pending
+Create Job,JN_16,Clicking Save without uploading a file shows validation error,Done
+Create Job,JN_17,Criteria count per tier shown after extraction,Done
+Create Job,JN_18,Job assigned to hiring manager; HM only sees assigned jobs,Skipped
 Job Detail,JD_01,Job detail page loads with title criteria summary and applicant list,Done
-Job Detail,JD_02,Applicants sorted by match score descending (highest first),Pending
-Job Detail,JD_03,Applicant row shows name match score status badge and submission timestamp,Pending
-Job Detail,JD_04,Match score badges color-coded correctly (green/amber/red),Pending
-Job Detail,JD_05,Status filter chips render for New Reviewing Shortlisted Interview Scheduled etc.,Pending
-Job Detail,JD_06,Clicking Shortlisted chip shows only shortlisted applicants,Pending
+Job Detail,JD_02,Applicants sorted by match score descending (highest first),Done
+Job Detail,JD_03,Applicant row shows name match score status badge and submission timestamp,Done
+Job Detail,JD_04,Match score badges color-coded correctly (green/amber/red),Done
+Job Detail,JD_05,Status filter chips render for New Reviewing Shortlisted Interview Scheduled etc.,Done
+Job Detail,JD_06,Clicking Shortlisted chip shows only shortlisted applicants,Done
 Job Detail,JD_07,Clicking a status chip updates the URL with status param,Done
 Job Detail,JD_08,All chip clears filter and shows every applicant,Done
-Job Detail,JD_09,Count on each status chip matches number of applicants shown when selected,Pending
+Job Detail,JD_09,Count on each status chip matches number of applicants shown when selected,Done
 Job Detail,JD_11,Clicking an applicant row navigates to /applications/[id],Done
 Job Detail,JD_12,Back link navigates to /jobs,Done
-Job Detail,JD_13,Empty state shown when selected status filter has zero applicants,Pending
-Job Detail,JD_14,Edit Criteria button navigates to /jobs/[code]/edit,Pending
+Job Detail,JD_13,Empty state shown when selected status filter has zero applicants,Done
+Job Detail,JD_14,Edit Criteria button navigates to /jobs/[code]/edit,Done
 Applications List,AL_01,/applications loads showing all applications across all jobs,Done
-Applications List,AL_02,Each applicant row shows the job/role the applicant applied for,Pending
-Applications List,AL_03,Each row shows name location email experience match score status and timestamp,Pending
-Applications List,AL_04,Match score badges color-coded correctly (Strong/Fair/Weak),Pending
+Applications List,AL_02,Each applicant row shows the job/role the applicant applied for,Done
+Applications List,AL_03,Each row shows name location email experience match score status and timestamp,Done
+Applications List,AL_04,Match score badges color-coded correctly (Strong/Fair/Weak),Done
 Applications List,AL_05,Clicking a status chip shows only applicants with that status,Done
 Applications List,AL_05b,Clearing status filter removes param from URL,Done
-Applications List,AL_06,Sort by Match Score reorders applicants with highest score first,Pending
-Applications List,AL_07,Selecting a job from filter dropdown shows only that job's applicants,Pending
-Applications List,AL_08,URL with status filter applied loads page with same filter in new tab,Pending
-Applications List,AL_09,Clicking an applicant row navigates to /applications/[id],Pending
-Applications List,AL_10,Empty state message shown when no applicants match the selected status,Pending
-Applications List,AL_11,Clicking multiple checkboxes selects applicants and shows bulk action bar,Pending
-Applications List,AL_14,Select All checkbox selects all currently visible applicants,Pending
+Applications List,AL_06,Sort by Match Score reorders applicants with highest score first,Done
+Applications List,AL_07,Selecting a job from filter dropdown shows only that job's applicants,Skipped
+Applications List,AL_08,URL with status filter applied loads page with same filter in new tab,Done
+Applications List,AL_09,Clicking an applicant row navigates to /applications/[id],Done
+Applications List,AL_10,Empty state message shown when no applicants match the selected status,Done
+Applications List,AL_11,Clicking multiple checkboxes selects applicants and shows bulk action bar,Done
+Applications List,AL_14,Select All checkbox selects all currently visible applicants,Done
 Applicant Detail,AD_01,Applicant detail page loads with name score and match details,Done
-Applicant Detail,AD_02,Personal details section shows name email location and years of experience,Pending
+Applicant Detail,AD_02,Personal details section shows name email location and years of experience,Done
 Applicant Detail,AD_03,Match score (0-100) shown with band label (Strong/Fair/Weak) and color,Done
 Applicant Detail,AD_04,Match summary paragraph is shown below the score,Done
 Applicant Detail,AD_05,Criteria breakdown rows render grouped by Must/Preferred/Nice tier,Done
-Applicant Detail,AD_06,Each criterion row shows matched/partial/no indicator,Pending
-Applicant Detail,AD_07,Each criterion row shows a numeric score between 0 and 10,Pending
-Applicant Detail,AD_08,Each criterion row includes a short evidence sentence from the resume,Pending
-Applicant Detail,AD_09,LinkedIn link shown and clickable for applicant with LinkedIn profile,Pending
-Applicant Detail,AD_10,Portfolio link shown and clickable for applicant with portfolio URL,Pending
-Applicant Detail,AD_11,GitHub link shown and clickable for applicant with GitHub URL,Pending
-Applicant Detail,AD_12,Link missing badge shown when LinkedIn/Portfolio/GitHub URL is absent,Pending
-Applicant Detail,AD_13,Resume file opens or downloads when resume link is clicked,Pending
+Applicant Detail,AD_06,Each criterion row shows matched/partial/no indicator,Done
+Applicant Detail,AD_07,Each criterion row shows a numeric score between 0 and 10,Done
+Applicant Detail,AD_08,Each criterion row includes a short evidence sentence from the resume,Done
+Applicant Detail,AD_09,LinkedIn link shown and clickable for applicant with LinkedIn profile,Done
+Applicant Detail,AD_10,Portfolio link shown and clickable for applicant with portfolio URL,Done
+Applicant Detail,AD_11,GitHub link shown and clickable for applicant with GitHub URL,Done
+Applicant Detail,AD_12,Link missing badge shown when LinkedIn/Portfolio/GitHub URL is absent,Done
+Applicant Detail,AD_13,Resume file opens or downloads when resume link is clicked,Skipped
 Applicant Detail,AD_15,Status selector highlights the current application status,Done
-Applicant Detail,AD_16,Clicking Reviewing updates status; persists on page refresh,Pending
-Applicant Detail,AD_17,Clicking Shortlisted updates status to Shortlisted,Pending
-Applicant Detail,AD_18,Clicking Interview Scheduled updates status,Pending
-Applicant Detail,AD_19,Clicking Interviewed updates status,Pending
-Applicant Detail,AD_21,Clicking Hired updates status,Pending
-Applicant Detail,AD_22,Clicking Rejected updates status,Pending
-Applicant Detail,AD_24,Status change persists after page refresh,Pending
+Applicant Detail,AD_16,Clicking Reviewing updates status; persists on page refresh,Done
+Applicant Detail,AD_17,Clicking Shortlisted updates status to Shortlisted,Done
+Applicant Detail,AD_18,Clicking Interview Scheduled updates status,Skipped
+Applicant Detail,AD_19,Clicking Interviewed updates status,Skipped
+Applicant Detail,AD_21,Clicking Hired updates status,Skipped
+Applicant Detail,AD_22,Clicking Rejected updates status,Done
+Applicant Detail,AD_24,Status change persists after page refresh,Done
 Applicant Detail,AD_25,Clicking job title in breadcrumb navigates to /jobs/[code],Done
-Applicant Detail,AD_26,Clicking Jobs in breadcrumb navigates to /jobs,Pending
-Applicant Detail,AD_27,Criterion labels in breakdown match the job's current criteria list,Pending
+Applicant Detail,AD_26,Clicking Jobs in breadcrumb navigates to /jobs,Done
+Applicant Detail,AD_27,Criterion labels in breakdown match the job's current criteria list,Done
 Apply Flow,APPL_01,/apply renders with file upload and cover letter fields,Done
-Apply Flow,APPL_02,PDF resume upload accepted; filename displayed with no errors,Pending
-Apply Flow,APPL_03,DOCX resume upload accepted and processed correctly,Pending
-Apply Flow,APPL_05,Unsupported file type (.jpg) as resume shows error and is rejected,Pending
-Apply Flow,APPL_08,Completing and submitting the form shows success confirmation,Pending
-Apply Flow,APPL_09,Submitted application appears in the ranked list for the correct job,Pending
-Apply Flow,APPL_10,Submitting without uploading a resume shows validation error,Pending
+Apply Flow,APPL_02,PDF resume upload accepted; filename displayed with no errors,Done
+Apply Flow,APPL_03,DOCX resume upload accepted and processed correctly,Skipped
+Apply Flow,APPL_05,Unsupported file type (.jpg) as resume shows error and is rejected,Skipped
+Apply Flow,APPL_08,Completing and submitting the form shows success confirmation,Done
+Apply Flow,APPL_09,Submitted application appears in the ranked list for the correct job,Skipped
+Apply Flow,APPL_10,Submitting without uploading a resume shows validation error,Done
 Interview Scheduling,INT_01,/interviews loads showing all upcoming interviews,Done
-Interview Scheduling,INT_02,Interview row shows candidate name job title title date/time and interviewers,Pending
-Interview Scheduling,INT_03,Empty state shown when no interviews are scheduled,Pending
+Interview Scheduling,INT_02,Interview row shows candidate name job title title date/time and interviewers,Skipped
+Interview Scheduling,INT_03,Empty state shown when no interviews are scheduled,Done
 Interview Scheduling,INT_04,Schedule Interview button visible when applicant is Shortlisted or Reviewing,Done
-Interview Scheduling,INT_05,Clicking Schedule Interview opens modal with title duration location interviewers fields,Pending
-Interview Scheduling,INT_06,Leaving title blank and clicking Send shows validation error; interview not created,Pending
-Interview Scheduling,INT_07,Selected date and time appears correctly in the modal form,Pending
-Interview Scheduling,INT_08,Duration dropdown shows options: 30 min 45 min 60 min 90 min,Pending
-Interview Scheduling,INT_09,Selecting interviewers from the list shows them in the form,Pending
-Interview Scheduling,INT_10,Office location or video meeting URL input accepted without errors,Pending
-Interview Scheduling,INT_11,Email preview shows correctly formatted invitation with candidate name and details,Pending
-Interview Scheduling,INT_12,Filling all fields and clicking Send creates interview; modal closes; status updates,Pending
-Interview Scheduling,INT_13,Interview card shown in Interviews section after scheduling,Pending
-Interview Scheduling,INT_14,Applicant status badge changes to Interview Scheduled after scheduling,Pending
-Interview Scheduling,INT_15,Cancelling the modal does not create an interview; status unchanged,Pending
-Draft Jobs,DRAFT_01,Save as Draft saves job with draft status; not shown in Active tab,Pending
+Interview Scheduling,INT_05,Clicking Schedule Interview opens modal with title duration location interviewers fields,Done
+Interview Scheduling,INT_06,Leaving title blank and clicking Send shows validation error; interview not created,Done
+Interview Scheduling,INT_07,Selected date and time appears correctly in the modal form,Done
+Interview Scheduling,INT_08,Duration dropdown shows options: 30 min 45 min 60 min 90 min,Done
+Interview Scheduling,INT_09,Selecting interviewers from the list shows them in the form,Skipped
+Interview Scheduling,INT_10,Office location or video meeting URL input accepted without errors,Done
+Interview Scheduling,INT_11,Email preview shows correctly formatted invitation with candidate name and details,Done
+Interview Scheduling,INT_12,Filling all fields and clicking Send creates interview; modal closes; status updates,Skipped
+Interview Scheduling,INT_13,Interview card shown in Interviews section after scheduling,Skipped
+Interview Scheduling,INT_14,Applicant status badge changes to Interview Scheduled after scheduling,Skipped
+Interview Scheduling,INT_15,Cancelling the modal does not create an interview; status unchanged,Done
+Draft Jobs,DRAFT_01,Save as Draft saves job with draft status; not shown in Active tab,Skipped
 Draft Jobs,DRAFT_02,Draft jobs are displayed with a Draft badge in the jobs list,Done
-Draft Jobs,DRAFT_03,Draft job does not appear in the Active tab,Pending
-Draft Jobs,DRAFT_04,Actions menu on draft job row shows Publish option (not Archive),Pending
-Draft Jobs,DRAFT_05,Clicking Publish on a draft job opens JD preview dialog,Pending
-Draft Jobs,DRAFT_06,JD preview dialog shows all criteria grouped by Must/Preferred/Nice,Pending
-Draft Jobs,DRAFT_07,Clicking Publish in the preview dialog makes job appear in Active tab,Pending
-Draft Jobs,DRAFT_08,Cancelling the preview dialog keeps job in draft status,Pending
-Draft Jobs,DRAFT_09,After publishing actions menu shows Archive instead of Publish,Pending
+Draft Jobs,DRAFT_03,Draft job does not appear in the Active tab,Done
+Draft Jobs,DRAFT_04,Actions menu on draft job row shows Publish option (not Archive),Done
+Draft Jobs,DRAFT_05,Clicking Publish on a draft job opens JD preview dialog,Done
+Draft Jobs,DRAFT_06,JD preview dialog shows all criteria grouped by Must/Preferred/Nice,Done
+Draft Jobs,DRAFT_07,Clicking Publish in the preview dialog makes job appear in Active tab,Done
+Draft Jobs,DRAFT_08,Cancelling the preview dialog keeps job in draft status,Done
+Draft Jobs,DRAFT_09,After publishing actions menu shows Archive instead of Publish,Done
 Advanced Filters,FILT_01,Filter button is visible on /jobs near the search input,Done
 Advanced Filters,FILT_02,Clicking Filter button opens filter panel with job type and sort options,Done
-Advanced Filters,FILT_03,Filtering by job type shows only matching jobs; URL updates with ?type= param,Pending
-Advanced Filters,FILT_04,Sorting by Oldest reorders jobs with oldest creation date first,Pending
-Advanced Filters,FILT_05,Sorting by Newest reorders jobs with newest creation date first,Pending
-Advanced Filters,FILT_06,Applying a filter shows a visual indicator (dot or count) on the Filter button,Pending
-Advanced Filters,FILT_07,Clear Filters removes all filters; URL params cleared; all jobs shown,Pending
-Advanced Filters,FILT_08,Sorting applicants by score on job detail reorders with highest score first,Pending
-Advanced Filters,FILT_09,Applying a filter on /jobs/[code] shows only matching applicants; URL reflects state,Pending
-Advanced Filters,FILT_10,Selecting a job from filter dropdown on /applications shows only that job's applicants,Pending
-Advanced Filters,FILT_11,Job filter + status chip together show only applicants matching both; both params in URL,Pending
+Advanced Filters,FILT_03,Filtering by job type shows only matching jobs; URL updates with ?type= param,Done
+Advanced Filters,FILT_04,Sorting by Oldest reorders jobs with oldest creation date first,Done
+Advanced Filters,FILT_05,Sorting by Newest reorders jobs with newest creation date first,Done
+Advanced Filters,FILT_06,Applying a filter shows a visual indicator (dot or count) on the Filter button,Done
+Advanced Filters,FILT_07,Clear Filters removes all filters; URL params cleared; all jobs shown,Done
+Advanced Filters,FILT_08,Sorting applicants by score on job detail reorders with highest score first,Done
+Advanced Filters,FILT_09,Applying a filter on /jobs/[code] shows only matching applicants; URL reflects state,Done
+Advanced Filters,FILT_10,Selecting a job from filter dropdown on /applications shows only that job's applicants,Skipped
+Advanced Filters,FILT_11,Job filter + status chip together show only applicants matching both; both params in URL,Skipped
 Advanced Filters,FILT_12,URL with filters applied loads with same filters in a new tab,Done

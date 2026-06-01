@@ -14,7 +14,7 @@ import fs from "fs";
 const SESSION_FILE = path.join(__dirname, ".auth", "session.json");
 
 export default async function globalSetup(config: FullConfig) {
-  const baseURL = config.projects[0].use.baseURL ?? "http://localhost:3000";
+  const baseURL = config.projects[0].use.baseURL ?? "http://localhost:3001";
 
   fs.mkdirSync(path.dirname(SESSION_FILE), { recursive: true });
 

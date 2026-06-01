@@ -177,7 +177,7 @@ export function ApplicationsList() {
   };
 
   const jobsByCode = new Map(jobs.map((j) => [j.code, j]));
-  const hasActiveFilters = !!search || minScore > 0 || !!topN || !!dateFrom || !!dateTo || !!minYearsExp || !!maxYearsExp || sort === "oldest" || !!managerId;
+  const hasActiveFilters = minScore > 0 || !!topN || !!dateFrom || !!dateTo || !!minYearsExp || !!maxYearsExp || sort === "oldest" || !!managerId;
   const hasData = allCount > 0;
   const showSkeleton = isLoading || (isFetching && applications.length === 0);
 
