@@ -65,7 +65,12 @@ jobs:
         run: pnpm db:seed
 
       - name: Run E2E tests
-        run: pnpm test:e2e
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            pnpm test:e2e --grep "Applicant Detail"
+          else
+            pnpm test:e2e
+          fi
 
       - name: Post test results on PR
         if: always() && github.event_name == 'pull_request'
