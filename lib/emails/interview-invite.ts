@@ -117,13 +117,14 @@ function emailShell(bodyContent: string): string {
       <img src="https://yuvabe-ats.vercel.app/assests/yuvabe.png" alt="Yuvabe" height="40" style="display:block;object-fit:contain;" />
     </div>
 
-  await getResend().emails.send({
-    from: `Yuvabe HR <${senderEmail}>`,
-    to: candidateEmail,
-    cc: ccList.length > 0 ? ccList : undefined,
-    subject: `Interview Invitation: ${title} — ${jobTitle}`,
-    html,
-  });
+    <!-- Body -->
+    <div style="background:#ffffff;padding:32px;border-radius:0 0 4px 4px;">
+      ${bodyContent}
+    </div>
+
+  </div>
+</body>
+</html>`;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -229,7 +230,7 @@ export async function sendInterviewReschedule(params: InterviewRescheduleParams)
       <strong>Yuvabe HR Team</strong>
     </p>`;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `Yuvabe <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
