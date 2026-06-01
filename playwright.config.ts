@@ -2,9 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 import { config } from "dotenv";
 
-// Load .env.local so AUTH_USER, AUTH_PASS, SUPABASE_URL etc. are available
-// in globalSetup and test files without needing to export them manually.
+// Load env vars — try .env.local first, fall back to .env
 config({ path: path.join(__dirname, ".env.local") });
+config({ path: path.join(__dirname, ".env") });
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,12 +17,14 @@ export default defineConfig({
     ["list"],
     ["html", { open: "never" }],
     ["json", { outputFile: "test-results/results.json" }],
+    ["./reporters/linear-reporter.ts"],
+    ["./reporters/excel-reporter.ts"],
   ],
 
   use: {
     baseURL: "http://localhost:3001",
-    trace: "on-first-retry",
-    video: "on-first-retry",
+    trace: process.env.TRACE ? "on" : "on-first-retry",
+    video: process.env.TRACE ? "on" : "on-first-retry",
     screenshot: "only-on-failure",
     storageState: path.join(__dirname, "tests/.auth/session.json"),
     actionTimeout: process.env.CI ? 20_000 : 15_000,
@@ -30,7 +32,15 @@ export default defineConfig({
   },
 
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          slowMo: process.env.SLOW_MO ? Number(process.env.SLOW_MO) : 0,
+        },
+      },
+    },
   ],
 
   globalSetup: "./tests/global-setup.ts",
