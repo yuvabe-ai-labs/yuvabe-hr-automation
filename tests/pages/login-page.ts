@@ -9,10 +9,10 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.usernameInput = page.locator("#user");
+    this.usernameInput = page.locator("#email");
     this.passwordInput = page.locator("#pass");
     this.submitButton = page.getByRole("button", { name: /sign in/i });
-    this.errorMessage = page.locator("form p");
+    this.errorMessage = page.getByText(/email and password are required|invalid email or password/i).first();
   }
 
   async goto() {

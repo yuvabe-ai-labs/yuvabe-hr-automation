@@ -14,7 +14,7 @@ import fs from "fs";
 const SESSION_FILE = path.join(__dirname, ".auth", "session.json");
 
 export default async function globalSetup(config: FullConfig) {
-  const baseURL = config.projects[0].use.baseURL ?? "http://localhost:3000";
+  const baseURL = config.projects[0].use.baseURL ?? "http://localhost:3001";
 
   fs.mkdirSync(path.dirname(SESSION_FILE), { recursive: true });
 
@@ -22,16 +22,16 @@ export default async function globalSetup(config: FullConfig) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  const user = process.env.AUTH_USER;
+  const email = process.env.AUTH_USER;
   const pass = process.env.AUTH_PASS;
-  if (!user || !pass) {
+  if (!email || !pass) {
     await browser.close();
     throw new Error("AUTH_USER and AUTH_PASS must be set in .env.local or environment");
   }
 
   const res = await page.request.post(`${baseURL}/api/auth/login`, {
     headers: { "Content-Type": "application/json" },
-    data: JSON.stringify({ user, pass }),
+    data: JSON.stringify({ email, pass }),
   });
 
   if (!res.ok()) {

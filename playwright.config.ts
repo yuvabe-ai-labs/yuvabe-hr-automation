@@ -11,7 +11,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 2,
   reporter: [
     ["list"],
     ["html", { open: "never" }],
@@ -24,6 +24,8 @@ export default defineConfig({
     video: "on-first-retry",
     screenshot: "only-on-failure",
     storageState: path.join(__dirname, "tests/.auth/session.json"),
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
   },
 
   projects: [

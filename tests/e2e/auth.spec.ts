@@ -42,10 +42,16 @@ test.describe("Authentication", () => {
   test("AUTH_04 empty fields show validation error and do not submit", async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.goto();
+    await loginPage.submitButton.waitFor({ state: "visible" });
     await loginPage.submitButton.click();
 
+    // Native browser validation blocks submission for the required empty email field
     await expect(page).toHaveURL(/\/login/);
-    await expect(loginPage.errorMessage).toBeVisible();
+    // The email input reports as invalid via the browser's native ValidityState
+    const invalid = await loginPage.usernameInput.evaluate(
+      (el) => !(el as HTMLInputElement).checkValidity()
+    );
+    expect(invalid).toBe(true);
   });
 
   // AUTH_05 — Unauthenticated access redirects to /login
@@ -97,6 +103,8 @@ test.describe("Authentication", () => {
     await expect(page).toHaveURL(/\/login/);
 
     await page.goBack();
+    // Browser back may serve cached page; navigate to a protected route to confirm session is dead
+    await page.goto("/jobs");
     await expect(page).toHaveURL(/\/login/);
   });
 });

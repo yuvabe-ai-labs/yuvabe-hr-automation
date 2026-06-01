@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "id": "user_manager_001",
+      "email": "rahul.sharma@yuvabe.com",
+      "name": "Rahul Sharma",
+      "role": "manager"
+    }
+  ]
+}

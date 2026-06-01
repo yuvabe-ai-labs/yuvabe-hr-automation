@@ -63,6 +63,25 @@
         { "category": "skill", "label": "Accessibility (WCAG)", "importance": "nice" }
       ],
       "createdAt": "2026-04-26T15:48:00.000Z"
+    },
+    {
+      "id": "job_draft_001",
+      "code": "JRDFT1",
+      "title": "Full Stack Engineer (React / Node)",
+      "status": "draft",
+      "description": "Yuvabe is looking for a Full Stack Engineer to work across our internal products. You will build and maintain features end-to-end — from React front-end to Node.js APIs and Postgres databases.\n\nRequirements:\n- 3+ years professional full-stack experience\n- React (hooks, context, performance)\n- Node.js / Express or similar\n- PostgreSQL or another relational DB\n- TypeScript\n\nPreferred:\n- Next.js App Router\n- Tailwind CSS\n- Supabase or similar BaaS\n\nNice to have:\n- Experience with AI/LLM integration\n- CI/CD pipelines",
+      "criteria": [
+        { "category": "experience", "label": "3+ years full-stack", "importance": "must" },
+        { "category": "skill", "label": "React proficiency", "importance": "must" },
+        { "category": "skill", "label": "Node.js", "importance": "must" },
+        { "category": "skill", "label": "PostgreSQL", "importance": "must" },
+        { "category": "skill", "label": "TypeScript", "importance": "must" },
+        { "category": "skill", "label": "Next.js App Router", "importance": "strong" },
+        { "category": "skill", "label": "Tailwind CSS", "importance": "strong" },
+        { "category": "skill", "label": "AI/LLM integration", "importance": "nice" },
+        { "category": "skill", "label": "CI/CD pipelines", "importance": "nice" }
+      ],
+      "createdAt": "2026-05-01T10:00:00.000Z"
     }
   ]
 }
