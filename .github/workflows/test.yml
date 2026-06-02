@@ -118,6 +118,8 @@ jobs:
               ? `❌ **${failed} failed** · ✅ ${passed} passed · ⏱ ${totalS}s`
               : `✅ **All ${passed} tests passed** · ⏱ ${totalS}s`;
 
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
             const body = [
               '## 🎭 Playwright E2E Results',
               '',
@@ -126,6 +128,8 @@ jobs:
               '| Test | Status | Duration |',
               '|------|--------|----------|',
               ...rows,
+              '',
+              `📥 [Download Excel Report](${runUrl}) — available under **Artifacts** in the Actions run`,
             ].join('\n');
 
             await github.rest.issues.createComment({
@@ -142,6 +146,14 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      - name: Upload Excel report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report-excel
+          path: tests/report/test-report.xlsx
+          retention-days: 30
 
       - name: Upload test traces
         uses: actions/upload-artifact@v4
