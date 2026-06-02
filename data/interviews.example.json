@@ -1,0 +1,22 @@
+{
+  "interviews": [
+    {
+      "id": "int_AIEN9X_marcus_001",
+      "applicationId": "app_AIEN9X_marcus",
+      "candidateId": "c_marcus_chen",
+      "candidateName": "Marcus Chen",
+      "candidateEmail": "marcus.chen@example.com",
+      "jobId": "job_aieng_001",
+      "jobCode": "AIEN9X",
+      "jobTitle": "Senior AI Engineer",
+      "title": "Technical Round — Senior AI Engineer",
+      "scheduledAt": "2030-06-15T10:00:00.000Z",
+      "durationMinutes": 60,
+      "timezone": "Asia/Kolkata",
+      "status": "scheduled",
+      "location": "Yuvabe Office, Auroville",
+      "interviewerId": "user_manager_001",
+      "interviewerName": "Rahul Sharma"
+    }
+  ]
+}

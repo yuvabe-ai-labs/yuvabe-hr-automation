@@ -1,0 +1,1005 @@
+{
+  "config": {
+    "configFile": "D:\\chitu\\yuvabe\\yuvabe-people\\playwright.config.ts",
+    "rootDir": "D:/chitu/yuvabe/yuvabe-people/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/chitu/yuvabe/yuvabe-people/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/chitu/yuvabe/yuvabe-people/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 4,
+    "webServer": {
+      "command": "pnpm dev --port 3001",
+      "url": "http://localhost:3001",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "applicant-detail.spec.ts",
+      "file": "applicant-detail.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Applicant Detail",
+          "file": "applicant-detail.spec.ts",
+          "line": 22,
+          "column": 6,
+          "specs": [
+            {
+              "title": "AD_01 applicant detail page loads with name, score, and match details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11778,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:13.270Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-010f7ac512d74e72f554",
+              "file": "applicant-detail.spec.ts",
+              "line": 24,
+              "column": 7
+            },
+            {
+              "title": "AD_02 personal details section shows name, email, location, and years of experience",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 11998,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:13.171Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-b6e5951b970e5462bc0c",
+              "file": "applicant-detail.spec.ts",
+              "line": 33,
+              "column": 7
+            },
+            {
+              "title": "AD_03 match score (0-100) shown with band label (Strong/Fair/Weak) and color",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 11565,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:13.324Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-62eb3c790c0c2763657b",
+              "file": "applicant-detail.spec.ts",
+              "line": 44,
+              "column": 7
+            },
+            {
+              "title": "AD_04 match summary paragraph is shown below the score",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 11527,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:13.216Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-b4bc2daf0ddf07bbc672",
+              "file": "applicant-detail.spec.ts",
+              "line": 54,
+              "column": 7
+            },
+            {
+              "title": "AD_05 criteria breakdown rows render grouped by Must/Preferred/Nice tier",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 9931,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:26.462Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-ad9e7721430caf1bcf14",
+              "file": "applicant-detail.spec.ts",
+              "line": 63,
+              "column": 7
+            },
+            {
+              "title": "AD_06 each criterion row shows matched/partial/no indicator",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9804,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:26.658Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-3ecb12f045ee76312486",
+              "file": "applicant-detail.spec.ts",
+              "line": 75,
+              "column": 7
+            },
+            {
+              "title": "AD_07 each criterion row shows a numeric score between 0 and 10",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 9694,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:26.667Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-92a5f41742a319257177",
+              "file": "applicant-detail.spec.ts",
+              "line": 85,
+              "column": 7
+            },
+            {
+              "title": "AD_08 each criterion row includes a short evidence sentence from the resume",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 9932,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:26.690Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-35cc37864313b0b12164",
+              "file": "applicant-detail.spec.ts",
+              "line": 94,
+              "column": 7
+            },
+            {
+              "title": "AD_09 LinkedIn link shown and clickable for applicant with LinkedIn profile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 10088,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:36.431Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-a7e528a3d4346c51c7c1",
+              "file": "applicant-detail.spec.ts",
+              "line": 105,
+              "column": 7
+            },
+            {
+              "title": "AD_10 Portfolio link shown and clickable for applicant with portfolio URL",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 9657,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:36.465Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-9b68d5833aab1a136f88",
+              "file": "applicant-detail.spec.ts",
+              "line": 115,
+              "column": 7
+            },
+            {
+              "title": "AD_11 GitHub link shown and clickable for applicant with GitHub URL",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9471,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:36.532Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-243423c3426047e84026",
+              "file": "applicant-detail.spec.ts",
+              "line": 125,
+              "column": 7
+            },
+            {
+              "title": "AD_12 Link missing badge shown when LinkedIn/Portfolio/GitHub URL is absent",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 9493,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:36.691Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-27618c2b7b27d468d689",
+              "file": "applicant-detail.spec.ts",
+              "line": 135,
+              "column": 7
+            },
+            {
+              "title": "AD_13 resume file opens or downloads when resume link is clicked",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No seeded applicant has a resumeUrl — all show 'Resume missing'",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                        "line": 146,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 7,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:46.077Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No seeded applicant has a resumeUrl — all show 'Resume missing'",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                            "line": 146,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-a4ede8827214512bd6fc",
+              "file": "applicant-detail.spec.ts",
+              "line": 145,
+              "column": 7
+            },
+            {
+              "title": "AD_15 status selector highlights the current application status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 10694,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:46.142Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-4f69eb3b9a9520e43854",
+              "file": "applicant-detail.spec.ts",
+              "line": 150,
+              "column": 7
+            },
+            {
+              "title": "AD_25 clicking job title in breadcrumb navigates to /jobs/[code]",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 12253,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:46.191Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-6d315a576840d422c598",
+              "file": "applicant-detail.spec.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "AD_26 clicking Jobs in breadcrumb navigates to /jobs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 12268,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:46.293Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-5154579627de7eb194f5",
+              "file": "applicant-detail.spec.ts",
+              "line": 167,
+              "column": 7
+            },
+            {
+              "title": "AD_27 criterion labels in breakdown match the job's current criteria list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 10482,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-27T11:22:46.664Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e470d659f5ca3e717298-9b4908aefc6a220cc733",
+              "file": "applicant-detail.spec.ts",
+              "line": 176,
+              "column": 7
+            }
+          ],
+          "suites": [
+            {
+              "title": "status mutations",
+              "file": "applicant-detail.spec.ts",
+              "line": 187,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "AD_16 clicking Reviewing updates status; persists on page refresh",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 6893,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-27T11:22:56.895Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "e470d659f5ca3e717298-34ac64a5835fc2a5101e",
+                  "file": "applicant-detail.spec.ts",
+                  "line": 191,
+                  "column": 9
+                },
+                {
+                  "title": "AD_17 clicking Shortlisted updates status to Shortlisted",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3157,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-27T11:23:03.861Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "e470d659f5ca3e717298-e2d332b2fc451dfabca9",
+                  "file": "applicant-detail.spec.ts",
+                  "line": 208,
+                  "column": 9
+                },
+                {
+                  "title": "AD_18 clicking Interview Scheduled updates status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Interview Scheduled status is set via the interview scheduling flow, not directly from pre-interview buttons",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                            "line": 223,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 4,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-27T11:23:07.056Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Interview Scheduled status is set via the interview scheduling flow, not directly from pre-interview buttons",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                                "line": 223,
+                                "column": 12
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "e470d659f5ca3e717298-4017d9056862b28df456",
+                  "file": "applicant-detail.spec.ts",
+                  "line": 222,
+                  "column": 9
+                },
+                {
+                  "title": "AD_19 clicking Interviewed updates status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Interviewed status requires interview_scheduled → Mark Interviewed flow",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                            "line": 228,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 3,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-27T11:23:07.088Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Interviewed status requires interview_scheduled → Mark Interviewed flow",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                                "line": 228,
+                                "column": 12
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "e470d659f5ca3e717298-c68464b68d8136f61031",
+                  "file": "applicant-detail.spec.ts",
+                  "line": 227,
+                  "column": 9
+                },
+                {
+                  "title": "AD_21 clicking Hired updates status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Hired status requires interview_scheduled → interviewed → Hire Candidate flow",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                            "line": 233,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 2,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-27T11:23:07.118Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Hired status requires interview_scheduled → interviewed → Hire Candidate flow",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\applicant-detail.spec.ts",
+                                "line": 233,
+                                "column": 12
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "e470d659f5ca3e717298-ad18a56a087546afe405",
+                  "file": "applicant-detail.spec.ts",
+                  "line": 232,
+                  "column": 9
+                },
+                {
+                  "title": "AD_22 clicking Rejected updates status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2917,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-27T11:23:07.135Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "e470d659f5ca3e717298-341ea6c99c4c27c65d7a",
+                  "file": "applicant-detail.spec.ts",
+                  "line": 237,
+                  "column": 9
+                },
+                {
+                  "title": "AD_24 status change persists after page refresh",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 4509,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-27T11:23:10.081Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "e470d659f5ca3e717298-3c9f8a7090315434137b",
+                  "file": "applicant-detail.spec.ts",
+                  "line": 251,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-05-27T11:22:07.073Z",
+    "duration": 67820.975,
+    "expected": 20,
+    "skipped": 4,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
