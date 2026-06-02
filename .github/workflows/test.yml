@@ -70,7 +70,7 @@ jobs:
       - name: Run E2E tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            pnpm test:e2e tests/e2e/job-new-workflow.spec.ts
+            pnpm test:e2e tests/e2e/job-new.spec.ts
           else
             pnpm test:e2e
           fi
