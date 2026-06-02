@@ -22,11 +22,11 @@ export default async function globalSetup(config: FullConfig) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  const email = process.env.AUTH_USER;
-  const pass = process.env.AUTH_PASS;
+  const email = process.env.EMAIL ?? process.env.AUTH_USER;
+  const pass = process.env.PASSWORD ?? process.env.AUTH_PASS;
   if (!email || !pass) {
     await browser.close();
-    throw new Error("AUTH_USER and AUTH_PASS must be set in .env.local or environment");
+    throw new Error("EMAIL and PASSWORD must be set in .env.local or environment");
   }
 
   const res = await page.request.post(`${baseURL}/api/auth/login`, {
