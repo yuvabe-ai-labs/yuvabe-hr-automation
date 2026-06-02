@@ -42,6 +42,8 @@ export default class LinearReporter implements Reporter {
   onTestEnd(test: TestCase, result: TestResult) {
     if (this.disabled) return;
     if (result.status !== "failed" && result.status !== "timedOut") return;
+    // Skip intermediate retries — only file an issue on the final attempt
+    if (result.retry < test.retries) return;
 
     const parts    = test.titlePath().filter(Boolean);
     const testName = parts.at(-1) ?? test.title;
