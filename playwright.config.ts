@@ -15,7 +15,7 @@ export default defineConfig({
   expect: { timeout: process.env.CI ? 15_000 : 5_000 },
   reporter: [
     ["list"],
-    ["html", { open: "never" }],
+    ["html", { open: "never", outputFolder: `playwright-report/${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}` }],
     ["json", { outputFile: "test-results/results.json" }],
     ["./reporters/linear-reporter.ts"],
     ["./reporters/excel-reporter.ts"],
@@ -23,8 +23,8 @@ export default defineConfig({
 
   use: {
     baseURL: "http://localhost:3001",
-    trace: process.env.TRACE ? "on" : "on-first-retry",
-    video: process.env.TRACE ? "on" : "on-first-retry",
+    trace: "on",
+    video: "on",
     screenshot: "only-on-failure",
     storageState: path.join(__dirname, "tests/.auth/session.json"),
     actionTimeout: process.env.CI ? 20_000 : 15_000,
