@@ -59,6 +59,9 @@ jobs:
           SUPABASE_URL=${{ secrets.NEXT_PUBLIC_YUVABE_PEOPLE_SUPABASE_URL }}
           SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
           RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+          LINEAR_API_KEY=${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_ID=${{ secrets.LINEAR_TEAM_ID }}
+          LINEAR_PROJECT_ID=${{ secrets.LINEAR_PROJECT_ID }}
           EOF
 
       - name: Seed test database
@@ -67,7 +70,7 @@ jobs:
       - name: Run E2E tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            pnpm test:e2e --grep "Applicant Detail"
+            pnpm test:e2e tests/e2e/job-new-workflow.spec.ts
           else
             pnpm test:e2e
           fi
