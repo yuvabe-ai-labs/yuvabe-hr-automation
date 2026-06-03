@@ -84,7 +84,7 @@ export default class LinearReporter implements Reporter {
           screenshotUrl = await this.uploadScreenshot(f.screenshotPath);
         }
 
-        const title = `[Test Failure] ${f.suite} › ${f.testName}`;
+        const title = `${f.suite} › ${f.testName}`;
         const description = [
           `**Suite:** ${f.suite}`,
           `**Test:** ${f.testName}`,
