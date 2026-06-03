@@ -14,6 +14,7 @@ interface FailedTest {
   filePath: string;
   errorLine: string;
   screenshotPath: string | null;
+  videoPath: string | null;
 }
 
 export default class LinearReporter implements Reporter {
@@ -57,9 +58,11 @@ export default class LinearReporter implements Reporter {
       .slice(0, 6)                      // first 6 non-empty lines covers error + locator + expected + received
       .join("\n");
 
-    // Pick the first screenshot attachment if available
     const screenshot = result.attachments.find(
       a => a.name === "screenshot" && a.path && existsSync(a.path)
+    );
+    const video = result.attachments.find(
+      a => a.name === "video" && a.path && existsSync(a.path)
     );
 
     this.failures.push({
@@ -68,6 +71,7 @@ export default class LinearReporter implements Reporter {
       filePath: test.location.file,
       errorLine,
       screenshotPath: screenshot?.path ?? null,
+      videoPath: video?.path ?? null,
     });
   }
 
@@ -78,17 +82,29 @@ export default class LinearReporter implements Reporter {
 
     for (const f of this.failures) {
       try {
-        // Upload screenshot to Linear if available
         let screenshotUrl: string | null = null;
         if (f.screenshotPath) {
-          screenshotUrl = await this.uploadScreenshot(f.screenshotPath);
+          screenshotUrl = await this.uploadFile(f.screenshotPath, "image/png");
         }
 
-        const title = `${f.suite} › ${f.testName}`;
+        let videoUrl: string | null = null;
+        if (f.videoPath) {
+          videoUrl = await this.uploadFile(f.videoPath, "video/webm");
+        }
+
+        const environment = process.env.CI ? "CI (GitHub Actions)" : "Local";
+        const runDate = new Date().toLocaleString("en-GB", {
+          day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        });
+
+        const title = `[Test Failure] ${f.suite} › ${f.testName}`;
         const description = [
           `**Suite:** ${f.suite}`,
           `**Test:** ${f.testName}`,
           `**File:** \`${f.filePath}\``,
+          `**Environment:** ${environment}`,
+          `**Run Date:** ${runDate}`,
           "",
           "**Error:**",
           "```",
@@ -97,20 +113,23 @@ export default class LinearReporter implements Reporter {
           ...(screenshotUrl
             ? ["", "**Screenshot:**", `![Screenshot](${screenshotUrl})`]
             : []),
+          ...(videoUrl
+            ? ["", `🎥 [Watch test recording](${videoUrl})`]
+            : []),
         ].join("\n");
 
         const id = await this.createIssue(title, description);
-        console.log(`  ✓ ${id} — ${f.suite} › ${f.testName}${screenshotUrl ? " (screenshot attached)" : ""}`);
+        const attachments = [screenshotUrl && "screenshot", videoUrl && "video"].filter(Boolean).join(" + ");
+        console.log(`  ✓ ${id} — ${f.suite} › ${f.testName}${attachments ? ` (${attachments} attached)` : ""}`);
       } catch (err) {
         console.error(`  ✗ Could not create issue for "${f.testName}":`, (err as Error).message);
       }
     }
   }
 
-  private async uploadScreenshot(filePath: string): Promise<string> {
+  private async uploadFile(filePath: string, contentType: string): Promise<string> {
     const filename = path.basename(filePath);
     const size     = statSync(filePath).size;
-    const contentType = "image/png";
 
     // Step 1 — ask Linear for a presigned upload URL
     const mutation = `

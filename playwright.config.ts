@@ -24,7 +24,7 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3001",
     trace: process.env.TRACE ? "on" : "on-first-retry",
-    video: process.env.TRACE ? "on" : "on-first-retry",
+    video: "retain-on-failure",
     screenshot: "only-on-failure",
     storageState: path.join(__dirname, "tests/.auth/session.json"),
     actionTimeout: process.env.CI ? 20_000 : 15_000,
