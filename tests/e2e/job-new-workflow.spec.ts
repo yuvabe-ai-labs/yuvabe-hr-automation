@@ -43,7 +43,7 @@ test.describe("Job Creation Workflow", () => {
     await expect(jobNewPage.dropZone).toBeVisible();
     await expect(page.getByText(/pdf/i)).toBeVisible();
     await expect(page.getByText(/docx/i)).toBeVisible();
-    await expect(page.getByText(/md/i)).toBeVisible();
+    await expect(page.getByText(/intentional-fail/i)).toBeVisible();
   });
 
   // ── JN_02 ─────────────────────────────────────────────────────────────────

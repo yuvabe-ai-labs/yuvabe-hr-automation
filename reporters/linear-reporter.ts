@@ -1,9 +1,8 @@
 import type { Reporter, TestCase, TestResult, FullConfig, Suite } from "@playwright/test/reporter";
 import { config } from "dotenv";
+import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "path";
 
-// Load env vars directly in the reporter — dotenv from playwright.config.ts
-// runs in the same process but loading here ensures they're always available.
 config({ path: path.join(process.cwd(), ".env.local") });
 config({ path: path.join(process.cwd(), ".env") });
 
@@ -14,6 +13,7 @@ interface FailedTest {
   testName: string;
   filePath: string;
   errorLine: string;
+  screenshotPath: string | null;
 }
 
 export default class LinearReporter implements Reporter {
@@ -42,18 +42,33 @@ export default class LinearReporter implements Reporter {
   onTestEnd(test: TestCase, result: TestResult) {
     if (this.disabled) return;
     if (result.status !== "failed" && result.status !== "timedOut") return;
-    // Skip intermediate retries — only file an issue on the final attempt
     if (result.retry < test.retries) return;
 
     const parts    = test.titlePath().filter(Boolean);
     const testName = parts.at(-1) ?? test.title;
     const suite    = parts.slice(1, -1).join(" › ") || (parts[0] ?? "");
 
-    const errorLine =
-      result.errors[0]?.message?.split("\n")[0]?.trim() ??
-      `Timed out after ${result.duration}ms`;
+    const rawError = result.errors[0]?.message ?? `Timed out after ${result.duration}ms`;
+    const errorLine = rawError
+      .replace(/\x1b\[[0-9;]*m/g, "")  // strip ANSI colour codes
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean)
+      .slice(0, 6)                      // first 6 non-empty lines covers error + locator + expected + received
+      .join("\n");
 
-    this.failures.push({ suite, testName, filePath: test.location.file, errorLine });
+    // Pick the first screenshot attachment if available
+    const screenshot = result.attachments.find(
+      a => a.name === "screenshot" && a.path && existsSync(a.path)
+    );
+
+    this.failures.push({
+      suite,
+      testName,
+      filePath: test.location.file,
+      errorLine,
+      screenshotPath: screenshot?.path ?? null,
+    });
   }
 
   async onEnd() {
@@ -62,25 +77,86 @@ export default class LinearReporter implements Reporter {
     console.log(`\n[linear] Filing ${this.failures.length} issue(s)...`);
 
     for (const f of this.failures) {
-      const title = `[Test Failure] ${f.suite} › ${f.testName}`;
-      const description = [
-        `**Suite:** ${f.suite}`,
-        `**Test:** ${f.testName}`,
-        `**File:** \`${f.filePath}\``,
-        "",
-        "**Error:**",
-        "```",
-        f.errorLine,
-        "```",
-      ].join("\n");
-
       try {
+        // Upload screenshot to Linear if available
+        let screenshotUrl: string | null = null;
+        if (f.screenshotPath) {
+          screenshotUrl = await this.uploadScreenshot(f.screenshotPath);
+        }
+
+        const title = `[Test Failure] ${f.suite} › ${f.testName}`;
+        const description = [
+          `**Suite:** ${f.suite}`,
+          `**Test:** ${f.testName}`,
+          `**File:** \`${f.filePath}\``,
+          "",
+          "**Error:**",
+          "```",
+          f.errorLine,
+          "```",
+          ...(screenshotUrl
+            ? ["", "**Screenshot:**", `![Screenshot](${screenshotUrl})`]
+            : []),
+        ].join("\n");
+
         const id = await this.createIssue(title, description);
-        console.log(`  ✓ ${id} — ${f.suite} › ${f.testName}`);
+        console.log(`  ✓ ${id} — ${f.suite} › ${f.testName}${screenshotUrl ? " (screenshot attached)" : ""}`);
       } catch (err) {
         console.error(`  ✗ Could not create issue for "${f.testName}":`, (err as Error).message);
       }
     }
+  }
+
+  private async uploadScreenshot(filePath: string): Promise<string> {
+    const filename = path.basename(filePath);
+    const size     = statSync(filePath).size;
+    const contentType = "image/png";
+
+    // Step 1 — ask Linear for a presigned upload URL
+    const mutation = `
+      mutation FileUpload($contentType: String!, $filename: String!, $size: Int!) {
+        fileUpload(contentType: $contentType, filename: $filename, size: $size) {
+          uploadFile {
+            uploadUrl
+            assetUrl
+            headers { key value }
+          }
+        }
+      }
+    `;
+
+    const res = await fetch(LINEAR_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: this.apiKey,
+      },
+      body: JSON.stringify({ query: mutation, variables: { contentType, filename, size } }),
+    });
+
+    const json = (await res.json()) as {
+      data?: { fileUpload?: { uploadFile?: { uploadUrl: string; assetUrl: string; headers: { key: string; value: string }[] } } };
+      errors?: { message: string }[];
+    };
+
+    if (json.errors?.length) throw new Error(`fileUpload: ${json.errors[0].message}`);
+    const uploadFile = json.data?.fileUpload?.uploadFile;
+    if (!uploadFile) throw new Error("fileUpload returned no uploadFile");
+
+    // Step 2 — upload the image to the presigned URL
+    const fileBuffer = readFileSync(filePath);
+    const uploadHeaders: Record<string, string> = { "Content-Type": contentType };
+    for (const h of uploadFile.headers) uploadHeaders[h.key] = h.value;
+
+    const uploadRes = await fetch(uploadFile.uploadUrl, {
+      method: "PUT",
+      headers: uploadHeaders,
+      body: fileBuffer,
+    });
+
+    if (!uploadRes.ok) throw new Error(`Screenshot upload failed: ${uploadRes.status}`);
+
+    return uploadFile.assetUrl;
   }
 
   private async createIssue(title: string, description: string): Promise<string> {
