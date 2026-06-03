@@ -96,6 +96,7 @@ export default class LinearReporter implements Reporter {
         const runDate = new Date().toLocaleString("en-GB", {
           day: "2-digit", month: "short", year: "numeric",
           hour: "2-digit", minute: "2-digit",
+          timeZone: "Asia/Kolkata",
         });
 
         const title = `[Test Failure] ${f.suite} › ${f.testName}`;
