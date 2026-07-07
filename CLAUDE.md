@@ -18,7 +18,7 @@ The thesis the product embodies: *"a score without reasoning is not a score."* E
 | LLM | OpenAI `gpt-4o`, `temperature: 0`, `seed: 42` |
 | Validation | Zod v4 (source of truth for all domain types) |
 | File parsing | `unpdf` (PDF), `mammoth` (DOCX), native UTF-8 (TXT) |
-| Fonts | Newsreader (display/italic), Geist (UI/body), Geist Mono (numerics/captions) |
+| Fonts | Newsreader (display/italic), Open Sans (UI/body + numerics/captions via `--font-mono`) |
 
 ---
 
