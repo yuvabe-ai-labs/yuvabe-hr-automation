@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Inter, Newsreader } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { RouteFade } from "./_components/route-fade";
 import { Providers } from "./providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  style: ["normal", "italic"],
 });
 
 const newsreader = Newsreader({
@@ -41,7 +37,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
+      className={`${inter.variable} ${newsreader.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Providers session={session}>

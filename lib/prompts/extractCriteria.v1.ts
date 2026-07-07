@@ -81,13 +81,13 @@ Additionally, extract structured job metadata (best-effort — omit if not prese
 - location: Job location — one of "Auroville, India", "Remote", "Flexible". Null if not found.
 - compensation: Salary range, equity, or compensation details if mentioned (e.g. "₹50L-70L", "$100k-130k", "Competitive")
 - summary: 2-3 sentence plain-language role overview
-- responsibilities: Bullet items from an explicitly labeled "Responsibilities" or "Key duties" section. Do NOT invent. Return empty array if section is not present.
-- requirements: Bullet items from an explicitly labeled "Requirements" or "Must-have" section. Do NOT invent. Return empty array if section is not present.
-- nice_to_have: Bullet items from an explicitly labeled "Nice-to-have" or "Bonus" section. Do NOT invent. Return empty array if section is not present.
+- responsibilities: Bullet items from an explicitly labeled "Responsibilities" or "Key duties" section. Do NOT invent. Null if section is not present.
+- requirements: Bullet items from an explicitly labeled "Requirements" or "Must-have" section. Do NOT invent. Null if section is not present.
+- nice_to_have: Bullet items from an explicitly labeled "Nice-to-have" or "Bonus" section. Do NOT invent. Null if section is not present.
 - portfolio_requirement: Any mention of portfolio, case study, or work sample requirement. Null if not mentioned.
-- benefits_remote: Remote-work or flexible benefits listed. Return empty array if not mentioned.
-- benefits_inperson: In-person office perks listed. Return empty array if not mentioned.
-- work_culture: Culture, values, or team-environment statements listed. Return empty array if not mentioned.
+- benefits_remote: Remote-work or flexible benefits listed. Null if not mentioned.
+- benefits_inperson: In-person office perks listed. Null if not mentioned.
+- work_culture: Culture, values, or team-environment statements listed. Null if not mentioned.
 
 Worked example
 ==============
@@ -126,78 +126,59 @@ export const EXTRACT_CRITERIA_SCHEMA = {
       description: "A concise job title inferred from the JD (e.g. 'Digital Marketing & Performance Specialist'). Used to pre-fill the title field if the recruiter hasn't typed one yet.",
     },
     department: {
-      type: "string",
+      anyOf: [{ type: "string" }, { type: "null" }],
       description: "Org function (Engineering, Design, Marketing, Sales, Product, Operations, etc.). Best-effort extraction; null if not found.",
-      nullable: true,
     },
     level: {
       type: "string",
       enum: ["entry-level", "experienced"],
-      description: "Seniority level. Infer from years_required or JD language. Null if cannot determine.",
-      nullable: true,
+      description: "Seniority level. Infer from years_required or JD language. If years_required < 2 or junior/entry language: entry-level. Otherwise: experienced.",
     },
     job_type: {
       type: "string",
       enum: ["full-time", "part-time", "contract", "internship"],
-      description: "Employment type. Null if not found.",
-      nullable: true,
+      description: "Employment type. Infer from context if not stated — most office/in-person roles default to full-time.",
     },
     location: {
       type: "string",
       enum: ["Auroville, India", "Remote", "Flexible"],
-      description: "Job location. Null if not found.",
-      nullable: true,
+      description: "Job location. Infer from context — if an office location is mentioned, use that value.",
     },
     compensation: {
-      type: "string",
+      anyOf: [{ type: "string" }, { type: "null" }],
       description: "Salary range, equity, or compensation details if mentioned (e.g. '₹50L-70L', '$100k-130k', 'Competitive'). Best-effort; null if not found.",
-      nullable: true,
     },
     summary: {
-      type: "string",
+      anyOf: [{ type: "string" }, { type: "null" }],
       description: "2-3 sentence plain-language role overview. Best-effort; null if not found.",
-      nullable: true,
     },
     responsibilities: {
-      type: "array",
-      items: { type: "string" },
-      description: "Bullet items from the Responsibilities / Key duties section. Best-effort; null if not found.",
-      nullable: true,
+      anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }],
+      description: "Bullet items from the Responsibilities / Key duties section. Do NOT invent. Null if section is not present.",
     },
     requirements: {
-      type: "array",
-      items: { type: "string" },
-      description: "Bullet items from the Requirements / Must-have section. Best-effort; null if not found.",
-      nullable: true,
+      anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }],
+      description: "Bullet items from the Requirements / Must-have section. Do NOT invent. Null if section is not present.",
     },
     nice_to_have: {
-      type: "array",
-      items: { type: "string" },
-      description: "Bullet items from the Nice-to-have / Bonus section. Best-effort; null if not found.",
-      nullable: true,
+      anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }],
+      description: "Bullet items from the Nice-to-have / Bonus section. Do NOT invent. Null if section is not present.",
     },
     portfolio_requirement: {
-      type: "string",
-      description: "Any mention of portfolio, case study, or work sample requirement. Best-effort; null if not found.",
-      nullable: true,
+      anyOf: [{ type: "string" }, { type: "null" }],
+      description: "Any mention of portfolio, case study, or work sample requirement. Null if not mentioned.",
     },
     benefits_remote: {
-      type: "array",
-      items: { type: "string" },
-      description: "Remote-work or flexible benefits listed. Best-effort; null if not found.",
-      nullable: true,
+      anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }],
+      description: "Remote-work or flexible benefits listed. Null if not mentioned.",
     },
     benefits_inperson: {
-      type: "array",
-      items: { type: "string" },
-      description: "In-person office perks listed. Best-effort; null if not found.",
-      nullable: true,
+      anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }],
+      description: "In-person office perks listed. Null if not mentioned.",
     },
     work_culture: {
-      type: "array",
-      items: { type: "string" },
-      description: "Culture, values, or team-environment statements. Best-effort; null if not found.",
-      nullable: true,
+      anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }],
+      description: "Culture, values, or team-environment statements. Null if not mentioned.",
     },
     criteria: {
       type: "array",
