@@ -216,3 +216,74 @@ NAV_08,Verify loading states appear during navigation,"1. Navigate between pages
 NAV_09,Verify responsive layout on mobile viewport,"1. Resize browser to mobile width (<768px)
 2. Visit /jobs and /applications/[id]","Layouts stack vertically, text remains readable, no horizontal scroll",To Be Tested,,,
 NAV_10,Verify responsive layout on tablet viewport,"1. Resize to tablet width (~768px)",Two-column layouts adjust gracefully; no overflow,To Be Tested,,,
+
+INTERVIEW SCHEDULING,,,,,,
+INT_01,Verify interviews list page loads,Navigate to /interviews,Page loads showing all upcoming interviews across all jobs,To Be Tested,,,
+INT_02,Verify interview row shows key fields,Observe any row in the interviews list,"Candidate name, job title, interview title, date/time, and interviewers are visible",To Be Tested,,,
+INT_03,Verify empty state when no interviews scheduled,Open /interviews when no interviews exist,Empty state message shown with a prompt to schedule the first interview,To Be Tested,,,
+INT_04,Verify Schedule Interview button on applicant detail,"1. Open /applications/[id]
+2. Observe the status actions area",Schedule Interview button is visible when applicant status is Shortlisted or Reviewing,To Be Tested,,,
+INT_05,Verify Schedule Interview modal opens,"1. Click Schedule Interview on applicant detail",Modal opens with fields for title, date, time, duration, location/link, and interviewers,To Be Tested,,,
+INT_06,Verify interview title is required,"1. Open Schedule Interview modal
+2. Leave title blank and click Send",Validation error shown; interview not created,To Be Tested,,,
+INT_07,Verify date and time selection,"1. Open Schedule Interview modal
+2. Pick a date and time",Selected date/time appears correctly in the form,To Be Tested,,,
+INT_08,Verify duration dropdown options,"1. Open Schedule Interview modal
+2. Open duration dropdown","Options 30 min, 45 min, 60 min, 90 min are available",To Be Tested,,,
+INT_09,Verify interviewers can be selected,"1. Open Schedule Interview modal
+2. Select one or more interviewers from the list",Selected interviewers shown in the form,To Be Tested,,,
+INT_10,Verify location or meeting link input,"1. Open Schedule Interview modal
+2. Enter an office location or a video meeting URL",Input accepted without errors,To Be Tested,,,
+INT_11,Verify email preview in modal,"1. Fill in interview details
+2. Observe the email preview section",Preview shows correctly formatted invitation email with candidate name and interview details,To Be Tested,,,
+INT_12,Verify successful interview scheduling,"1. Fill all required fields
+2. Click Send / Schedule","Interview created; modal closes; applicant status updates to Interview Scheduled; interview appears in /interviews",To Be Tested,,,
+INT_13,Verify interview card appears on applicant detail after scheduling,"1. Schedule an interview
+2. Reload /applications/[id]",Interview card shown in the Interviews section with title, date/time, and interviewers,To Be Tested,,,
+INT_14,Verify status auto-updates to Interview Scheduled after scheduling,"1. Schedule an interview for a Shortlisted applicant",Applicant status badge changes to Interview Scheduled automatically,To Be Tested,,,
+INT_15,Verify cancelling the modal does not create an interview,"1. Open Schedule Interview modal
+2. Click Cancel or close the modal",No interview created; applicant status unchanged,To Be Tested,,,
+
+DRAFT JOBS,,,,,,
+DRAFT_01,Verify Save as Draft saves job without publishing,"1. Fill in title and criteria on /jobs/new
+2. Click Save as Draft","Job saved with draft status; does not appear in Active tab; appears as draft in jobs list",To Be Tested,,,
+DRAFT_02,Verify draft jobs are visible in the jobs list,Navigate to /jobs and look for draft jobs,Draft jobs are displayed with a Draft badge/indicator in the list,To Be Tested,,,
+DRAFT_03,Verify draft job does not appear in Active tab,"1. Save a job as draft
+2. Click the Active tab in /jobs",Draft job is not shown in the Active jobs tab,To Be Tested,,,
+DRAFT_04,Verify actions menu on draft job shows Publish option,"1. Open actions (…) on a draft job row
+2. Observe dropdown",Publish option is visible in the dropdown (not Archive),To Be Tested,,,
+DRAFT_05,Verify JD preview dialog opens before publishing,"1. Click Publish on a draft job",JD preview dialog opens showing formatted job title and all criteria,To Be Tested,,,
+DRAFT_06,Verify preview dialog shows all criteria,"1. Open JD preview dialog for a draft job
+2. Observe content",All criteria grouped by Must / Preferred / Nice are shown in the preview,To Be Tested,,,
+DRAFT_07,Verify Publish from preview makes job live,"1. Click Publish inside the JD preview dialog
+2. Navigate to /jobs",Job appears in the Active tab; draft badge removed,To Be Tested,,,
+DRAFT_08,Verify cancelling preview does not publish the job,"1. Open JD preview dialog
+2. Click Cancel / Close",Job remains in draft status; not published,To Be Tested,,,
+DRAFT_09,Verify published job no longer shows Publish action,"1. Publish a draft job
+2. Open the actions menu for the newly published job",Publish option is gone; Archive option is visible instead,To Be Tested,,,
+
+ADVANCED FILTERS & SORTING,,,,,,
+FILT_01,Verify Filter button is visible on jobs list,Navigate to /jobs,A Filter button is visible near the search input,To Be Tested,,,
+FILT_02,Verify filter panel opens on click,"1. Click the Filter button on /jobs",Filter panel opens with options for job type and sort order,To Be Tested,,,
+FILT_03,Verify filtering jobs by type,"1. Open filter panel
+2. Select a job type (e.g. Full-time)
+3. Click Apply","Only jobs matching the selected type are shown; URL updates with ?type=... param",To Be Tested,,,
+FILT_04,Verify sorting jobs by oldest,"1. Open filter panel
+2. Select Sort: Oldest first
+3. Apply",Jobs reordered with oldest creation date first,To Be Tested,,,
+FILT_05,Verify sorting jobs by newest,"1. Open filter panel
+2. Select Sort: Newest first
+3. Apply",Jobs reordered with newest creation date first (default order),To Be Tested,,,
+FILT_06,Verify active filter indicator shown,"1. Apply any filter on /jobs",Filter button shows a visual indicator (dot or count) that a filter is active,To Be Tested,,,
+FILT_07,Verify Clear Filters removes all applied filters,"1. Apply one or more filters
+2. Click Clear Filters / X button","Filters removed; URL params cleared; all jobs shown again",To Be Tested,,,
+FILT_08,Verify applicant list filter by score on job detail,"1. Open /jobs/[code]
+2. Sort applicants by score","Applicants reordered; highest match score first",To Be Tested,,,
+FILT_09,Verify applicant list advanced filter on job detail,"1. Open filter/sort controls on /jobs/[code]
+2. Apply a filter (e.g. by status)","Only applicants matching the filter are shown; URL reflects filter state",To Be Tested,,,
+FILT_10,Verify filter by job dropdown on global applications list,"1. Navigate to /applications
+2. Select a specific job from the filter dropdown","Only applicants for that job shown; URL updates with job param",To Be Tested,,,
+FILT_11,Verify combined filter + status chip on applications list,"1. Apply a job filter
+2. Also click a status chip (e.g. Shortlisted)","List shows only applicants matching both the job and the status; both params in URL",To Be Tested,,,
+FILT_12,Verify URL-driven filters are bookmarkable,"1. Apply filters on /applications
+2. Copy the URL and open in a new tab",Page loads with same filters applied,To Be Tested,,,

@@ -49,6 +49,7 @@ function jobToRow(job: AnyRow): AnyRow {
     title: job.title,
     description: job.description,
     criteria,
+    status: job.status ?? "active",
     created_at: job.createdAt,
     archived_at: job.archivedAt ?? null,
   };
@@ -68,6 +69,38 @@ function candidateToRow(c: AnyRow): AnyRow {
     education: c.education ?? [],
     links: c.links ?? null,
     resume_text: c.resumeText ?? "",
+  };
+}
+
+function userToRow(u: AnyRow): AnyRow {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role,
+  };
+}
+
+function interviewToRow(i: AnyRow): AnyRow {
+  return {
+    id: i.id,
+    application_id: i.applicationId,
+    candidate_id: i.candidateId,
+    candidate_name: i.candidateName,
+    candidate_email: i.candidateEmail,
+    job_id: i.jobId,
+    job_code: i.jobCode,
+    job_title: i.jobTitle,
+    title: i.title,
+    scheduled_at: i.scheduledAt,
+    duration_minutes: i.durationMinutes,
+    timezone: i.timezone,
+    status: i.status ?? "scheduled",
+    notes: i.notes ?? null,
+    location: i.location ?? null,
+    meeting_link: i.meetingLink ?? null,
+    interviewer_id: i.interviewerId ?? null,
+    interviewer_name: i.interviewerName ?? null,
   };
 }
 
@@ -91,6 +124,7 @@ function applicationToRow(a: AnyRow, candidatesById: Map<string, AnyRow>): AnyRo
     cover_letter: a.coverLetter ?? "",
     received_at: a.receivedAt,
     status: a.status ?? "new",
+    resume_url: a.resumeUrl ?? null,
   };
 }
 
@@ -108,28 +142,28 @@ async function readJson<T>(filename: string, key: string): Promise<T[]> {
 async function main() {
   console.log("[seed] reading data/*.example.json…");
   const jobs = await readJson<AnyRow>("jobs.example.json", "jobs");
-  const candidates = await readJson<AnyRow>(
-    "candidates.example.json",
-    "candidates"
-  );
-  const applications = await readJson<AnyRow>(
-    "applications.example.json",
-    "applications"
-  );
+  const candidates = await readJson<AnyRow>("candidates.example.json", "candidates");
+  const applications = await readJson<AnyRow>("applications.example.json", "applications");
+  const users = await readJson<AnyRow>("users.example.json", "users");
+  const interviews = await readJson<AnyRow>("interviews.example.json", "interviews");
   console.log(
-    `[seed] read ${jobs.length} jobs, ${candidates.length} candidates, ${applications.length} applications`
+    `[seed] read ${jobs.length} jobs, ${candidates.length} candidates, ${applications.length} applications, ${users.length} users, ${interviews.length} interviews`
   );
 
-  // Truncate in dependency order. Postgres FK CASCADE on applications would
-  // do this for us, but explicit deletes give clearer error messages.
+  // Truncate in dependency order (interviews → applications → candidates → jobs).
+  // Users are NOT truncated — upserted below to preserve existing auth accounts.
   console.log("[seed] truncating existing rows…");
-  // `neq('id', '')` matches every row; .delete() requires a filter for safety.
-  for (const table of ["applications", "candidates", "jobs"] as const) {
+  for (const table of ["interviews", "applications", "candidates", "jobs"] as const) {
     const { error } = await supabase.from(table).delete().neq("id", "");
     if (error) throw new Error(`delete from ${table} failed: ${error.message}`);
   }
 
-  // Insert in dependency order: jobs → candidates → applications.
+  // Upsert seed users (preserves existing admin/auth users).
+  console.log("[seed] upserting users…");
+  const userRows = users.map(userToRow);
+  const { error: usersErr } = await supabase.from("users").upsert(userRows, { onConflict: "id" });
+  if (usersErr) throw new Error(`upsert users failed: ${usersErr.message}`);
+
   console.log("[seed] inserting jobs…");
   const jobRows = jobs.map(jobToRow);
   const { error: jobsErr } = await supabase.from("jobs").insert(jobRows);
@@ -137,26 +171,25 @@ async function main() {
 
   console.log("[seed] inserting candidates…");
   const candidateRows = candidates.map(candidateToRow);
-  const { error: candErr } = await supabase
-    .from("candidates")
-    .insert(candidateRows);
+  const { error: candErr } = await supabase.from("candidates").insert(candidateRows);
   if (candErr) throw new Error(`insert candidates failed: ${candErr.message}`);
 
   console.log("[seed] inserting applications…");
   const candidatesById = new Map<string, AnyRow>(
     candidates.map((c) => [c.id as string, c])
   );
-  const applicationRows = applications.map((a) =>
-    applicationToRow(a, candidatesById)
-  );
-  const { error: appsErr } = await supabase
-    .from("applications")
-    .insert(applicationRows);
+  const applicationRows = applications.map((a) => applicationToRow(a, candidatesById));
+  const { error: appsErr } = await supabase.from("applications").insert(applicationRows);
   if (appsErr) throw new Error(`insert applications failed: ${appsErr.message}`);
+
+  console.log("[seed] inserting interviews…");
+  const interviewRows = interviews.map(interviewToRow);
+  const { error: intvErr } = await supabase.from("interviews").insert(interviewRows);
+  if (intvErr) throw new Error(`insert interviews failed: ${intvErr.message}`);
 
   // Verify counts.
   const counts = await Promise.all(
-    (["jobs", "candidates", "applications"] as const).map(async (table) => {
+    (["jobs", "candidates", "applications", "users", "interviews"] as const).map(async (table) => {
       const { count, error } = await supabase
         .from(table)
         .select("*", { count: "exact", head: true });
@@ -164,10 +197,7 @@ async function main() {
       return [table, count] as const;
     })
   );
-  console.log(
-    "[seed] done.",
-    Object.fromEntries(counts)
-  );
+  console.log("[seed] done.", Object.fromEntries(counts));
 }
 
 main().catch((err) => {

@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const getResend = () => new Resend(process.env.RESEND_API_KEY ?? "");
 
 export type InterviewInviteParams = {
   candidateName: string;
@@ -118,7 +118,7 @@ function emailShell(bodyContent: string): string {
     </div>
 
     <!-- Body -->
-    <div style="padding:40px 32px;background:#FAF8F4;">
+    <div style="background:#ffffff;padding:32px;border-radius:0 0 4px 4px;">
       ${bodyContent}
     </div>
 
@@ -173,8 +173,8 @@ export async function sendInterviewInvite(params: InterviewInviteParams): Promis
       <strong>Yuvabe HR Team</strong>
     </p>`;
 
-  await resend.emails.send({
-    from: `Yuvabe <${senderEmail}>`,
+  await getResend().emails.send({
+    from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Invitation — ${jobTitle} (${title})`,
@@ -230,7 +230,7 @@ export async function sendInterviewReschedule(params: InterviewRescheduleParams)
       <strong>Yuvabe HR Team</strong>
     </p>`;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `Yuvabe <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
@@ -288,8 +288,8 @@ export async function sendInterviewCancellation(params: InterviewCancellationPar
       <strong>Yuvabe HR Team</strong>
     </p>`;
 
-  await resend.emails.send({
-    from: `Yuvabe <${senderEmail}>`,
+  await getResend().emails.send({
+    from: `Yuvabe HR <${senderEmail}>`,
     to: candidateEmail,
     cc: ccList.length > 0 ? ccList : undefined,
     subject: `Interview Cancellation — ${jobTitle} (${title})`,
