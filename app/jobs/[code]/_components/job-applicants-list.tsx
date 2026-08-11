@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, Check, Copy, Eye, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
-import { useApplicationsByJobCode } from "@/hooks/use-applications";
+import { useApplicationsByJobCode, useGetApplicationsByIds } from "@/hooks/use-applications";
 import type { ApplicationsQueryParams } from "@/hooks/use-applications";
 import { useJobById } from "@/hooks/use-jobs";
 import { useGetCandidatesByIds } from "@/hooks/use-candidates";
@@ -149,6 +149,9 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
   // Imperative fetch for candidate enrichment (used during export only)
   const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
 
+  // Imperative fetch to resolve selected rows across pages (used during export only)
+  const { mutateAsync: fetchApplications } = useGetApplicationsByIds();
+
   const currentParams: ApplicationsQueryParams = {
     status: filter === "all" ? undefined : filter,
     search,
@@ -213,24 +216,23 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
     }
   }, [selectedIds, applications]);
 
-  const handleSelectAll = useCallback(
-    (checked: boolean) => {
-      setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-        if (checked) {
-          applications.forEach((a) => newSet.add(a.id));
-        } else {
-          applications.forEach((a) => newSet.delete(a.id));
-        }
-        return newSet;
-      });
-    },
-    [applications]
-  );
+  function handleSelectAll(checked: boolean) {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        applications.forEach((a) => newSet.add(a.id));
+      } else {
+        applications.forEach((a) => newSet.delete(a.id));
+      }
+      return newSet;
+    });
+  }
 
   const getExportData = useCallback(async () => {
+    // Selection can span pages, so resolve the rows by ID rather than
+    // intersecting with `applications` (which only holds the current page).
     const toExport =
-      selectedIds.size > 0 ? applications.filter((a) => selectedIds.has(a.id)) : applications;
+      selectedIds.size > 0 ? await fetchApplications([...selectedIds]) : applications;
     const candidateIds = [...new Set(toExport.map((a) => a.candidateId))];
     const jobTitles = new Map([[jobCode, jobTitle]]);
 
@@ -252,7 +254,7 @@ export function JobApplicantsList({ jobCode }: { jobCode: string }) {
     );
 
     return { selectedApplications: toExport, enrichments, jobTitles, notesByAppId };
-  }, [applications, selectedIds, jobCode, jobTitle, fetchCandidates]);
+  }, [applications, selectedIds, jobCode, jobTitle, fetchCandidates, fetchApplications]);
 
   const handleExportCsv = useCallback(async () => {
     setExportingFormat("csv");

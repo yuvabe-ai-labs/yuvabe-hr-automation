@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getApplicationById,
+  getApplicationsByIds,
   listApplications,
   listApplicationsByJobCode,
   listApplicationsAll,
@@ -26,6 +27,14 @@ export function useApplicationById(id: string) {
   return useQuery({
     queryKey: ["applications", "detail", id],
     queryFn: () => getApplicationById(id),
+  });
+}
+
+// Fetch applications by ID. Used by export, where the selection can span
+// pages that the current paginated query no longer holds in cache.
+export function useGetApplicationsByIds() {
+  return useMutation({
+    mutationFn: (ids: string[]) => getApplicationsByIds(ids),
   });
 }
 
