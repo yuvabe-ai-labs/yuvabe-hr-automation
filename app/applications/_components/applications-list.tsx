@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ArrowUpRight, Filter, Loader2, MoreHorizontal, X } from "lucide-react";
-import { useApplicationsAll } from "@/hooks/use-applications";
+import { useApplicationsAll, useGetApplicationsByIds } from "@/hooks/use-applications";
 import { useAllJobs } from "@/hooks/use-jobs";
 import { useSession } from "@/app/providers";
 import { useManagers } from "@/features/users/hooks/use-managers";
@@ -160,6 +160,9 @@ export function ApplicationsList() {
   // Imperative fetch for candidate enrichment (used during export only)
   const { mutateAsync: fetchCandidates } = useGetCandidatesByIds();
 
+  // Imperative fetch to resolve selected rows across pages (used during export only)
+  const { mutateAsync: fetchApplications } = useGetApplicationsByIds();
+
   const applications = useMemo(() => data?.applications ?? [], [data]);
   const total        = data?.total        ?? 0;
   const statusCounts = data?.statusCounts ?? { new: 0, reviewing: 0, shortlisted: 0, rejected: 0, interview: 0, hired: 0 };
@@ -199,17 +202,14 @@ export function ApplicationsList() {
     }
   }, [selectedIds, applications]);
 
-  const handleSelectAll = useCallback(
-    (checked: boolean) => {
-      setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-        if (checked) applications.forEach((a) => newSet.add(a.id));
-        else applications.forEach((a) => newSet.delete(a.id));
-        return newSet;
-      });
-    },
-    [applications]
-  );
+  function handleSelectAll(checked: boolean) {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (checked) applications.forEach((a) => newSet.add(a.id));
+      else applications.forEach((a) => newSet.delete(a.id));
+      return newSet;
+    });
+  }
 
   function goToPage(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -219,8 +219,10 @@ export function ApplicationsList() {
   }
 
   const getExportData = useCallback(async () => {
+    // Selection can span pages, so resolve the rows by ID rather than
+    // intersecting with `applications` (which only holds the current page).
     const selectedApplications =
-      selectedIds.size > 0 ? applications.filter((a) => selectedIds.has(a.id)) : applications;
+      selectedIds.size > 0 ? await fetchApplications([...selectedIds]) : applications;
     const candidateIds = [...new Set(selectedApplications.map((a) => a.candidateId))];
     const jobTitles = new Map(jobs.map((j) => [j.code, j.title]));
 
@@ -242,7 +244,7 @@ export function ApplicationsList() {
     );
 
     return { selectedApplications, enrichments, jobTitles, notesByAppId };
-  }, [applications, jobs, selectedIds, fetchCandidates]);
+  }, [applications, jobs, selectedIds, fetchCandidates, fetchApplications]);
 
   const handleExportCsv = useCallback(async () => {
     setExportingFormat("csv");

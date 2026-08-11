@@ -24,6 +24,9 @@ function mapRowToApplication(row: ApplicationRow): Application {
   };
 }
 
+// Max IDs per `.in()` filter, to keep the generated request URL within limits
+const ID_QUERY_CHUNK_SIZE = 200;
+
 export type FilterStatus = "reviewing" | "shortlisted" | "rejected" | "interview" | "hired";
 
 export type ApplicationsPageResult = {
@@ -89,6 +92,35 @@ export async function getApplicationById(id: string): Promise<Application | unde
     return mapRowToApplication(data as ApplicationRow);
   } catch {
     return undefined;
+  }
+}
+
+// Fetch applications by a list of IDs, newest first.
+// Used by export, where the selection can span pages the current query no longer holds.
+export async function getApplicationsByIds(ids: string[]): Promise<Application[]> {
+  if (ids.length === 0) return [];
+
+  try {
+    const client = getSupabasePeopleClient();
+    const rows: ApplicationRow[] = [];
+
+    // Chunked so a large selection cannot blow the request URL length limit
+    for (let i = 0; i < ids.length; i += ID_QUERY_CHUNK_SIZE) {
+      const chunk = ids.slice(i, i + ID_QUERY_CHUNK_SIZE);
+      const { data, error } = await client
+        .from("applications")
+        .select("*")
+        .in("id", chunk);
+
+      if (error || !data) continue;
+      rows.push(...(data as ApplicationRow[]));
+    }
+
+    return rows
+      .map(mapRowToApplication)
+      .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+  } catch {
+    return [];
   }
 }
 
