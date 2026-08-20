@@ -34,19 +34,19 @@ function mapRowToJob(row: JobRow): Job {
 export type JobsListResult = { jobs: Job[]; total: number };
 
 // Fetch a single job by its public code
-export async function getJobById(code: string): Promise<Job | undefined> {
+export async function getJobById(code: string): Promise<Job | null> {
   try {
     const client = getSupabasePeopleClient();
     const { data, error } = await client
       .from("jobs")
       .select("*")
       .eq("code", code)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return undefined;
+    if (error || !data) return null;
     return mapRowToJob(data as JobRow);
   } catch {
-    return undefined;
+    return null;
   }
 }
 

@@ -1,0 +1,1972 @@
+{
+  "config": {
+    "configFile": "D:\\chitu\\yuvabe\\yuvabe-people\\playwright.config.ts",
+    "rootDir": "D:/chitu/yuvabe/yuvabe-people/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/chitu/yuvabe/yuvabe-people/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/chitu/yuvabe/yuvabe-people/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "pnpm dev --port 3001",
+      "url": "http://localhost:3001",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "apply.spec.ts",
+      "file": "apply.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Apply Flow",
+          "file": "apply.spec.ts",
+          "line": 14,
+          "column": 6,
+          "specs": [
+            {
+              "title": "APPL_01 /apply renders with file upload and cover letter fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1123,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:19.372Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "24b4bf852913336d4fbf-382e5a5a380d74c9ff0e",
+              "file": "apply.spec.ts",
+              "line": 16,
+              "column": 7
+            },
+            {
+              "title": "APPL_02 PDF resume upload accepted; filename displayed with no errors",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 731,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:20.859Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "24b4bf852913336d4fbf-ba8bcf323362d95b2449",
+              "file": "apply.spec.ts",
+              "line": 23,
+              "column": 7
+            },
+            {
+              "title": "APPL_03 DOCX resume upload accepted and processed correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No .docx fixture available",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\apply.spec.ts",
+                        "line": 36,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 1,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:21.607Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No .docx fixture available",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\apply.spec.ts",
+                            "line": 36,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "24b4bf852913336d4fbf-826a9859d0d76d42356e",
+              "file": "apply.spec.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "APPL_05 unsupported file type (.jpg) as resume shows error and is rejected",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "The /apply form accepts any file type at upload; validation occurs server-side during scoring, not at submission",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\apply.spec.ts",
+                        "line": 41,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 1,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:21.621Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "The /apply form accepts any file type at upload; validation occurs server-side during scoring, not at submission",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\apply.spec.ts",
+                            "line": 41,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "24b4bf852913336d4fbf-f47b7c712792f2c9162b",
+              "file": "apply.spec.ts",
+              "line": 40,
+              "column": 7
+            },
+            {
+              "title": "APPL_08 completing and submitting the form shows success confirmation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1397,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:21.640Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "24b4bf852913336d4fbf-c7e40de830edb1e61f5a",
+              "file": "apply.spec.ts",
+              "line": 45,
+              "column": 7
+            },
+            {
+              "title": "APPL_09 submitted application appears in the ranked list for the correct job",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Requires auth context switch to verify in recruiter view after public submission",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\apply.spec.ts",
+                        "line": 67,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 1,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:23.055Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Requires auth context switch to verify in recruiter view after public submission",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\apply.spec.ts",
+                            "line": 67,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "24b4bf852913336d4fbf-bab88004a3e6e71ae606",
+              "file": "apply.spec.ts",
+              "line": 66,
+              "column": 7
+            },
+            {
+              "title": "APPL_10 submitting without uploading a resume shows validation error",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 750,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:23.066Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "24b4bf852913336d4fbf-4156c828e917adf3cb2d",
+              "file": "apply.spec.ts",
+              "line": 71,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "draft-jobs.spec.ts",
+      "file": "draft-jobs.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Draft Jobs",
+          "file": "draft-jobs.spec.ts",
+          "line": 32,
+          "column": 6,
+          "specs": [
+            {
+              "title": "DRAFT_01 Save as Draft saves job with draft status; not shown in Active tab",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Covered by JN_13 — navigate to /jobs/new, extract, Save as Draft, verify ?tab=draft URL",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                        "line": 35,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:23.843Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Covered by JN_13 — navigate to /jobs/new, extract, Save as Draft, verify ?tab=draft URL",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                            "line": 35,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ec14a6fc84dbf8b64d11-408e1bc7cb91cc04c851",
+              "file": "draft-jobs.spec.ts",
+              "line": 34,
+              "column": 7
+            },
+            {
+              "title": "DRAFT_02 draft jobs are displayed with a Draft badge in the jobs list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 703,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:23.858Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ec14a6fc84dbf8b64d11-29f1ffe67c36157edfab",
+              "file": "draft-jobs.spec.ts",
+              "line": 39,
+              "column": 7
+            },
+            {
+              "title": "DRAFT_03 draft job does not appear in the Active tab",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 810,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:24.575Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ec14a6fc84dbf8b64d11-f9c9f10ee5f5133b3bcc",
+              "file": "draft-jobs.spec.ts",
+              "line": 46,
+              "column": 7
+            },
+            {
+              "title": "DRAFT_04 actions menu on draft job row shows Publish option (not Archive)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No draft jobs in DB — run JN_13 first to create one",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                        "line": 55,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 753,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:25.405Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No draft jobs in DB — run JN_13 first to create one",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                            "line": 55,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ec14a6fc84dbf8b64d11-b50aac5b5d80af0d9ff0",
+              "file": "draft-jobs.spec.ts",
+              "line": 52,
+              "column": 7
+            },
+            {
+              "title": "DRAFT_05 clicking Publish on a draft job opens JD preview dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No draft jobs in DB — run JN_13 first",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                        "line": 74,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 681,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:26.179Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No draft jobs in DB — run JN_13 first",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                            "line": 74,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ec14a6fc84dbf8b64d11-e55e6e53d832f2e0e413",
+              "file": "draft-jobs.spec.ts",
+              "line": 71,
+              "column": 7
+            },
+            {
+              "title": "DRAFT_06 JD preview dialog shows all criteria grouped by Must/Preferred/Nice",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No draft jobs in DB",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                        "line": 93,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 857,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:26.877Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No draft jobs in DB",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                            "line": 93,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ec14a6fc84dbf8b64d11-010e4944ff94375c119f",
+              "file": "draft-jobs.spec.ts",
+              "line": 90,
+              "column": 7
+            }
+          ],
+          "suites": [
+            {
+              "title": "publish flow",
+              "file": "draft-jobs.spec.ts",
+              "line": 112,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "DRAFT_08 cancelling the preview dialog keeps job in draft status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No draft jobs in DB",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                            "line": 119,
+                            "column": 14
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 804,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-29T08:20:27.751Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "No draft jobs in DB",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                                "line": 119,
+                                "column": 14
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "ec14a6fc84dbf8b64d11-982818f2d23ef412192d",
+                  "file": "draft-jobs.spec.ts",
+                  "line": 116,
+                  "column": 9
+                },
+                {
+                  "title": "DRAFT_07 clicking Publish in the preview dialog makes job appear in Active tab",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No draft jobs in DB",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                            "line": 144,
+                            "column": 14
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 717,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-29T08:20:28.572Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "No draft jobs in DB",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                                "line": 144,
+                                "column": 14
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "ec14a6fc84dbf8b64d11-625e10c2f23ed3a73c17",
+                  "file": "draft-jobs.spec.ts",
+                  "line": 141,
+                  "column": 9
+                },
+                {
+                  "title": "DRAFT_09 after publishing, actions menu shows Archive instead of Publish",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No active jobs found",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                            "line": 169,
+                            "column": 14
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 667,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-29T08:20:29.303Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "No active jobs found",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\draft-jobs.spec.ts",
+                                "line": 169,
+                                "column": 14
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "ec14a6fc84dbf8b64d11-1bf18113e6aa46fdb47e",
+                  "file": "draft-jobs.spec.ts",
+                  "line": 163,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "filters.spec.ts",
+      "file": "filters.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Advanced Filters & Sorting",
+          "file": "filters.spec.ts",
+          "line": 12,
+          "column": 6,
+          "specs": [
+            {
+              "title": "FILT_01 Filter button is visible on /jobs near the search input",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 703,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:29.991Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-b92e0cfdd2ffc718484e",
+              "file": "filters.spec.ts",
+              "line": 14,
+              "column": 7
+            },
+            {
+              "title": "FILT_02 clicking Filter button opens filter panel with job type and sort options",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 823,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:30.712Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-5b4e1381082f878087a4",
+              "file": "filters.spec.ts",
+              "line": 20,
+              "column": 7
+            },
+            {
+              "title": "FILT_03 filtering by job type shows only matching jobs; URL updates with ?type= param",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1252,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:31.553Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-022154c5345538160318",
+              "file": "filters.spec.ts",
+              "line": 29,
+              "column": 7
+            },
+            {
+              "title": "FILT_04 sorting by Oldest reorders jobs with oldest creation date first",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1321,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:32.821Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-9970a946b137ca15f963",
+              "file": "filters.spec.ts",
+              "line": 41,
+              "column": 7
+            },
+            {
+              "title": "FILT_05 sorting by Newest reorders jobs with newest creation date first",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1531,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:34.157Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-ea59ca0f8ae128a30583",
+              "file": "filters.spec.ts",
+              "line": 53,
+              "column": 7
+            },
+            {
+              "title": "FILT_06 applying a filter shows a visual indicator (dot or count) on the Filter button",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1688,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:35.711Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-9f531f152f4cd78e803a",
+              "file": "filters.spec.ts",
+              "line": 66,
+              "column": 7
+            },
+            {
+              "title": "FILT_07 Clear Filters removes all filters; URL params cleared; all jobs shown",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1897,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:37.421Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-32759ec5131c869c1829",
+              "file": "filters.spec.ts",
+              "line": 78,
+              "column": 7
+            },
+            {
+              "title": "FILT_08 sorting applicants by score on job detail reorders with highest score first",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1971,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:39.338Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-ddd71c9d71b6af5ebf2e",
+              "file": "filters.spec.ts",
+              "line": 89,
+              "column": 7
+            },
+            {
+              "title": "FILT_09 applying a filter on /jobs/[code] shows only matching applicants; URL reflects state",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2797,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:41.333Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-7a704b96467e420cd307",
+              "file": "filters.spec.ts",
+              "line": 98,
+              "column": 7
+            },
+            {
+              "title": "FILT_10 selecting a job from filter dropdown on /applications shows only that job's applicants",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No job filter dropdown on /applications — only manager and score filters",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\filters.spec.ts",
+                        "line": 109,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 1,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:44.154Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No job filter dropdown on /applications — only manager and score filters",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\filters.spec.ts",
+                            "line": 109,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-305bae8e24dcdcf9dcb2",
+              "file": "filters.spec.ts",
+              "line": 108,
+              "column": 7
+            },
+            {
+              "title": "FILT_11 job filter + status chip together show only applicants matching both; both params in URL",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "No job filter dropdown on /applications",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\filters.spec.ts",
+                        "line": 114,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:44.168Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "No job filter dropdown on /applications",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\filters.spec.ts",
+                            "line": 114,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-e5be5c0cc4a49a3795a9",
+              "file": "filters.spec.ts",
+              "line": 113,
+              "column": 7
+            },
+            {
+              "title": "FILT_12 URL with filters applied loads with same filters in a new tab",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2615,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:44.191Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6174a577dcf149f42c01-57e2f3083b5511aee47d",
+              "file": "filters.spec.ts",
+              "line": 118,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "interviews.spec.ts",
+      "file": "interviews.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Interview Scheduling",
+          "file": "interviews.spec.ts",
+          "line": 27,
+          "column": 6,
+          "specs": [
+            {
+              "title": "INT_01 /interviews loads showing all upcoming interviews",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 735,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:46.847Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-0efec95d2424dae06086",
+              "file": "interviews.spec.ts",
+              "line": 29,
+              "column": 7
+            },
+            {
+              "title": "INT_02 interview row shows candidate name, job title, title, date/time, and interviewers",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Requires a pre-scheduled interview in seeded data",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                        "line": 36,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 1,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:47.602Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Requires a pre-scheduled interview in seeded data",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                            "line": 36,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-c43245f17d4213ad0298",
+              "file": "interviews.spec.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "INT_03 empty state shown when no interviews are scheduled",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 800,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:47.615Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-c63f56aefb676257b732",
+              "file": "interviews.spec.ts",
+              "line": 40,
+              "column": 7
+            },
+            {
+              "title": "INT_04 Schedule Interview button visible when applicant is Shortlisted or Reviewing",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1679,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:48.434Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-cb015899e5b04b1b8921",
+              "file": "interviews.spec.ts",
+              "line": 49,
+              "column": 7
+            },
+            {
+              "title": "INT_05 clicking Schedule Interview opens modal with title, duration, location, interviewers fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2165,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:50.139Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-b78d5f898bfca8e9c769",
+              "file": "interviews.spec.ts",
+              "line": 55,
+              "column": 7
+            },
+            {
+              "title": "INT_06 leaving title blank and clicking Send shows validation error; interview not created",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2269,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:52.324Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-a2f2e9be328ded66a39c",
+              "file": "interviews.spec.ts",
+              "line": 71,
+              "column": 7
+            },
+            {
+              "title": "INT_07 selected date and time appears correctly in the modal form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2121,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:54.615Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-d1b81f14138a6cc7a4a2",
+              "file": "interviews.spec.ts",
+              "line": 86,
+              "column": 7
+            },
+            {
+              "title": "INT_08 duration dropdown shows options: 30 min, 45 min, 60 min, 90 min",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2179,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:56.753Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-10f4446d0d2b6303a2f2",
+              "file": "interviews.spec.ts",
+              "line": 100,
+              "column": 7
+            },
+            {
+              "title": "INT_09 selecting interviewers from the list shows them in the form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Requires manager-role users seeded in the test DB",
+                      "location": {
+                        "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                        "line": 116,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 1,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:58.949Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Requires manager-role users seeded in the test DB",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                            "line": 116,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-b0f0d351c811b1fa2fcd",
+              "file": "interviews.spec.ts",
+              "line": 115,
+              "column": 7
+            },
+            {
+              "title": "INT_10 office location or video meeting URL input accepted without errors",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2458,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:20:58.962Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-a9e63ccd114059458543",
+              "file": "interviews.spec.ts",
+              "line": 120,
+              "column": 7
+            },
+            {
+              "title": "INT_11 email preview shows correctly formatted invitation with candidate name and details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3190,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:21:01.447Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-439c29a72ced71632984",
+              "file": "interviews.spec.ts",
+              "line": 137,
+              "column": 7
+            },
+            {
+              "title": "INT_15 cancelling the modal does not create an interview; status unchanged",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2164,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-29T08:21:04.658Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae62fbafe590b8115b25-97634be2f39d1d865d90",
+              "file": "interviews.spec.ts",
+              "line": 168,
+              "column": 7
+            }
+          ],
+          "suites": [
+            {
+              "title": "full scheduling flow",
+              "file": "interviews.spec.ts",
+              "line": 180,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "INT_12 filling all fields and clicking Send creates interview; modal closes; status updates to Interview Scheduled",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Skipped: sends real email to interviewer and is destructive — status cannot be reset via API",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                            "line": 185,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 157,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-29T08:21:06.837Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Skipped: sends real email to interviewer and is destructive — status cannot be reset via API",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                                "line": 185,
+                                "column": 12
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "ae62fbafe590b8115b25-f6147d71b029bbfc30c7",
+                  "file": "interviews.spec.ts",
+                  "line": 184,
+                  "column": 9
+                },
+                {
+                  "title": "INT_13 interview card shown in Interviews section after scheduling",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Depends on INT_12 completing the email send — requires Resend to be functional",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                            "line": 221,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 1,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-29T08:21:07.010Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Depends on INT_12 completing the email send — requires Resend to be functional",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                                "line": 221,
+                                "column": 12
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "ae62fbafe590b8115b25-ce33396816698d7749d3",
+                  "file": "interviews.spec.ts",
+                  "line": 220,
+                  "column": 9
+                },
+                {
+                  "title": "INT_14 applicant status badge changes to Interview Scheduled after scheduling",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Depends on INT_12 completing the email send — requires Resend to be functional",
+                          "location": {
+                            "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                            "line": 226,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 1,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-05-29T08:21:07.023Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Depends on INT_12 completing the email send — requires Resend to be functional",
+                              "location": {
+                                "file": "D:\\chitu\\yuvabe\\yuvabe-people\\tests\\e2e\\interviews.spec.ts",
+                                "line": 226,
+                                "column": 12
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "ae62fbafe590b8115b25-35f191ca5d3beb638034",
+                  "file": "interviews.spec.ts",
+                  "line": 225,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-05-29T08:20:15.857Z",
+    "duration": 51354.746,
+    "expected": 26,
+    "skipped": 17,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
