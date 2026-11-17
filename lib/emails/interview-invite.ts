@@ -114,7 +114,7 @@ function emailShell(bodyContent: string): string {
 
     <!-- Header -->
     <div style="background:#ffffff;padding:20px 32px;border-radius:4px 4px 0 0;border-bottom:1px solid #E5E0D5;">
-      <img src="https://yuvabe-ats.vercel.app/assests/yuvabe.png" alt="Yuvabe" height="40" style="display:block;object-fit:contain;" />
+      <img src="https://yuvabe-ats-hr.vercel.app/assests/yuvabe.png" alt="Yuvabe" height="40" style="display:block;object-fit:contain;" />
     </div>
 
     <!-- Body -->

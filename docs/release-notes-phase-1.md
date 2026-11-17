@@ -15,7 +15,7 @@ Phase 1 delivers the core HR hiring workflow — from creating a job opening to 
 
 ## Access
 
-**App URL:** [https://yuvabe-ats.vercel.app/jobs](https://yuvabe-ats.vercel.app/jobs)
+**App URL:** [https://yuvabe-ats-hr.vercel.app/jobs](https://yuvabe-ats-hr.vercel.app/jobs)
 
 **Login Credentials**
 
@@ -152,7 +152,7 @@ Sharing the Phase 1 release for **Yuvabe People — HR Candidate Management Syst
 Please find the release notes and walkthrough document below:
 [Yuvabe People — Phase 1 Release Notes](https://docs.google.com/document/d/1aAs2M-6MwqbH5at3Z2BWlJzw2xhQ1gn_mt-5t1iBa94/edit?usp=sharing)
 
-**App URL:** [https://yuvabe-ats.vercel.app/jobs](https://yuvabe-ats.vercel.app/jobs)
+**App URL:** [https://yuvabe-ats-hr.vercel.app/jobs](https://yuvabe-ats-hr.vercel.app/jobs)
 
 **Login Credentials**
 

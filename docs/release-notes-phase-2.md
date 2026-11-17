@@ -19,7 +19,7 @@ For reference, see the [Phase 1 Release Notes](https://docs.google.com/document/
 
 ## Access
 
-**App URL:** [https://yuvabe-ats.vercel.app/jobs](https://yuvabe-ats.vercel.app/jobs)
+**App URL:** [https://yuvabe-ats-hr.vercel.app/jobs](https://yuvabe-ats-hr.vercel.app/jobs)
 
 **Role-based Login Credentials**
 
